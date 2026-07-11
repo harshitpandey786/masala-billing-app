@@ -30,10 +30,11 @@ function priceLine(code, qty, unit, rateCard) {
  * @param {object} [options]
  * @param {Object<string, number>} [options.overrides] - qty overrides keyed by ingredient code, for rows already in the recipe
  * @param {Array<{code: string, qty: number, unit?: 'g'|'piece'}>} [options.additions] - new ingredient rows not in the base recipe (e.g. extra chilies)
+ * @param {number} [options.makingChargeOverride] - operator-edited making charge; takes precedence over the fixed/weight-based default
  * @param {object} [options.config] - pricing config to use instead of the bundled default (mainly for tests)
  */
 export function priceRecipe(recipeKey, options = {}) {
-  const { overrides = {}, additions = [], config = defaultConfig } = options;
+  const { overrides = {}, additions = [], makingChargeOverride, config = defaultConfig } = options;
 
   const recipe = config.recipes[recipeKey];
   if (!recipe) {
@@ -75,7 +76,16 @@ export function priceRecipe(recipeKey, options = {}) {
 
   const ingredientsSubtotal = lineItems.reduce((sum, line) => sum + line.amount, 0);
   const totalWeightG = lineItems.reduce((sum, line) => sum + (line.unit === 'g' ? line.qty : 0), 0);
-  const makingCharge = roundRupee((totalWeightG / 1000) * config.making_charge_per_kg);
+
+  let makingCharge;
+  if (makingChargeOverride != null) {
+    makingCharge = roundRupee(makingChargeOverride);
+  } else if (config.fixed_making_charges?.[recipeKey] != null) {
+    makingCharge = roundRupee(config.fixed_making_charges[recipeKey]);
+  } else {
+    makingCharge = roundRupee((totalWeightG / 1000) * config.making_charge_per_kg);
+  }
+
   const total = ingredientsSubtotal + makingCharge;
 
   return { recipeKey, lineItems, totalWeightG, ingredientsSubtotal, makingCharge, total };

@@ -7,8 +7,8 @@ test('malvani_1_25: full base-recipe totals match hand calculation', () => {
 
   assert.equal(result.totalWeightG, 2285); // sum of all gram-unit qtys, JF pieces excluded
   assert.equal(result.ingredientsSubtotal, 2033); // 2032.5 raw, AKDC's 212.5 rounds up to 213
-  assert.equal(result.makingCharge, 229); // 2285g -> 2.285kg * Rs100/kg = 228.5, rounds up to 229
-  assert.equal(result.total, 2262);
+  assert.equal(result.makingCharge, 200); // client-fixed rate for malvani_1_25, not weight-derived
+  assert.equal(result.total, 2233);
   assert.equal(result.lineItems.length, 29);
 });
 
@@ -46,17 +46,18 @@ test('JF is priced per piece, not per gram, across all three recipes', () => {
   }
 });
 
-test('making charge for ghati_1_25 and malvani_3 base recipes', () => {
+test('making charge for ghati_1_25 (fixed) and malvani_3 (weight-based fallback)', () => {
   const ghati125 = priceRecipe('ghati_1_25');
   assert.equal(ghati125.totalWeightG, 5055);
-  assert.equal(ghati125.makingCharge, 506); // 505.5 raw, rounds up to 506
+  assert.equal(ghati125.makingCharge, 400); // client-fixed rate for ghati_1_25
 
+  // malvani_3 has no fixed_making_charges entry, so it still falls back to weight-based.
   const malvani3 = priceRecipe('malvani_3');
   assert.equal(malvani3.totalWeightG, 5860);
-  assert.equal(malvani3.makingCharge, 586); // exact, no rounding needed
+  assert.equal(malvani3.makingCharge, 586); // 5.86kg * Rs100/kg, exact
 });
 
-test('overriding an existing ingredient quantity recalculates its amount, weight and making charge', () => {
+test('fixed making charge stays fixed even when ingredient quantities change', () => {
   const base = priceRecipe('malvani_1_25');
   const overridden = priceRecipe('malvani_1_25', { overrides: { GTDC: 750 } });
 
@@ -66,15 +67,22 @@ test('overriding an existing ingredient quantity recalculates its amount, weight
   assert.equal(gtdcNew.amount, 300); // 750g -> 0.75kg * Rs400/kg
 
   assert.equal(overridden.totalWeightG, base.totalWeightG + 250);
-  assert.equal(overridden.makingCharge, 254); // 2535g -> 253.5 raw, rounds up to 254
+  // Making charge does NOT recompute from the new weight -- it's fixed per recipe now.
+  assert.equal(overridden.makingCharge, 200);
   assert.equal(overridden.ingredientsSubtotal, base.ingredientsSubtotal + 100);
-  assert.equal(overridden.total, 2387);
+  assert.equal(overridden.total, 2333);
 
   // line count is unchanged -- overrides adjust existing rows, they don't add new ones
   assert.equal(overridden.lineItems.length, base.lineItems.length);
 });
 
-test('adding a new chili/ingredient line appends a priced row and folds into weight + making charge', () => {
+test('makingChargeOverride lets the operator edit the amount directly, taking precedence over the fixed rate', () => {
+  const result = priceRecipe('malvani_1_25', { makingChargeOverride: 275 });
+  assert.equal(result.makingCharge, 275);
+  assert.equal(result.total, result.ingredientsSubtotal + 275);
+});
+
+test('adding a new chili/ingredient line appends a priced row and folds into weight + subtotal, but not the fixed making charge', () => {
   const base = priceRecipe('malvani_1_25');
   const withAddon = priceRecipe('malvani_1_25', {
     additions: [{ code: 'GPDC', qty: 300 }],
@@ -91,9 +99,9 @@ test('adding a new chili/ingredient line appends a priced row and folds into wei
   assert.equal(gpdc.amount, 108); // 300g -> 0.3kg * Rs360/kg
 
   assert.equal(withAddon.totalWeightG, base.totalWeightG + 300);
-  assert.equal(withAddon.makingCharge, 259); // 2585g -> 258.5 raw, rounds up to 259
+  assert.equal(withAddon.makingCharge, 200); // fixed rate, unaffected by the added weight
   assert.equal(withAddon.ingredientsSubtotal, base.ingredientsSubtotal + 108);
-  assert.equal(withAddon.total, 2400);
+  assert.equal(withAddon.total, 2341);
 });
 
 test('multiple added chilies stay in the order they were added, all after the core chili rows', () => {

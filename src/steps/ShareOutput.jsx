@@ -1,10 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { typeLabel } from '../recipeCatalog.js';
+import pricingConfig from '../../data/pricing-config.json' with { type: 'json' };
+
+const businessInfo = pricingConfig.business_info || {};
 
 function safeFileName(customer) {
   const base = `${customer.name || 'bill'}-${customer.date}`.trim().replace(/\s+/g, '_');
   return `${base}.png`;
+}
+
+// wa.me needs a full international number with no symbols. Indian mobile numbers are
+// entered as 10 digits without a country code, so assume +91 when that's what we see.
+function formatPhoneForWhatsApp(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.length === 10 ? `91${digits}` : digits;
 }
 
 export default function ShareOutput({ customer, bills, onStartOver }) {
@@ -81,9 +92,14 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
 
     // Desktop / unsupported browsers: WhatsApp's web link can't attach a file. Open the
     // chat first (same tick as the click, so the popup blocker doesn't catch it), then
-    // download the image for the operator to attach manually.
+    // download the image for the operator to attach manually. For online orders, open
+    // the chat directly with the customer's own number instead of a blank compose screen.
+    const targetPhone = customer.billingMode === 'online' ? formatPhoneForWhatsApp(customer.phone) : '';
     const message = encodeURIComponent(`${shareText}. Image downloaded — attach it here.`);
-    window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener');
+    const waUrl = targetPhone
+      ? `https://wa.me/${targetPhone}?text=${message}`
+      : `https://wa.me/?text=${message}`;
+    window.open(waUrl, '_blank', 'noopener');
     downloadBlob(imageBlob);
   }
 
@@ -93,6 +109,14 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
       <div className="section-divider" />
 
       <div ref={printRef} className="printable-summary">
+        <div className="bill-letterhead">
+          <img src="/logo-mark.png" alt="Shindraj Masale logo" className="bill-letterhead-logo" />
+          <div>
+            <h2 className="bill-letterhead-title">Shindraj Masale</h2>
+            <p className="bill-letterhead-tagline">चव शिंदेंची, शान महाराष्ट्राची!</p>
+          </div>
+        </div>
+
         <div className="customer-recap">
           <p>
             <strong>{customer.name}</strong> — {customer.phone}
@@ -148,6 +172,13 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
           <div className="grand-total">
             <span>Grand Total</span>
             <span>₹{grandTotal}</span>
+          </div>
+        )}
+
+        {(businessInfo.address || businessInfo.follow_us) && (
+          <div className="bill-footer">
+            {businessInfo.address && <p>{businessInfo.address}</p>}
+            {businessInfo.follow_us && <p>Follow us at: {businessInfo.follow_us}</p>}
           </div>
         )}
       </div>

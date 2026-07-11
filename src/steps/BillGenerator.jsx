@@ -29,10 +29,12 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
   const [additions, setAdditions] = useState([]);
   const [addCode, setAddCode] = useState(addonCodes[0] || '');
   const [addQty, setAddQty] = useState('');
+  const [makingChargeOverride, setMakingChargeOverride] = useState(null);
 
   const result = priceRecipe(orderItem.recipeKey, {
     overrides,
     additions: additions.map(({ code, qty }) => ({ code, qty })),
+    makingChargeOverride: makingChargeOverride != null ? makingChargeOverride : undefined,
   });
 
   function updateOverride(code, rawValue) {
@@ -143,8 +145,19 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
             <td>₹{result.ingredientsSubtotal}</td>
           </tr>
           <tr className="making-charge-row">
-            <td colSpan={2}>Making Charge ({(result.totalWeightG / 1000).toFixed(3)} kg × ₹100/kg)</td>
-            <td>₹{result.makingCharge}</td>
+            <td colSpan={2}>Making Charge</td>
+            <td>
+              ₹
+              <input
+                type="number"
+                min="0"
+                className="making-charge-input"
+                value={result.makingCharge}
+                onChange={(e) =>
+                  setMakingChargeOverride(e.target.value === '' ? 0 : Number(e.target.value))
+                }
+              />
+            </td>
           </tr>
           <tr className="total-row">
             <td colSpan={2}>Total</td>

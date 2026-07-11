@@ -1,4 +1,8 @@
 {
+  "business_info": {
+    "address": "",
+    "follow_us": ""
+  },
   "rate_card": {
     "GTDC": {
       "price_per_kg": 400.0
@@ -576,6 +580,10 @@
     ]
   },
   "making_charge_per_kg": 100,
+  "fixed_making_charges": {
+    "malvani_1_25": 200,
+    "ghati_1_25": 400
+  },
   "likely_addon_ingredient_codes": [
     "GPDC",
     "RPDC",
@@ -589,7 +597,7 @@
   ],
   "notes": {
     "pricing": "Ingredient amount = (qty_g/1000) * price_per_kg, except JF which is qty_piece * price_per_piece.",
-    "making_charge": "making_charge_per_kg * (total_bill_weight_g / 1000), applied per individual bill (per masala type+quantity), not per combined order.",
+    "making_charge": "Recipes listed in fixed_making_charges use that flat rupee amount regardless of weight. Recipes not listed there fall back to making_charge_per_kg * (total_bill_weight_g / 1000). Applied per individual bill (per masala type+quantity), not per combined order. Operator can still edit the amount on the bill screen.",
     "unused_codes_meaning": "Codes present in rate card but not in any recipe by default -- treat as candidates for the 'add ingredient' dropdown (e.g. extra chilies) unless confirmed otherwise."
   }
 }
