@@ -1,0 +1,595 @@
+{
+  "rate_card": {
+    "GTDC": {
+      "price_per_kg": 400.0
+    },
+    "ABDC": {
+      "price_per_kg": 800.0
+    },
+    "AKDC": {
+      "price_per_kg": 850.0
+    },
+    "SKV": {
+      "price_per_kg": 2000.0
+    },
+    "GPDC": {
+      "price_per_kg": 360.0
+    },
+    "Relish": {
+      "price_per_kg": 600.0
+    },
+    "RPDC": {
+      "price_per_kg": 800.0
+    },
+    "DN": {
+      "price_per_kg": 360.0
+    },
+    "HLD": {
+      "price_per_kg": 360.0
+    },
+    "MR": {
+      "price_per_kg": 1500.0
+    },
+    "BDP": {
+      "price_per_kg": 600.0
+    },
+    "JR": {
+      "price_per_kg": 600.0
+    },
+    "KS": {
+      "price_per_kg": 2800.0
+    },
+    "LVG": {
+      "price_per_kg": 2000.0
+    },
+    "DL": {
+      "price_per_kg": 1500.0
+    },
+    "MV": {
+      "price_per_kg": 4000.0
+    },
+    "HV": {
+      "price_per_kg": 5000.0
+    },
+    "TP": {
+      "price_per_kg": 1000.0
+    },
+    "DP": {
+      "price_per_kg": 3000.0
+    },
+    "NKR": {
+      "price_per_kg": 5000.0
+    },
+    "TRP": {
+      "price_per_kg": 3000.0
+    },
+    "JP": {
+      "price_per_kg": 5000.0
+    },
+    "MP": {
+      "price_per_kg": 4000.0
+    },
+    "BDN": {
+      "price_per_kg": 3000.0
+    },
+    "KBCN": {
+      "price_per_kg": 4000.0
+    },
+    "SUT": {
+      "price_per_kg": 800.0
+    },
+    "MEI": {
+      "price_per_kg": 200.0
+    },
+    "KMT": {
+      "price_per_kg": 2000.0
+    },
+    "MORI": {
+      "price_per_kg": 200.0
+    },
+    "HIG": {
+      "price_per_kg": 3000.0
+    },
+    "STI": {
+      "price_per_kg": 400.0
+    },
+    "KOBR": {
+      "price_per_kg": 480.0
+    },
+    "LSN": {
+      "price_per_kg": 260.0
+    },
+    "MIT": {
+      "price_per_kg": 15.0
+    },
+    "KND": {
+      "price_per_kg": 40.0
+    },
+    "OIL": {
+      "price_per_kg": 200.0
+    },
+    "JF": {
+      "price_per_piece": 15.0
+    }
+  },
+  "recipes": {
+    "malvani_1_25": [
+      {
+        "code": "GTDC",
+        "unit": "g",
+        "default_qty": 500.0
+      },
+      {
+        "code": "ABDC",
+        "unit": "g",
+        "default_qty": 500.0
+      },
+      {
+        "code": "AKDC",
+        "unit": "g",
+        "default_qty": 250.0
+      },
+      {
+        "code": "DN",
+        "unit": "g",
+        "default_qty": 250.0
+      },
+      {
+        "code": "HLD",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "MR",
+        "unit": "g",
+        "default_qty": 80.0
+      },
+      {
+        "code": "BDP",
+        "unit": "g",
+        "default_qty": 80.0
+      },
+      {
+        "code": "JR",
+        "unit": "g",
+        "default_qty": 25.0
+      },
+      {
+        "code": "KS",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "LVG",
+        "unit": "g",
+        "default_qty": 25.0
+      },
+      {
+        "code": "DL",
+        "unit": "g",
+        "default_qty": 40.0
+      },
+      {
+        "code": "MV",
+        "unit": "g",
+        "default_qty": 20.0
+      },
+      {
+        "code": "HV",
+        "unit": "g",
+        "default_qty": 20.0
+      },
+      {
+        "code": "TP",
+        "unit": "g",
+        "default_qty": 40.0
+      },
+      {
+        "code": "DP",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "NKR",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "TRP",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "JP",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "MP",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "BDN",
+        "unit": "g",
+        "default_qty": 20.0
+      },
+      {
+        "code": "KBCN",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "JF",
+        "unit": "piece",
+        "default_qty": 2.0
+      },
+      {
+        "code": "SUT",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "MEI",
+        "unit": "g",
+        "default_qty": 25.0
+      },
+      {
+        "code": "KMT",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "MORI",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "HIG",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "STI",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "OIL",
+        "unit": "g",
+        "default_qty": 100.0
+      }
+    ],
+    "malvani_3": [
+      {
+        "code": "GTDC",
+        "unit": "g",
+        "default_qty": 1250.0
+      },
+      {
+        "code": "ABDC",
+        "unit": "g",
+        "default_qty": 1250.0
+      },
+      {
+        "code": "AKDC",
+        "unit": "g",
+        "default_qty": 500.0
+      },
+      {
+        "code": "DN",
+        "unit": "g",
+        "default_qty": 600.0
+      },
+      {
+        "code": "HLD",
+        "unit": "g",
+        "default_qty": 150.0
+      },
+      {
+        "code": "MR",
+        "unit": "g",
+        "default_qty": 240.0
+      },
+      {
+        "code": "BDP",
+        "unit": "g",
+        "default_qty": 240.0
+      },
+      {
+        "code": "JR",
+        "unit": "g",
+        "default_qty": 75.0
+      },
+      {
+        "code": "KS",
+        "unit": "g",
+        "default_qty": 100.0
+      },
+      {
+        "code": "LVG",
+        "unit": "g",
+        "default_qty": 75.0
+      },
+      {
+        "code": "DL",
+        "unit": "g",
+        "default_qty": 120.0
+      },
+      {
+        "code": "MV",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "HV",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "TP",
+        "unit": "g",
+        "default_qty": 120.0
+      },
+      {
+        "code": "DP",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "NKR",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "TRP",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "JP",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "MP",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "BDN",
+        "unit": "g",
+        "default_qty": 60.0
+      },
+      {
+        "code": "KBCN",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "JF",
+        "unit": "piece",
+        "default_qty": 6.0
+      },
+      {
+        "code": "SUT",
+        "unit": "g",
+        "default_qty": 90.0
+      },
+      {
+        "code": "MEI",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "KMT",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "MORI",
+        "unit": "g",
+        "default_qty": 150.0
+      },
+      {
+        "code": "HIG",
+        "unit": "g",
+        "default_qty": 30.0
+      },
+      {
+        "code": "STI",
+        "unit": "g",
+        "default_qty": 150.0
+      },
+      {
+        "code": "OIL",
+        "unit": "g",
+        "default_qty": 300.0
+      }
+    ],
+    "ghati_1_25": [
+      {
+        "code": "GTDC",
+        "unit": "g",
+        "default_qty": 750.0
+      },
+      {
+        "code": "ABDC",
+        "unit": "g",
+        "default_qty": 250.0
+      },
+      {
+        "code": "AKDC",
+        "unit": "g",
+        "default_qty": 250.0
+      },
+      {
+        "code": "DN",
+        "unit": "g",
+        "default_qty": 250.0
+      },
+      {
+        "code": "HLD",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "MR",
+        "unit": "g",
+        "default_qty": 80.0
+      },
+      {
+        "code": "BDP",
+        "unit": "g",
+        "default_qty": 80.0
+      },
+      {
+        "code": "JR",
+        "unit": "g",
+        "default_qty": 125.0
+      },
+      {
+        "code": "KS",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "LVG",
+        "unit": "g",
+        "default_qty": 25.0
+      },
+      {
+        "code": "DL",
+        "unit": "g",
+        "default_qty": 40.0
+      },
+      {
+        "code": "MV",
+        "unit": "g",
+        "default_qty": 20.0
+      },
+      {
+        "code": "HV",
+        "unit": "g",
+        "default_qty": 20.0
+      },
+      {
+        "code": "TP",
+        "unit": "g",
+        "default_qty": 40.0
+      },
+      {
+        "code": "DP",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "NKR",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "TRP",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "JP",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "MP",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "BDN",
+        "unit": "g",
+        "default_qty": 20.0
+      },
+      {
+        "code": "KBCN",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "JF",
+        "unit": "piece",
+        "default_qty": 2.0
+      },
+      {
+        "code": "SUT",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "MEI",
+        "unit": "g",
+        "default_qty": 25.0
+      },
+      {
+        "code": "KMT",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "MORI",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "HIG",
+        "unit": "g",
+        "default_qty": 10.0
+      },
+      {
+        "code": "STI",
+        "unit": "g",
+        "default_qty": 50.0
+      },
+      {
+        "code": "KOBR",
+        "unit": "g",
+        "default_qty": 250.0
+      },
+      {
+        "code": "LSN",
+        "unit": "g",
+        "default_qty": 250.0
+      },
+      {
+        "code": "KND",
+        "unit": "g",
+        "default_qty": 1000.0
+      },
+      {
+        "code": "MIT",
+        "unit": "g",
+        "default_qty": 1000.0
+      },
+      {
+        "code": "OIL",
+        "unit": "g",
+        "default_qty": 250.0
+      }
+    ]
+  },
+  "making_charge_per_kg": 100,
+  "likely_addon_ingredient_codes": [
+    "GPDC",
+    "RPDC",
+    "Relish",
+    "SKV"
+  ],
+  "core_chili_row_codes": [
+    "GTDC",
+    "ABDC",
+    "AKDC"
+  ],
+  "notes": {
+    "pricing": "Ingredient amount = (qty_g/1000) * price_per_kg, except JF which is qty_piece * price_per_piece.",
+    "making_charge": "making_charge_per_kg * (total_bill_weight_g / 1000), applied per individual bill (per masala type+quantity), not per combined order.",
+    "unused_codes_meaning": "Codes present in rate card but not in any recipe by default -- treat as candidates for the 'add ingredient' dropdown (e.g. extra chilies) unless confirmed otherwise."
+  }
+}

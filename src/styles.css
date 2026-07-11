@@ -1,0 +1,411 @@
+:root {
+  --maroon: #7a1f1f;
+  --maroon-dark: #5c1717;
+  --gold: #c9992f;
+  --cream: #f0e4c8;
+  --chili-red: #c41e3a;
+  --text-dark: #3d1414;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--cream);
+  color: var(--text-dark);
+  font-family: 'Inter', 'Poppins', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-shell {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+
+.app-header {
+  background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
+  color: var(--cream);
+  text-align: center;
+  padding: 1.5rem 1rem 1.2rem;
+  margin: 0 -1rem 1.5rem;
+  border-bottom: 4px solid var(--gold);
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+  letter-spacing: 0.02em;
+}
+
+.app-header .tagline {
+  margin: 0.25rem 0 0;
+  color: var(--gold);
+  font-size: 0.9rem;
+}
+
+.step-tracker {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1.5rem;
+  font-size: 0.85rem;
+  flex-wrap: wrap;
+}
+
+.step-tracker li {
+  color: #9a8a6a;
+}
+
+.step-tracker li.active {
+  color: var(--maroon);
+  font-weight: 700;
+}
+
+.step-tracker li.done {
+  color: var(--gold);
+}
+
+.card {
+  background: #fffaf0;
+  border: 1px solid var(--gold);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.card h2 {
+  color: var(--maroon);
+  margin: 0 0 0.25rem;
+}
+
+.card h3 {
+  color: var(--maroon);
+  margin: 1.5rem 0 0.5rem;
+}
+
+.section-divider {
+  border-top: 2px dotted var(--gold);
+  margin-bottom: 1.25rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  align-items: end;
+}
+
+.form-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--maroon-dark);
+}
+
+input,
+select {
+  font: inherit;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--maroon);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--text-dark);
+}
+
+input:focus,
+select:focus {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.form-error {
+  color: var(--chili-red);
+  font-size: 0.85rem;
+}
+
+.hint {
+  color: #8a7a5a;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 0.55rem 1.1rem;
+  border: none;
+}
+
+.btn-primary {
+  background: var(--maroon);
+  color: #fff;
+}
+
+.btn-primary:disabled {
+  background: #b79a9a;
+  cursor: not-allowed;
+}
+
+.btn-primary.btn-accent {
+  background: var(--chili-red);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--maroon);
+  border: 1px solid var(--maroon);
+}
+
+.btn-add {
+  background: var(--gold);
+  color: var(--text-dark);
+  font-weight: 600;
+}
+
+.btn-remove {
+  background: transparent;
+  color: var(--chili-red);
+  padding: 0.1rem 0.4rem;
+  font-size: 0.85rem;
+}
+
+.order-item-list {
+  list-style: none;
+  padding: 0;
+  margin: 1.25rem 0 0;
+}
+
+.order-item-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e5d5b0;
+}
+
+.bill-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.bill-table th {
+  background: var(--maroon);
+  color: var(--gold);
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+}
+
+.bill-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid #e5d5b0;
+}
+
+.bill-table tbody tr:nth-child(even) {
+  background: #f6ead0;
+}
+
+.bill-table input {
+  width: 80px;
+  padding: 0.3rem 0.4rem;
+}
+
+.unit-label {
+  margin-left: 0.35rem;
+  font-size: 0.8rem;
+  color: #8a7a5a;
+}
+
+.added-row td:first-child {
+  font-style: italic;
+}
+
+.subtotal-row td,
+.making-charge-row td {
+  font-weight: 600;
+  background: #f0e0c0;
+}
+
+.total-row td {
+  font-weight: 800;
+  background: var(--gold);
+  color: var(--text-dark);
+}
+
+.add-ingredient-row {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.25rem;
+  align-items: center;
+}
+
+.add-ingredient-row input {
+  width: 110px;
+}
+
+.customer-recap {
+  margin-bottom: 1rem;
+}
+
+.customer-recap p {
+  margin: 0.2rem 0;
+}
+
+.bill-summary-block {
+  margin-bottom: 1.5rem;
+}
+
+.grand-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--maroon);
+  border-top: 3px solid var(--gold);
+  padding-top: 0.75rem;
+  margin-top: 1rem;
+}
+
+.printable-summary {
+  background: var(--cream);
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.image-preview {
+  margin-top: 1.25rem;
+}
+
+.image-preview img {
+  max-width: 100%;
+  border: 2px solid var(--gold);
+  border-radius: 4px;
+  display: block;
+}
+
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Tablet and below */
+@media (max-width: 640px) {
+  .app-shell {
+    padding: 0 0.75rem 2rem;
+  }
+
+  .app-header {
+    padding: 1.1rem 0.75rem 0.9rem;
+    margin: 0 -0.75rem 1.1rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .app-header .tagline {
+    font-size: 0.8rem;
+  }
+
+  .step-tracker {
+    gap: 0.4rem 0.7rem;
+    font-size: 0.75rem;
+    margin-bottom: 1.1rem;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .actions button {
+    flex: 1 1 auto;
+  }
+
+  .add-ingredient-row {
+    flex-wrap: wrap;
+  }
+
+  .add-ingredient-row select,
+  .add-ingredient-row input {
+    flex: 1 1 140px;
+  }
+
+  .add-ingredient-row button {
+    flex: 1 1 100%;
+  }
+
+  .order-item-list li {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .bill-table {
+    font-size: 0.8rem;
+  }
+
+  .bill-table th,
+  .bill-table td {
+    padding: 0.35rem 0.4rem;
+  }
+
+  .bill-table input {
+    width: 60px;
+  }
+
+  .add-ingredient-row input[type='number'] {
+    width: auto;
+  }
+}
+
+/* Phones */
+@media (max-width: 420px) {
+  .app-header h1 {
+    font-size: 1.15rem;
+  }
+
+  .step-tracker {
+    gap: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  .bill-table {
+    font-size: 0.75rem;
+  }
+
+  .bill-table th,
+  .bill-table td {
+    padding: 0.3rem;
+  }
+
+  .bill-table input {
+    width: 52px;
+  }
+
+  .unit-label {
+    display: block;
+    margin-left: 0;
+  }
+}
