@@ -4,8 +4,8 @@
   "description": "Masala billing and order platform for Shindraj Masale",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#f0e4c8",
-  "theme_color": "#7a1f1f",
+  "background_color": "#ffffff",
+  "theme_color": "#6b4226",
   "orientation": "portrait-primary",
   "icons": [
     { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

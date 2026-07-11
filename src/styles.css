@@ -1,10 +1,14 @@
 :root {
-  --maroon: #7a1f1f;
-  --maroon-dark: #5c1717;
-  --gold: #c9992f;
-  --cream: #f0e4c8;
-  --chili-red: #c41e3a;
-  --text-dark: #3d1414;
+  --brown: #6b4226;
+  --brown-dark: #4a2c17;
+  --brown-light: #a9754f;
+  --accent: #8b4513;
+  --white: #ffffff;
+  --surface-tint: #f6f1ea;
+  --border-tint: #e3d5c5;
+  --hint: #8a6f5c;
+  --error: #a13d2f;
+  --text-dark: #2e1b0e;
 }
 
 * {
@@ -19,7 +23,7 @@ html {
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--cream);
+  background: var(--white);
   color: var(--text-dark);
   font-family: 'Inter', 'Poppins', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
@@ -37,11 +41,11 @@ body {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
-  color: var(--cream);
+  background: linear-gradient(180deg, var(--brown) 0%, var(--brown-dark) 100%);
+  color: var(--white);
   padding: max(0.9rem, env(safe-area-inset-top)) 1rem 1rem;
   margin: 0 -1rem 1.5rem;
-  border-bottom: 4px solid var(--gold);
+  border-bottom: 4px solid var(--brown-light);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
@@ -57,7 +61,7 @@ body {
   height: 44px;
   border-radius: 10px;
   background: #fff;
-  border: 1px solid var(--gold);
+  border: 1px solid var(--brown-light);
   flex-shrink: 0;
 }
 
@@ -70,7 +74,7 @@ body {
 
 .app-header .tagline {
   margin: 0.15rem 0 0;
-  color: var(--gold);
+  color: var(--brown-light);
   font-size: 0.85rem;
   text-align: left;
 }
@@ -87,37 +91,37 @@ body {
 }
 
 .step-tracker li {
-  color: #9a8a6a;
+  color: var(--hint);
 }
 
 .step-tracker li.active {
-  color: var(--maroon);
+  color: var(--brown);
   font-weight: 700;
 }
 
 .step-tracker li.done {
-  color: var(--gold);
+  color: var(--brown-light);
 }
 
 .card {
-  background: #fffaf0;
-  border: 1px solid var(--gold);
+  background: var(--white);
+  border: 1px solid var(--brown-light);
   border-radius: 8px;
   padding: 1.5rem;
 }
 
 .card h2 {
-  color: var(--maroon);
+  color: var(--brown);
   margin: 0 0 0.25rem;
 }
 
 .card h3 {
-  color: var(--maroon);
+  color: var(--brown);
   margin: 1.5rem 0 0.5rem;
 }
 
 .section-divider {
-  border-top: 2px dotted var(--gold);
+  border-top: 2px dotted var(--brown-light);
   margin-bottom: 1.25rem;
 }
 
@@ -134,14 +138,14 @@ body {
   gap: 0.3rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--maroon-dark);
+  color: var(--brown-dark);
 }
 
 input,
 select {
   font: inherit;
   padding: 0.5rem 0.6rem;
-  border: 1px solid var(--maroon);
+  border: 1px solid var(--brown);
   border-radius: 4px;
   background: #fff;
   color: var(--text-dark);
@@ -149,17 +153,17 @@ select {
 
 input:focus,
 select:focus {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--brown-light);
   outline-offset: 1px;
 }
 
 .form-error {
-  color: var(--chili-red);
+  color: var(--error);
   font-size: 0.85rem;
 }
 
 .hint {
-  color: #8a7a5a;
+  color: var(--hint);
   font-size: 0.9rem;
 }
 
@@ -179,34 +183,34 @@ button {
 }
 
 .btn-primary {
-  background: var(--maroon);
+  background: var(--brown);
   color: #fff;
 }
 
 .btn-primary:disabled {
-  background: #b79a9a;
+  background: #cbb7a4;
   cursor: not-allowed;
 }
 
 .btn-primary.btn-accent {
-  background: var(--chili-red);
+  background: var(--accent);
 }
 
 .btn-secondary {
   background: transparent;
-  color: var(--maroon);
-  border: 1px solid var(--maroon);
+  color: var(--brown);
+  border: 1px solid var(--brown);
 }
 
 .btn-add {
-  background: var(--gold);
+  background: var(--brown-light);
   color: var(--text-dark);
   font-weight: 600;
 }
 
 .btn-remove {
   background: transparent;
-  color: var(--chili-red);
+  color: var(--error);
   padding: 0.1rem 0.4rem;
   font-size: 0.85rem;
 }
@@ -222,7 +226,7 @@ button {
   justify-content: space-between;
   align-items: center;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #e5d5b0;
+  border-bottom: 1px solid var(--border-tint);
 }
 
 .bill-table {
@@ -233,19 +237,19 @@ button {
 }
 
 .bill-table th {
-  background: var(--maroon);
-  color: var(--gold);
+  background: var(--brown);
+  color: var(--white);
   text-align: left;
   padding: 0.5rem 0.6rem;
 }
 
 .bill-table td {
   padding: 0.4rem 0.6rem;
-  border-bottom: 1px solid #e5d5b0;
+  border-bottom: 1px solid var(--border-tint);
 }
 
 .bill-table tbody tr:nth-child(even) {
-  background: #f6ead0;
+  background: var(--surface-tint);
 }
 
 .bill-table input {
@@ -256,7 +260,7 @@ button {
 .unit-label {
   margin-left: 0.35rem;
   font-size: 0.8rem;
-  color: #8a7a5a;
+  color: var(--hint);
 }
 
 .added-row td:first-child {
@@ -266,12 +270,12 @@ button {
 .subtotal-row td,
 .making-charge-row td {
   font-weight: 600;
-  background: #f0e0c0;
+  background: var(--border-tint);
 }
 
 .total-row td {
   font-weight: 800;
-  background: var(--gold);
+  background: var(--brown-light);
   color: var(--text-dark);
 }
 
@@ -303,14 +307,14 @@ button {
   justify-content: space-between;
   font-size: 1.2rem;
   font-weight: 800;
-  color: var(--maroon);
-  border-top: 3px solid var(--gold);
+  color: var(--brown);
+  border-top: 3px solid var(--brown-light);
   padding-top: 0.75rem;
   margin-top: 1rem;
 }
 
 .printable-summary {
-  background: var(--cream);
+  background: var(--white);
   padding: 1rem;
   border-radius: 4px;
 }
@@ -321,7 +325,7 @@ button {
 
 .image-preview img {
   max-width: 100%;
-  border: 2px solid var(--gold);
+  border: 2px solid var(--brown-light);
   border-radius: 4px;
   display: block;
 }
