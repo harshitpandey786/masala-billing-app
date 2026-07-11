@@ -50,15 +50,27 @@ export function priceRecipe(recipeKey, options = {}) {
     );
   }
 
-  const lineItems = recipe.map((ing) => {
-    const qty = overrides[ing.code] != null ? overrides[ing.code] : ing.default_qty;
-    return priceLine(ing.code, qty, ing.unit, rateCard);
-  });
+  const additionLines = additions
+    .filter((addition) => addition.qty != null && addition.qty > 0)
+    .map((addition) => priceLine(addition.code, addition.qty, addition.unit || 'g', rateCard));
 
-  for (const addition of additions) {
-    if (addition.qty == null || addition.qty <= 0) continue;
-    const unit = addition.unit || 'g';
-    lineItems.push(priceLine(addition.code, addition.qty, unit, rateCard));
+  // Added chilies go right after the core chili rows (GTDC/ABDC/AKDC), not at the
+  // end of the bill -- matches the physical prep sequence the row order must follow.
+  const coreChiliCodes = config.core_chili_row_codes || [];
+  const lastCoreChiliCode = coreChiliCodes[coreChiliCodes.length - 1];
+
+  const lineItems = [];
+  let additionsInserted = additionLines.length === 0;
+  for (const ing of recipe) {
+    const qty = overrides[ing.code] != null ? overrides[ing.code] : ing.default_qty;
+    lineItems.push(priceLine(ing.code, qty, ing.unit, rateCard));
+    if (!additionsInserted && ing.code === lastCoreChiliCode) {
+      lineItems.push(...additionLines);
+      additionsInserted = true;
+    }
+  }
+  if (!additionsInserted) {
+    lineItems.push(...additionLines);
   }
 
   const ingredientsSubtotal = lineItems.reduce((sum, line) => sum + line.amount, 0);

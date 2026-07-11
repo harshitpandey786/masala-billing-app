@@ -1,8 +1,28 @@
 import { useState } from 'react';
 import { priceRecipe } from '../pricing-engine.js';
-import { getAddonIngredientCodes, typeLabel } from '../recipeCatalog.js';
+import { getAddonIngredientCodes, getCoreChiliRowCodes, typeLabel } from '../recipeCatalog.js';
 
 const addonCodes = getAddonIngredientCodes();
+const coreChiliCodes = getCoreChiliRowCodes();
+
+function BaseLineRow({ line, overrides, onChangeQty }) {
+  return (
+    <tr>
+      <td>{line.code}</td>
+      <td>
+        <input
+          type="number"
+          min="0"
+          step={line.unit === 'piece' ? 1 : 'any'}
+          value={overrides[line.code] != null ? overrides[line.code] : line.qty}
+          onChange={(e) => onChangeQty(line.code, e.target.value)}
+        />
+        <span className="unit-label">{line.unit === 'piece' ? 'pcs' : 'g'}</span>
+      </td>
+      <td>₹{line.amount}</td>
+    </tr>
+  );
+}
 
 export default function BillGenerator({ orderItem, itemNumber, itemCount, onConfirm }) {
   const [overrides, setOverrides] = useState({});
@@ -59,6 +79,15 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
   const baseLines = result.lineItems.filter((l) => !additionCodes.has(l.code));
   const addedLines = result.lineItems.filter((l) => additionCodes.has(l.code));
 
+  // Render added chilies right after the core chili rows (GTDC/ABDC/AKDC), matching
+  // where the pricing engine places them in the confirmed bill / shared image.
+  const lastCoreChiliIdx = baseLines.reduce(
+    (idx, line, i) => (coreChiliCodes.includes(line.code) ? i : idx),
+    -1
+  );
+  const linesBeforeAdditions = baseLines.slice(0, lastCoreChiliIdx + 1);
+  const linesAfterAdditions = baseLines.slice(lastCoreChiliIdx + 1);
+
   return (
     <section className="card">
       <h2>
@@ -76,21 +105,8 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
           </tr>
         </thead>
         <tbody>
-          {baseLines.map((line) => (
-            <tr key={line.code}>
-              <td>{line.code}</td>
-              <td>
-                <input
-                  type="number"
-                  min="0"
-                  step={line.unit === 'piece' ? 1 : 'any'}
-                  value={overrides[line.code] != null ? overrides[line.code] : line.qty}
-                  onChange={(e) => updateOverride(line.code, e.target.value)}
-                />
-                <span className="unit-label">{line.unit === 'piece' ? 'pcs' : 'g'}</span>
-              </td>
-              <td>₹{line.amount}</td>
-            </tr>
+          {linesBeforeAdditions.map((line) => (
+            <BaseLineRow key={line.code} line={line} overrides={overrides} onChangeQty={updateOverride} />
           ))}
 
           {additions.map((addition) => {
@@ -117,6 +133,10 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
               </tr>
             );
           })}
+
+          {linesAfterAdditions.map((line) => (
+            <BaseLineRow key={line.code} line={line} overrides={overrides} onChangeQty={updateOverride} />
+          ))}
 
           <tr className="subtotal-row">
             <td colSpan={2}>Ingredients Subtotal</td>

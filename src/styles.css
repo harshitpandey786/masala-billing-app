@@ -11,12 +11,20 @@
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+  overscroll-behavior-y: none;
+}
+
 body {
   margin: 0;
+  min-height: 100%;
   background: var(--cream);
   color: var(--text-dark);
   font-family: 'Inter', 'Poppins', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .app-shell {
@@ -26,24 +34,45 @@ body {
 }
 
 .app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   background: linear-gradient(180deg, var(--maroon) 0%, var(--maroon-dark) 100%);
   color: var(--cream);
-  text-align: center;
-  padding: 1.5rem 1rem 1.2rem;
+  padding: max(0.9rem, env(safe-area-inset-top)) 1rem 1rem;
   margin: 0 -1rem 1.5rem;
   border-bottom: 4px solid var(--gold);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.app-logo {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid var(--gold);
+  flex-shrink: 0;
 }
 
 .app-header h1 {
   margin: 0;
-  font-size: 1.6rem;
+  font-size: 1.5rem;
   letter-spacing: 0.02em;
+  text-align: left;
 }
 
 .app-header .tagline {
-  margin: 0.25rem 0 0;
+  margin: 0.15rem 0 0;
   color: var(--gold);
-  font-size: 0.9rem;
+  font-size: 0.85rem;
+  text-align: left;
 }
 
 .step-tracker {
@@ -309,8 +338,14 @@ button {
   }
 
   .app-header {
-    padding: 1.1rem 0.75rem 0.9rem;
+    padding: max(0.8rem, env(safe-area-inset-top)) 0.75rem 0.9rem;
     margin: 0 -0.75rem 1.1rem;
+  }
+
+  .app-logo {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
   }
 
   .app-header h1 {
@@ -405,7 +440,7 @@ button {
   }
 
   .unit-label {
-    display: block;
-    margin-left: 0;
+    margin-left: 0.25rem;
+    font-size: 0.7rem;
   }
 }

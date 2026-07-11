@@ -81,7 +81,12 @@ test('adding a new chili/ingredient line appends a priced row and folds into wei
   });
 
   assert.equal(withAddon.lineItems.length, base.lineItems.length + 1);
-  const gpdc = withAddon.lineItems.at(-1);
+  // Added chilies land right after the 3 core chili rows (GTDC/ABDC/AKDC), not at the end.
+  assert.deepEqual(
+    withAddon.lineItems.map((l) => l.code).slice(0, 5),
+    ['GTDC', 'ABDC', 'AKDC', 'GPDC', 'DN']
+  );
+  const gpdc = withAddon.lineItems[3];
   assert.equal(gpdc.code, 'GPDC');
   assert.equal(gpdc.amount, 108); // 300g -> 0.3kg * Rs360/kg
 
@@ -89,6 +94,19 @@ test('adding a new chili/ingredient line appends a priced row and folds into wei
   assert.equal(withAddon.makingCharge, 259); // 2585g -> 258.5 raw, rounds up to 259
   assert.equal(withAddon.ingredientsSubtotal, base.ingredientsSubtotal + 108);
   assert.equal(withAddon.total, 2400);
+});
+
+test('multiple added chilies stay in the order they were added, all after the core chili rows', () => {
+  const result = priceRecipe('malvani_1_25', {
+    additions: [
+      { code: 'GPDC', qty: 300 },
+      { code: 'RPDC', qty: 150 },
+    ],
+  });
+  assert.deepEqual(
+    result.lineItems.map((l) => l.code).slice(0, 6),
+    ['GTDC', 'ABDC', 'AKDC', 'GPDC', 'RPDC', 'DN']
+  );
 });
 
 test('a zero or negative quantity addition is skipped rather than priced', () => {

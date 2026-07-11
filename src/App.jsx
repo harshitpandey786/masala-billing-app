@@ -43,8 +43,13 @@ export default function App() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <h1>Shindraj Masale</h1>
-        <p className="tagline">चव शिंदेंची, शान महाराष्ट्राची!</p>
+        <div className="app-header-inner">
+          <img src="/logo-mark.png" alt="Shindraj Masale logo" className="app-logo" />
+          <div>
+            <h1>Shindraj Masale</h1>
+            <p className="tagline">चव शिंदेंची, शान महाराष्ट्राची!</p>
+          </div>
+        </div>
       </header>
 
       <ol className="step-tracker">

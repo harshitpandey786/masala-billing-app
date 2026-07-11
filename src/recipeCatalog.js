@@ -25,3 +25,7 @@ export function typeLabel(type) {
 export function getAddonIngredientCodes(config = defaultConfig) {
   return config.likely_addon_ingredient_codes || [];
 }
+
+export function getCoreChiliRowCodes(config = defaultConfig) {
+  return config.core_chili_row_codes || [];
+}
