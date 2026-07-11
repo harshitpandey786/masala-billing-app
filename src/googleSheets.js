@@ -32,11 +32,17 @@ export async function logOrderToSheet(customer, bills) {
     // Apps Script Web Apps don't return proper CORS headers for readable responses,
     // so this is sent as a no-cors fire-and-forget beacon -- we can't read the result,
     // only confirm the request went out.
+    //
+    // The JSON is sent as a url-encoded form field (not a raw JSON body) because
+    // Google's Web App proxy unpredictably 404s on POST bodies that start with "{" --
+    // confirmed by direct testing against the deployed script. Form-encoded bodies
+    // don't hit that issue, and URLSearchParams keeps this preflight-free too.
+    const body = new URLSearchParams();
+    body.set('payload', JSON.stringify({ rows }));
     await fetch(WEBHOOK_URL, {
       method: 'POST',
       mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify({ rows }),
+      body,
     });
   } catch (err) {
     console.error('Failed to log order to Google Sheets', err);

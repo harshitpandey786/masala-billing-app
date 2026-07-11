@@ -80,9 +80,25 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
   function handleShare() {
     if (!imageBlob) return;
 
-    const file = new File([imageBlob], fileName, { type: 'image/png' });
     const shareText = `Shindraj Masale bill for ${customer.name} (${customer.date}) — Total ₹${grandTotal}`;
+    const targetPhone = customer.billingMode === 'online' ? formatPhoneForWhatsApp(customer.phone) : '';
 
+    if (targetPhone) {
+      // Online orders always open the customer's own chat directly -- that's the whole
+      // point for this billing mode. WhatsApp's web link can only pre-fill text, not
+      // attach a file (no website can both target a specific contact AND auto-attach an
+      // image -- that's a WhatsApp/OS restriction, not something this app can route
+      // around), so the image downloads at the same time for a quick manual attach in
+      // the chat that's now already open.
+      const message = encodeURIComponent(`${shareText}. Bill image downloaded — attach it here.`);
+      window.open(`https://wa.me/${targetPhone}?text=${message}`, '_blank', 'noopener');
+      downloadBlob(imageBlob);
+      return;
+    }
+
+    // Offline orders (or no phone on file) have no specific chat to target, so prefer
+    // the native share sheet when it can attach the image directly.
+    const file = new File([imageBlob], fileName, { type: 'image/png' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       navigator.share({ files: [file], title: 'Shindraj Masale Bill', text: shareText }).catch((err) => {
         if (err.name !== 'AbortError') console.error('Share failed', err);
@@ -90,16 +106,8 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
       return;
     }
 
-    // Desktop / unsupported browsers: WhatsApp's web link can't attach a file. Open the
-    // chat first (same tick as the click, so the popup blocker doesn't catch it), then
-    // download the image for the operator to attach manually. For online orders, open
-    // the chat directly with the customer's own number instead of a blank compose screen.
-    const targetPhone = customer.billingMode === 'online' ? formatPhoneForWhatsApp(customer.phone) : '';
-    const message = encodeURIComponent(`${shareText}. Image downloaded — attach it here.`);
-    const waUrl = targetPhone
-      ? `https://wa.me/${targetPhone}?text=${message}`
-      : `https://wa.me/?text=${message}`;
-    window.open(waUrl, '_blank', 'noopener');
+    const message = encodeURIComponent(`${shareText}. Bill image downloaded — attach it here.`);
+    window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener');
     downloadBlob(imageBlob);
   }
 

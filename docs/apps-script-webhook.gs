@@ -5,7 +5,10 @@
  */
 function doPost(e) {
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-  var payload = JSON.parse(e.postData.contents);
+  // Sent as a url-encoded form field (not a raw JSON body) -- Google's Web App
+  // proxy unpredictably 404s on POST bodies that start with "{", form-encoded
+  // bodies don't have that problem.
+  var payload = JSON.parse(e.parameter.payload);
   var rows = payload.rows || [];
 
   rows.forEach(function (row) {
