@@ -1,6 +1,7 @@
 :root {
-  --brown: #6b4226;
-  --brown-dark: #4a2c17;
+  /* Sampled directly from the brand logo's medallion (mandala-pattern red). */
+  --brown: #ab372f;
+  --brown-dark: #7a2620;
   --brown-light: #a9754f;
   --accent: #8b4513;
   --white: #ffffff;
