@@ -14,6 +14,7 @@ export default function App() {
     name: '',
     phone: '',
     area: '',
+    pocName: '',
     billingMode: 'online',
     store: '',
     date: todayISO(),
@@ -24,7 +25,15 @@ export default function App() {
 
   function handleStartOver() {
     setStep('customer');
-    setCustomer({ name: '', phone: '', area: '', billingMode: 'online', store: '', date: todayISO() });
+    setCustomer({
+      name: '',
+      phone: '',
+      area: '',
+      pocName: '',
+      billingMode: 'online',
+      store: '',
+      date: todayISO(),
+    });
     setOrderItems([]);
     setBillIndex(0);
     setBills([]);

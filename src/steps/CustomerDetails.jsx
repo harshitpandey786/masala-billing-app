@@ -1,5 +1,7 @@
 import { useState } from 'react';
 
+const POC_OPTIONS = ['Sachin', 'Bhaskar', 'Sanket', 'Shreyash', 'Suvarna', 'Rampal', 'Sonu'];
+
 export default function CustomerDetails({ customer, onChange, onNext }) {
   const [touched, setTouched] = useState(false);
 
@@ -7,6 +9,7 @@ export default function CustomerDetails({ customer, onChange, onNext }) {
     customer.name.trim() &&
     customer.phone.trim() &&
     customer.area.trim() &&
+    customer.pocName &&
     (customer.billingMode === 'online' || customer.store);
 
   function update(field, value) {
@@ -52,6 +55,18 @@ export default function CustomerDetails({ customer, onChange, onNext }) {
             onChange={(e) => update('area', e.target.value)}
             placeholder="e.g. Lalbaug, Mumbai"
           />
+        </label>
+
+        <label>
+          Bill Made By (POC)
+          <select value={customer.pocName} onChange={(e) => update('pocName', e.target.value)}>
+            <option value="">Select POC</option>
+            {POC_OPTIONS.map((name) => (
+              <option key={name} value={name}>
+                {name}
+              </option>
+            ))}
+          </select>
         </label>
 
         <label>

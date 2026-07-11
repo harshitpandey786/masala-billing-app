@@ -101,6 +101,7 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
             {customer.area} · {customer.date} ·{' '}
             {customer.billingMode === 'online' ? 'Online' : `Offline (${typeLabel(customer.store)})`}
           </p>
+          <p>Bill made by: {customer.pocName}</p>
         </div>
 
         {bills.map((bill, i) => (
