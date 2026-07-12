@@ -23,19 +23,24 @@ with existing rows.
      the `bills` table explicitly.
 4. Create the project and wait for provisioning (~2 minutes).
 
-## 2. Create the `bills` and `bill_line_items` tables
+## 2. Create the `bills` table
 
-`bills` holds one row per confirmed bill (customer + order summary).
-`bill_line_items` holds one row per ingredient on that bill (code, quantity,
-amount), linked back via `bill_id` -- so the full masala + ingredient
-breakdown for every order is queryable, not just the totals.
+One row per confirmed bill (customer + order summary), with its full
+ingredient breakdown (code, quantity, unit, amount) nested as JSON in the
+`line_items` column -- so the table stays one-row-per-bill and easy to scan
+in the Table Editor, while still capturing every ingredient on the bill.
+
+(An earlier version of this used a second `bill_line_items` table with one
+row per ingredient. That's a more "correct" relational design for
+aggregating across bills in SQL, but it's harder to browse directly --
+JSON-per-bill won this tradeoff for how this data actually gets used.)
 
 1. In the project, open the **SQL Editor** (left sidebar).
 2. Paste and run this:
 
 ```sql
 create table public.bills (
-  id uuid primary key,
+  id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
   order_date date not null,
   customer_name text not null,
@@ -48,21 +53,11 @@ create table public.bills (
   quantity_kg text,
   ingredients_subtotal numeric,
   making_charge numeric,
-  total numeric
-);
-
-create table public.bill_line_items (
-  id uuid primary key default gen_random_uuid(),
-  bill_id uuid not null references public.bills(id) on delete cascade,
-  code text not null,
-  qty numeric not null,
-  unit text not null,
-  amount numeric not null,
-  line_order integer not null
+  total numeric,
+  line_items jsonb
 );
 
 alter table public.bills enable row level security;
-alter table public.bill_line_items enable row level security;
 
 create policy "Allow anonymous inserts"
   on public.bills
@@ -70,29 +65,33 @@ create policy "Allow anonymous inserts"
   to anon
   with check (true);
 
-create policy "Allow anonymous inserts"
-  on public.bill_line_items
-  for insert
-  to anon
-  with check (true);
-
 -- Needed because "Automatically expose new tables" is off: RLS policies
 -- control which rows are visible/writable, but the anon role still needs
--- this base grant before it can touch either table via the API at all.
+-- this base grant before it can touch the table via the API at all.
 grant usage on schema public to anon;
 grant insert on public.bills to anon;
-grant insert on public.bill_line_items to anon;
 ```
 
-`bills.id` has no default -- the app generates the UUID client-side and sends
-it explicitly, so it can insert the matching `bill_line_items` rows in the
-same round trip without needing to read the row back (the anon key only has
-insert privileges, not select).
+This creates one row per confirmed bill (so a 2-item order writes 2 rows).
+The RLS policy only allows inserting new rows via the public key -- reading
+the data back requires logging into the Supabase dashboard directly.
 
-This creates one `bills` row per confirmed bill (so a 2-item order writes 2
-rows) plus one `bill_line_items` row per ingredient on that bill (~25-30 per
-bill). The RLS policies only allow inserting new rows via the public key --
-reading the data back requires logging into the Supabase dashboard directly.
+### If you already ran the older two-table version
+
+Run this instead to migrate in place (keeps existing rows, just reshapes
+the schema):
+
+```sql
+alter table public.bills add column line_items jsonb;
+alter table public.bills alter column id set default gen_random_uuid();
+drop table public.bill_line_items;
+
+-- Optional: clean up test rows created while verifying the connection
+delete from public.bills where customer_name in (
+  'Test Customer', 'App Flow Test', 'Direct Client Test',
+  'Network Verify Test', 'Fetch Intercept Test'
+);
+```
 
 ## 3. Get the API credentials
 
@@ -118,15 +117,18 @@ Supabase write silently (check the browser console for a one-line warning).
 
 ## Viewing the logged data
 
-Supabase dashboard → **Table Editor** → `bills` or `bill_line_items`. To see
-a bill with its full ingredient breakdown in one place, run a query like:
+Supabase dashboard → **Table Editor** → `bills`. Click a row's `line_items`
+cell to expand the JSON and see that bill's full ingredient breakdown.
+
+To pull out a specific ingredient's quantity across many bills in SQL:
 
 ```sql
-select b.*, li.code, li.qty, li.unit, li.amount, li.line_order
-from public.bills b
-join public.bill_line_items li on li.bill_id = b.id
-order by b.created_at desc, li.line_order;
+select customer_name, order_date, item ->> 'code' as code, item ->> 'qty' as qty
+from public.bills, jsonb_array_elements(line_items) as item
+where item ->> 'code' = 'GTDC'
+order by order_date desc;
 ```
 
-You can also export either table to CSV from the Table Editor, or connect a
-BI/marketing tool directly to the Postgres database if needed later.
+You can also export the table to CSV from the Table Editor (the `line_items`
+column comes through as a JSON string in the CSV), or connect a BI/marketing
+tool directly to the Postgres database if needed later.
