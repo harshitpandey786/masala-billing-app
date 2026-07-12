@@ -3,7 +3,7 @@ import CustomerDetails from './steps/CustomerDetails.jsx';
 import OrderBuilder from './steps/OrderBuilder.jsx';
 import BillGenerator from './steps/BillGenerator.jsx';
 import ShareOutput from './steps/ShareOutput.jsx';
-import { logOrderToSheet } from './googleSheets.js';
+import { logOrderToSupabase } from './orderLogger.js';
 
 const STEPS = ['customer', 'order', 'bill', 'share'];
 
@@ -46,7 +46,7 @@ export default function App() {
     if (billIndex + 1 < orderItems.length) {
       setBillIndex(billIndex + 1);
     } else {
-      logOrderToSheet(customer, nextBills);
+      logOrderToSupabase(customer, nextBills);
       setStep('share');
     }
   }
