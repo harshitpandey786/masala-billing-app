@@ -1,11 +1,16 @@
 # Supabase setup
 
 The billing app has no backend, so it writes completed orders straight to
-Supabase from the browser using the public "anon" key. That's safe here
-because the table only grants that key permission to **insert** rows, not
-read, update, or delete them -- so even though the key is visible in the
-app's shipped JS, it can't be used to read customer data back out or tamper
-with existing rows.
+Supabase from the browser using the public "anon" key.
+
+The app now also ships an **owner dashboard** (`/admin`) that searches past
+orders, which needs that same anon key to be able to *read* rows too (see
+[§6](#6-enable-the-owner-search-dashboard-admin)). Once that's turned on,
+the read access applies to anyone who has the anon key -- which is anyone
+who opens the app, since it ships in the browser JS. The `/admin` password
+only gates the dashboard's UI; it is not a substitute for real row security.
+Treat it as a deterrent against casual snooping, not as protecting the data
+from someone who goes looking for the key in the network tab.
 
 ## 1. Create a Supabase project
 
@@ -107,10 +112,17 @@ Set two environment variables:
   ```
   VITE_SUPABASE_URL=<project URL>
   VITE_SUPABASE_ANON_KEY=<anon key>
+  VITE_ADMIN_PASSWORD=<pick a password for the /admin dashboard>
   ```
   then restart `npm run dev`.
-- **Vercel**: Project → Settings → Environment Variables → add both
-  `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` → redeploy.
+- **Vercel**: Project → Settings → Environment Variables → add
+  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, and `VITE_ADMIN_PASSWORD` →
+  redeploy.
+
+`VITE_ADMIN_PASSWORD` gates the `/admin` search dashboard (see §6). Like the
+other `VITE_`-prefixed variables it ends up in the shipped JS, so pick
+something that keeps out casual lookers rather than something you'd reuse
+anywhere sensitive.
 
 Until both are set, the app runs exactly as before and just skips the
 Supabase write silently (check the browser console for a one-line warning).
@@ -185,3 +197,37 @@ select * from public.bill_ingredients where ingredient_code = 'GTDC';
 You can also connect a BI/marketing tool directly to the Postgres database
 and point it at these views if the client wants something more automated
 than manual CSV exports down the line.
+
+## 6. Enable the owner search dashboard (`/admin`)
+
+The app's `/admin` page lets the owner search every customer's order
+history -- by name or phone, optionally filtered by date -- and see the
+same line-item detail that's on each bill. It reads straight from the
+`bills` table using the anon key, which today can only **insert**. Run this
+once to also let it **read**:
+
+```sql
+create policy "Allow anonymous reads"
+  on public.bills
+  for select
+  to anon
+  using (true);
+
+grant select on public.bills to anon;
+```
+
+Then set `VITE_ADMIN_PASSWORD` as described in §4. Opening `/admin` asks for
+that password before showing anything; it's stored in the browser's session
+storage (cleared when the tab closes) rather than persisted, so it has to be
+re-entered each time the dashboard is opened fresh.
+
+**Security note:** this SELECT policy makes every row in `bills` readable by
+the anon key, which ships in the app's public JS bundle -- the `/admin`
+password is a UI gate, not row-level security. Anyone who extracts the anon
+key from the network tab can query the table directly regardless of the
+password. That's an acceptable tradeoff for a small shop's internal tool,
+but if the data ever needs real protection (hiding it from someone who goes
+looking, not just from accidental stumbling), the fix is to move the search
+behind a server endpoint that checks the password server-side and queries
+with the `service_role` key instead -- ask for that upgrade if it becomes
+necessary.

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { priceRecipe } from '../pricing-engine.js';
-import { getAddonIngredientCodes, getCoreChiliRowCodes, typeLabel } from '../recipeCatalog.js';
+import { getAddonIngredientCodes, getCoreChiliRowCodes } from '../recipeCatalog.js';
+import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 
 const addonCodes = getAddonIngredientCodes();
 const coreChiliCodes = getCoreChiliRowCodes();
@@ -25,6 +26,7 @@ function BaseLineRow({ line, overrides, onChangeQty }) {
 }
 
 export default function BillGenerator({ orderItem, itemNumber, itemCount, onConfirm }) {
+  const { t } = useLanguage();
   const [overrides, setOverrides] = useState({});
   const [additions, setAdditions] = useState([]);
   const [addCode, setAddCode] = useState(addonCodes[0] || '');
@@ -93,7 +95,8 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
   return (
     <section className="card">
       <h2>
-        Bill {itemNumber} of {itemCount} — {typeLabel(orderItem.type)} {orderItem.qtyLabel} kg
+        {t('billTitle')} {itemNumber} {t('of')} {itemCount} — {masalaTypeLabel(t, orderItem.type)}{' '}
+        {orderItem.qtyLabel} kg
       </h2>
       <div className="section-divider" />
 
@@ -101,9 +104,9 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
       <table className="bill-table">
         <thead>
           <tr>
-            <th>Particulars</th>
-            <th>Quantity</th>
-            <th>Amount (₹)</th>
+            <th>{t('particulars')}</th>
+            <th>{t('quantity')}</th>
+            <th>{t('amount')}</th>
           </tr>
         </thead>
         <tbody>
@@ -115,7 +118,9 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
             const line = addedLines.find((l) => l.code === addition.code);
             return (
               <tr key={addition.id} className="added-row">
-                <td>{addition.code} (added)</td>
+                <td>
+                  {addition.code} {t('addedSuffix')}
+                </td>
                 <td>
                   <input
                     type="number"
@@ -141,11 +146,11 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
           ))}
 
           <tr className="subtotal-row">
-            <td colSpan={2}>Ingredients Subtotal</td>
+            <td colSpan={2}>{t('ingredientsSubtotal')}</td>
             <td>₹{result.ingredientsSubtotal}</td>
           </tr>
           <tr className="making-charge-row">
-            <td colSpan={2}>Making Charge</td>
+            <td colSpan={2}>{t('makingCharge')}</td>
             <td>
               ₹
               <input
@@ -160,7 +165,7 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
             </td>
           </tr>
           <tr className="total-row">
-            <td colSpan={2}>Total</td>
+            <td colSpan={2}>{t('total')}</td>
             <td>₹{result.total}</td>
           </tr>
         </tbody>
@@ -178,18 +183,18 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
         <input
           type="number"
           min="0"
-          placeholder="Qty (g)"
+          placeholder={t('qtyGramsPlaceholder')}
           value={addQty}
           onChange={(e) => setAddQty(e.target.value)}
         />
         <button type="button" className="btn-add" onClick={handleAddIngredient}>
-          + Add Chili/Ingredient
+          {t('addChiliIngredient')}
         </button>
       </div>
 
       <div className="actions">
         <button className="btn-primary btn-accent" onClick={handleConfirm}>
-          Confirm Bill
+          {t('confirmBill')}
         </button>
       </div>
     </section>

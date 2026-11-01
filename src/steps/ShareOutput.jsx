@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { typeLabel } from '../recipeCatalog.js';
+import { useLanguage, masalaTypeLabel, storeLabel } from '../i18n.jsx';
 import pricingConfig from '../../data/pricing-config.json' with { type: 'json' };
 
 const businessInfo = pricingConfig.business_info || {};
 
-function safeFileName(customer) {
+function safeFileName(customer, ext) {
   const base = `${customer.name || 'bill'}-${customer.date}`.trim().replace(/\s+/g, '_');
-  return `${base}.png`;
+  return `${base}.${ext}`;
 }
 
 // wa.me needs a full international number with no symbols. Indian mobile numbers are
@@ -19,15 +19,17 @@ function formatPhoneForWhatsApp(phone) {
 }
 
 export default function ShareOutput({ customer, bills, onStartOver }) {
+  const { t } = useLanguage();
   const printRef = useRef(null);
   const imageUrlRef = useRef(null);
   const [status, setStatus] = useState('generating'); // generating | ready | error
   const [imageUrl, setImageUrl] = useState(null);
   const [imageBlob, setImageBlob] = useState(null);
+  const [pdfStatus, setPdfStatus] = useState('idle'); // idle | generating | error
 
   const grandTotal = bills.reduce((sum, b) => sum + b.total, 0);
   const isMultiItem = bills.length > 1;
-  const fileName = safeFileName(customer);
+  const fileName = safeFileName(customer, 'png');
 
   async function generateImage() {
     setStatus('generating');
@@ -62,11 +64,11 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function downloadBlob(blob) {
+  function downloadBlob(blob, name) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = fileName;
+    a.download = name;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -74,7 +76,22 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
   }
 
   function handleDownload() {
-    if (imageBlob) downloadBlob(imageBlob);
+    if (imageBlob) downloadBlob(imageBlob, fileName);
+  }
+
+  async function handleDownloadPdf() {
+    setPdfStatus('generating');
+    try {
+      // Loaded on demand -- jsPDF is only needed for this one action, so it
+      // shouldn't bloat the initial bundle every operator downloads up front.
+      const { nodeToPdfBlob } = await import('../pdfExport.js');
+      const blob = await nodeToPdfBlob(printRef.current);
+      downloadBlob(blob, safeFileName(customer, 'pdf'));
+      setPdfStatus('idle');
+    } catch (err) {
+      console.error('Bill PDF generation failed', err);
+      setPdfStatus('error');
+    }
   }
 
   function handleShare() {
@@ -92,7 +109,7 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
       // the chat that's now already open.
       const message = encodeURIComponent(`${shareText}. Bill image downloaded — attach it here.`);
       window.open(`https://wa.me/${targetPhone}?text=${message}`, '_blank', 'noopener');
-      downloadBlob(imageBlob);
+      downloadBlob(imageBlob, fileName);
       return;
     }
 
@@ -108,20 +125,20 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
 
     const message = encodeURIComponent(`${shareText}. Bill image downloaded — attach it here.`);
     window.open(`https://wa.me/?text=${message}`, '_blank', 'noopener');
-    downloadBlob(imageBlob);
+    downloadBlob(imageBlob, fileName);
   }
 
   return (
     <section className="card">
-      <h2>{isMultiItem ? 'Combined Order Summary' : 'Bill Summary'}</h2>
+      <h2>{isMultiItem ? t('combinedOrderSummary') : t('billSummary')}</h2>
       <div className="section-divider" />
 
       <div ref={printRef} className="printable-summary">
         <div className="bill-letterhead">
           <img src="/logo-mark.png" alt="Shindraj Masale logo" className="bill-letterhead-logo" />
           <div>
-            <h2 className="bill-letterhead-title">Shindraj Masale</h2>
-            <p className="bill-letterhead-tagline">चव शिंदेंची, शान महाराष्ट्राची!</p>
+            <h2 className="bill-letterhead-title">{t('appName')}</h2>
+            <p className="bill-letterhead-tagline">{t('tagline')}</p>
           </div>
         </div>
 
@@ -131,22 +148,24 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
           </p>
           <p>
             {customer.area} · {customer.date} ·{' '}
-            {customer.billingMode === 'online' ? 'Online' : `Offline (${typeLabel(customer.store)})`}
+            {customer.billingMode === 'online' ? t('online') : `${t('offline')} (${storeLabel(t, customer.store)})`}
           </p>
-          <p>Bill made by: {customer.pocName}</p>
+          <p>
+            {t('billMadeByLabel')}: {customer.pocName}
+          </p>
         </div>
 
         {bills.map((bill, i) => (
           <div key={bill.orderItemId} className="bill-summary-block">
             <h3>
-              {i + 1}. {typeLabel(bill.type)} {bill.qtyLabel} kg
+              {i + 1}. {masalaTypeLabel(t, bill.type)} {bill.qtyLabel} kg
             </h3>
             <table className="bill-table">
               <thead>
                 <tr>
-                  <th>Particulars</th>
-                  <th>Quantity</th>
-                  <th>Amount (₹)</th>
+                  <th>{t('particulars')}</th>
+                  <th>{t('quantity')}</th>
+                  <th>{t('amount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -160,15 +179,15 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
                   </tr>
                 ))}
                 <tr className="subtotal-row">
-                  <td colSpan={2}>Ingredients Subtotal</td>
+                  <td colSpan={2}>{t('ingredientsSubtotal')}</td>
                   <td>₹{bill.ingredientsSubtotal}</td>
                 </tr>
                 <tr className="making-charge-row">
-                  <td colSpan={2}>Making Charge</td>
+                  <td colSpan={2}>{t('makingCharge')}</td>
                   <td>₹{bill.makingCharge}</td>
                 </tr>
                 <tr className="total-row">
-                  <td colSpan={2}>Total</td>
+                  <td colSpan={2}>{t('total')}</td>
                   <td>₹{bill.total}</td>
                 </tr>
               </tbody>
@@ -178,7 +197,7 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
 
         {isMultiItem && (
           <div className="grand-total">
-            <span>Grand Total</span>
+            <span>{t('grandTotal')}</span>
             <span>₹{grandTotal}</span>
           </div>
         )}
@@ -186,12 +205,16 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
         {(businessInfo.address || businessInfo.follow_us) && (
           <div className="bill-footer">
             {businessInfo.address && <p>{businessInfo.address}</p>}
-            {businessInfo.follow_us && <p>Follow us at: {businessInfo.follow_us}</p>}
+            {businessInfo.follow_us && (
+              <p>
+                {t('followUsAt')}: {businessInfo.follow_us}
+              </p>
+            )}
           </div>
         )}
       </div>
 
-      {status === 'generating' && <p className="hint">Preparing bill image…</p>}
+      {status === 'generating' && <p className="hint">{t('preparingImage')}</p>}
 
       {status === 'ready' && imageUrl && (
         <div className="image-preview">
@@ -201,22 +224,31 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
 
       {status === 'error' && (
         <div className="image-error">
-          <p className="form-error">Couldn't generate the bill image.</p>
+          <p className="form-error">{t('couldNotGenerateImage')}</p>
           <button className="btn-secondary" onClick={generateImage}>
-            Retry
+            {t('retry')}
           </button>
         </div>
       )}
 
+      {pdfStatus === 'error' && <p className="form-error">{t('couldNotGenerateImage')}</p>}
+
       <div className="actions">
         <button className="btn-secondary" onClick={onStartOver}>
-          Start New Order
+          {t('startNewOrder')}
         </button>
         <button className="btn-secondary" onClick={handleDownload} disabled={status !== 'ready'}>
-          Download Image
+          {t('downloadImage')}
+        </button>
+        <button
+          className="btn-secondary"
+          onClick={handleDownloadPdf}
+          disabled={pdfStatus === 'generating'}
+        >
+          {pdfStatus === 'generating' ? t('preparingPdf') : t('downloadPdf')}
         </button>
         <button className="btn-primary btn-accent" onClick={handleShare} disabled={status !== 'ready'}>
-          Share to WhatsApp
+          {t('shareToWhatsapp')}
         </button>
       </div>
     </section>

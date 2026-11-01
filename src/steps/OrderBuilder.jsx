@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { getRecipeCatalog, typeLabel } from '../recipeCatalog.js';
+import { getRecipeCatalog } from '../recipeCatalog.js';
+import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 
 const catalog = getRecipeCatalog();
 const types = Object.keys(catalog);
 
 export default function OrderBuilder({ orderItems, onChange, onBack, onNext }) {
+  const { t } = useLanguage();
   const [type, setType] = useState(types[0]);
   const [qtyLabel, setQtyLabel] = useState(catalog[types[0]][0].qtyLabel);
 
@@ -33,23 +35,23 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext }) {
 
   return (
     <section className="card">
-      <h2>Order Builder</h2>
+      <h2>{t('orderBuilderTitle')}</h2>
       <div className="section-divider" />
 
       <div className="form-grid">
         <label>
-          Masala Type
+          {t('masalaType')}
           <select value={type} onChange={(e) => handleTypeChange(e.target.value)}>
-            {types.map((t) => (
-              <option key={t} value={t}>
-                {typeLabel(t)}
+            {types.map((ty) => (
+              <option key={ty} value={ty}>
+                {masalaTypeLabel(t, ty)}
               </option>
             ))}
           </select>
         </label>
 
         <label>
-          Quantity (kg)
+          {t('quantityKg')}
           <select value={qtyLabel} onChange={(e) => setQtyLabel(e.target.value)}>
             {catalog[type].map((o) => (
               <option key={o.qtyLabel} value={o.qtyLabel}>
@@ -60,7 +62,7 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext }) {
         </label>
 
         <button type="button" className="btn-add" onClick={handleAdd}>
-          + Add
+          {t('addItem')}
         </button>
       </div>
 
@@ -69,24 +71,24 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext }) {
           {orderItems.map((item, i) => (
             <li key={item.id}>
               <span>
-                {i + 1}. {typeLabel(item.type)} — {item.qtyLabel} kg
+                {i + 1}. {masalaTypeLabel(t, item.type)} — {item.qtyLabel} kg
               </span>
               <button type="button" className="btn-remove" onClick={() => handleRemove(item.id)}>
-                Remove
+                {t('remove')}
               </button>
             </li>
           ))}
         </ul>
       )}
 
-      {orderItems.length === 0 && <p className="hint">No items added yet.</p>}
+      {orderItems.length === 0 && <p className="hint">{t('noItemsYet')}</p>}
 
       <div className="actions">
         <button className="btn-secondary" onClick={onBack}>
-          Back
+          {t('back')}
         </button>
         <button className="btn-primary" disabled={orderItems.length === 0} onClick={onNext}>
-          Generate Bills
+          {t('generateBills')}
         </button>
       </div>
     </section>

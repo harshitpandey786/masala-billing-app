@@ -61,7 +61,36 @@ Derived from the client's price-list poster (शिंदराज मसाल�
 
 ---
 
-## 6. Open Items Before Final Build
+## 6. 2026 Redesign Addendum
+
+Reworked the UI to a "digitized ledger" concept instead of a literal poster
+recreation:
+
+- **Palette:** chili red (`#b5362a`) as the single primary accent (actions,
+  current step, bill-table headers), turmeric gold (`#c98a1f`) reserved for
+  secondary emphasis (making-charge row, completed steps) — both grounded in
+  the shop's own ingredients rather than picked for generic "brand color"
+  reasons. Warm paper (`#faf7f2`) background instead of stark white or the
+  poster's cream, so it still avoids the "AI-generated cream + terracotta"
+  look.
+- **Typography:** one family (Inter, + Noto Sans Devanagari for Marathi)
+  carries headings through data, rather than pairing a separate display
+  face — this is an operate-mode tool (forms, tables, search), not a
+  marketing surface, so a second typeface would add noise without adding
+  clarity.
+- **Layout:** the step tracker became a vertical rail (the register's
+  "spine") instead of horizontal pills; it collapses to a horizontal strip
+  under 760px. The admin search dashboard reads as ledger rows (expandable
+  for line-item detail), not a card grid, to match the same metaphor.
+- **Marathi:** full UI toggle (`src/i18n.js`), default language Marathi,
+  switchable to English. Data entry fields (customer name, area) already
+  accept Marathi input natively via the OS keyboard/IME — no extra work
+  needed there, only the labels/chrome needed translating.
+- **Bill output:** a "Download PDF" option was added alongside the existing
+  WhatsApp image share, for an actual printable document rather than only a
+  PNG.
+
+## 7. Open Items Before Final Build
 
 - Confirm exact brand hex codes / logo files (vector, if available) with the client rather than relying on estimates from the poster photo
 - Confirm whether the store-selector should list all 5 branches or just Lalbaug/Sewri (Shivdi) as originally scoped
