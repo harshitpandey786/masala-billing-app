@@ -654,8 +654,22 @@ button:active {
 
 /* ---------- admin dashboard ---------- */
 
+.admin-dashboard + .admin-dashboard,
+.admin-dashboard + .analytics-card,
+.analytics-card + .admin-dashboard {
+  margin-top: 1.5rem;
+}
+
+.admin-period-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: end;
+}
+
 .admin-dashboard,
-.admin-login-card {
+.admin-login-card,
+.analytics-card {
   background: var(--paper-raised);
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -760,6 +774,144 @@ button:active {
   margin: 0.5rem 0.5rem 0.75rem;
   width: calc(100% - 1rem);
   font-size: 0.85rem;
+}
+
+/* ---------- admin analytics ---------- */
+
+.analytics-kpis {
+  display: flex;
+  gap: 2rem;
+  flex-wrap: wrap;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.stat-positive {
+  color: var(--success);
+}
+
+.stat-negative {
+  color: var(--error);
+}
+
+.analytics-section {
+  margin-top: 1.5rem;
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 2rem;
+}
+
+.analytics-grid .analytics-section {
+  margin-top: 0;
+}
+
+/* Revenue trend: a simple CSS bar chart, no charting library needed for a
+   handful of monthly bars. */
+.trend-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  height: 160px;
+  padding-top: 1.5rem;
+}
+
+.trend-bar-col {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  min-width: 0;
+}
+
+.trend-bar-value {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  margin-bottom: 0.25rem;
+}
+
+.trend-bar-track {
+  flex: 1;
+  width: 100%;
+  max-width: 48px;
+  display: flex;
+  align-items: flex-end;
+}
+
+.trend-bar {
+  width: 100%;
+  background: var(--chili);
+  border-radius: 6px 6px 0 0;
+  min-height: 4px;
+}
+
+.trend-bar-label {
+  margin-top: 0.5rem;
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+}
+
+/* Best-selling items / channel breakdown: ranked horizontal bars. */
+.bar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.bar-list-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.bar-list-head {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+  font-size: 0.92rem;
+}
+
+.bar-list-track {
+  height: 8px;
+  background: var(--rail);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.bar-list-fill {
+  height: 100%;
+  border-radius: 999px;
+}
+
+.bar-list-fill-chili {
+  background: var(--chili);
+}
+
+.bar-list-fill-turmeric {
+  background: var(--turmeric);
+}
+
+.bar-list-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 760px) {
+  .analytics-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
 }
 
 /* Tablet and below */

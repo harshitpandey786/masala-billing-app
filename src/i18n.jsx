@@ -98,6 +98,18 @@ const STRINGS = {
     logOut: 'Log out',
     notConfigured: 'Supabase isn’t configured for this app yet — nothing to search.',
 
+    customerLookupTitle: 'Customer Lookup',
+    analyticsTitle: 'Business Analytics',
+    avgOrderValue: 'Avg Order Value',
+    monthlyGrowth: 'Growth (MoM)',
+    repeatCustomerRate: 'Repeat Customers',
+    monthlyTrendTitle: 'Revenue Trend',
+    topItemsTitle: 'Best-Selling Masala Types',
+    channelBreakdownTitle: 'Revenue by Channel',
+    topCustomersTitle: 'Top Customers',
+    lastOrderLabel: 'Last Order',
+    noAnalyticsData: 'No orders in this period yet.',
+
     langToggleLabel: 'Language',
 
     masalaType_malvani: 'Malvani',
@@ -196,6 +208,18 @@ const STRINGS = {
     hideDetails: 'लपवा',
     logOut: 'लॉग आउट',
     notConfigured: 'या अॅपसाठी Supabase अजून सेट केलेले नाही — शोधण्यासाठी काही नाही.',
+
+    customerLookupTitle: 'ग्राहक शोध',
+    analyticsTitle: 'व्यवसाय विश्लेषण',
+    avgOrderValue: 'सरासरी ऑर्डर मूल्य',
+    monthlyGrowth: 'वाढ (मासिक)',
+    repeatCustomerRate: 'पुनरावृत्ती ग्राहक',
+    monthlyTrendTitle: 'उत्पन्न कल',
+    topItemsTitle: 'सर्वाधिक विक्री होणारे मसाले',
+    channelBreakdownTitle: 'माध्यमानुसार उत्पन्न',
+    topCustomersTitle: 'सर्वोत्तम ग्राहक',
+    lastOrderLabel: 'शेवटची ऑर्डर',
+    noAnalyticsData: 'या कालावधीत अजून कोणतीही ऑर्डर नाही.',
 
     langToggleLabel: 'भाषा',
 

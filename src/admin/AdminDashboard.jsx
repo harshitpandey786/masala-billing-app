@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage, masalaTypeLabel, storeLabel } from '../i18n.jsx';
+import { DEMO_ROWS, DEMO_STORAGE_KEY, getInitialDemoMode } from './demoData.js';
+import AdminAnalytics from './AdminAnalytics.jsx';
 
 const RESULT_LIMIT = 500;
 
@@ -18,13 +20,43 @@ export default function AdminDashboard({ onLogOut }) {
   const [search, setSearch] = useState('');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [demoMode, setDemoMode] = useState(getInitialDemoMode);
   const [rows, setRows] = useState([]);
-  const [status, setStatus] = useState(supabase ? 'loading' : 'not_configured');
+  const [status, setStatus] = useState(demoMode || supabase ? 'loading' : 'not_configured');
   const [expandedId, setExpandedId] = useState(null);
 
   const debouncedSearch = useDebounced(search, 300);
 
+  function toggleDemoMode() {
+    setDemoMode((prev) => {
+      const next = !prev;
+      try {
+        if (next) sessionStorage.setItem(DEMO_STORAGE_KEY, '1');
+        else sessionStorage.removeItem(DEMO_STORAGE_KEY);
+      } catch {
+        // sessionStorage unavailable -- toggle just won't persist across reloads.
+      }
+      return next;
+    });
+  }
+
   useEffect(() => {
+    if (demoMode) {
+      setStatus('loading');
+      const term = debouncedSearch.trim().toLowerCase();
+      const filtered = DEMO_ROWS.filter((row) => {
+        if (term && !row.customer_name.toLowerCase().includes(term) && !row.phone.includes(term)) {
+          return false;
+        }
+        if (fromDate && row.order_date < fromDate) return false;
+        if (toDate && row.order_date > toDate) return false;
+        return true;
+      }).sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+      setRows(filtered);
+      setStatus('ready');
+      return;
+    }
+
     if (!supabase) return;
 
     let cancelled = false;
@@ -60,7 +92,7 @@ export default function AdminDashboard({ onLogOut }) {
     return () => {
       cancelled = true;
     };
-  }, [debouncedSearch, fromDate, toDate]);
+  }, [demoMode, debouncedSearch, fromDate, toDate]);
 
   const stats = useMemo(() => {
     const totalRevenue = rows.reduce((sum, r) => sum + (Number(r.total) || 0), 0);
@@ -70,8 +102,6 @@ export default function AdminDashboard({ onLogOut }) {
 
   function clearFilters() {
     setSearch('');
-    setFromDate('');
-    setToDate('');
   }
 
   const dateFormatter = new Intl.DateTimeFormat(lang === 'mr' ? 'mr-IN' : 'en-IN', {
@@ -81,9 +111,40 @@ export default function AdminDashboard({ onLogOut }) {
   });
 
   return (
-    <section className="card admin-dashboard">
-      <div className="admin-dashboard-header">
-        <div className="stat-tiles">
+    <>
+      <section className="card admin-dashboard">
+        <div className="admin-dashboard-header">
+          <div className="admin-period-row">
+            <label className="admin-date-field">
+              {t('fromDate')}
+              <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+            </label>
+            <label className="admin-date-field">
+              {t('toDate')}
+              <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+            </label>
+            {(fromDate || toDate) && (
+              <button className="btn-secondary" onClick={() => { setFromDate(''); setToDate(''); }}>
+                {t('clearFilters')}
+              </button>
+            )}
+          </div>
+          <div className="admin-header-buttons">
+            <button className="btn-secondary" onClick={toggleDemoMode}>
+              {demoMode ? 'Show live data' : 'Show demo data'}
+            </button>
+            <button className="btn-secondary" onClick={onLogOut}>
+              {t('logOut')}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <AdminAnalytics fromDate={fromDate} toDate={toDate} demoMode={demoMode} />
+
+      <section className="card admin-dashboard">
+        <h2>{t('customerLookupTitle')}</h2>
+        <div className="stat-tiles admin-search-stats">
           <div className="stat-tile">
             <span className="stat-value">{stats.count}</span>
             <span className="stat-label">{t('totalBills')}</span>
@@ -97,39 +158,27 @@ export default function AdminDashboard({ onLogOut }) {
             <span className="stat-label">{t('uniqueCustomers')}</span>
           </div>
         </div>
-        <button className="btn-secondary" onClick={onLogOut}>
-          {t('logOut')}
-        </button>
-      </div>
 
-      <div className="admin-search-row">
-        <input
-          type="search"
-          className="admin-search-input"
-          placeholder={t('searchPlaceholder')}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <label className="admin-date-field">
-          {t('fromDate')}
-          <input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
-        </label>
-        <label className="admin-date-field">
-          {t('toDate')}
-          <input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
-        </label>
-        {(search || fromDate || toDate) && (
-          <button className="btn-secondary" onClick={clearFilters}>
-            {t('clearFilters')}
-          </button>
-        )}
-      </div>
+        <div className="admin-search-row">
+          <input
+            type="search"
+            className="admin-search-input"
+            placeholder={t('searchPlaceholder')}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button className="btn-secondary" onClick={clearFilters}>
+              {t('clearFilters')}
+            </button>
+          )}
+        </div>
 
-      {status === 'not_configured' && <p className="hint">{t('notConfigured')}</p>}
-      {status === 'loading' && <p className="hint">{t('loadingResults')}</p>}
-      {status === 'error' && <p className="form-error">{t('loadError')}</p>}
+        {status === 'not_configured' && <p className="hint">{t('notConfigured')}</p>}
+        {status === 'loading' && <p className="hint">{t('loadingResults')}</p>}
+        {status === 'error' && <p className="form-error">{t('loadError')}</p>}
 
-      {status === 'ready' && rows.length === 0 && <p className="hint">{t('noResults')}</p>}
+        {status === 'ready' && rows.length === 0 && <p className="hint">{t('noResults')}</p>}
 
       {status === 'ready' && rows.length > 0 && (
         <div className="table-scroll">
@@ -213,6 +262,7 @@ export default function AdminDashboard({ onLogOut }) {
           </table>
         </div>
       )}
-    </section>
+      </section>
+    </>
   );
 }
