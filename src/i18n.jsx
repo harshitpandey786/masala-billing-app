@@ -56,6 +56,7 @@ const STRINGS = {
     qtyGramsPlaceholder: 'Qty (g)',
     addChiliIngredient: '+ Add Chili/Ingredient',
     confirmBill: 'Confirm Bill',
+    savingBill: 'Saving…',
 
     billSummary: 'Bill Summary',
     combinedOrderSummary: 'Combined Order Summary',
@@ -70,6 +71,10 @@ const STRINGS = {
     preparingPdf: 'Preparing PDF…',
     shareToWhatsapp: 'Share to WhatsApp',
     followUsAt: 'Follow us at',
+    billNoLabel: 'Bill No',
+    billNotesLabel: 'Special Instructions',
+    billNotesPlaceholder: 'e.g. Less chilli, no salt…',
+    billNotesHint: 'Shown on the shared bill. Updates it automatically.',
 
     adminTitle: 'Order Search',
     adminSubtitle: 'Look up any customer’s order history',
@@ -109,6 +114,19 @@ const STRINGS = {
     topCustomersTitle: 'Top Customers',
     lastOrderLabel: 'Last Order',
     noAnalyticsData: 'No orders in this period yet.',
+
+    tableArea: 'Area',
+    tableOrders: 'Orders',
+    tableTotalSpent: 'Total Spent',
+    totalSpent: 'Total Spent',
+    favoriteItem: 'Favorite',
+    firstOrderLabel: 'First Order',
+    backToCustomers: 'Back to customers',
+    noCustomersFound: 'No customers match your search yet.',
+    customersNavLink: 'Customers',
+    orderFrequencyLabel: 'Order Frequency',
+    daysUnit: 'days',
+    preferredChannelLabel: 'Preferred Channel',
 
     langToggleLabel: 'Language',
 
@@ -167,6 +185,7 @@ const STRINGS = {
     qtyGramsPlaceholder: 'प्रमाण (ग्रॅम)',
     addChiliIngredient: '+ मिरची/साहित्य जोडा',
     confirmBill: 'बिल निश्चित करा',
+    savingBill: 'जतन होत आहे...',
 
     billSummary: 'बिल तपशील',
     combinedOrderSummary: 'एकत्रित ऑर्डर तपशील',
@@ -181,6 +200,10 @@ const STRINGS = {
     preparingPdf: 'पीडीएफ तयार होत आहे...',
     shareToWhatsapp: 'व्हॉट्सअॅपवर शेअर करा',
     followUsAt: 'आम्हाला फॉलो करा',
+    billNoLabel: 'बिल क्र.',
+    billNotesLabel: 'विशेष सूचना',
+    billNotesPlaceholder: 'उदा. कमी तिखट, मीठ नको...',
+    billNotesHint: 'शेअर केलेल्या बिलावर दिसेल. आपोआप अपडेट होते.',
 
     adminTitle: 'ऑर्डर शोध',
     adminSubtitle: 'कोणत्याही ग्राहकाचा ऑर्डर इतिहास पहा',
@@ -220,6 +243,19 @@ const STRINGS = {
     topCustomersTitle: 'सर्वोत्तम ग्राहक',
     lastOrderLabel: 'शेवटची ऑर्डर',
     noAnalyticsData: 'या कालावधीत अजून कोणतीही ऑर्डर नाही.',
+
+    tableArea: 'परिसर',
+    tableOrders: 'ऑर्डर',
+    tableTotalSpent: 'एकूण खर्च',
+    totalSpent: 'एकूण खर्च',
+    favoriteItem: 'आवडता पदार्थ',
+    firstOrderLabel: 'पहिली ऑर्डर',
+    backToCustomers: 'ग्राहकांकडे परत',
+    noCustomersFound: 'अजून कोणताही जुळणारा ग्राहक नाही.',
+    customersNavLink: 'ग्राहक शोध',
+    orderFrequencyLabel: 'ऑर्डर वारंवारता',
+    daysUnit: 'दिवस',
+    preferredChannelLabel: 'पसंतीचे माध्यम',
 
     langToggleLabel: 'भाषा',
 
@@ -287,4 +323,12 @@ export function storeLabel(t, store) {
   if (store === 'lalbaug') return t('lalbaug');
   if (store === 'sewri') return t('sewri');
   return store;
+}
+
+// Revenue/order "channel" buckets used by the analytics and customer-profile
+// views: online, or offline split by store.
+export function channelLabel(t, key) {
+  if (key === 'online') return t('online');
+  if (key === 'lalbaug' || key === 'sewri') return storeLabel(t, key);
+  return t('offline');
 }

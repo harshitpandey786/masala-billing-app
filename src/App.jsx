@@ -56,15 +56,22 @@ export default function App() {
     setBills([]);
   }
 
-  function handleConfirmBill(bill) {
+  async function handleConfirmBill(bill) {
     const nextBills = [...bills, bill];
-    setBills(nextBills);
     if (billIndex + 1 < orderItems.length) {
+      setBills(nextBills);
       setBillIndex(billIndex + 1);
-    } else {
-      logOrderToSupabase(customer, nextBills);
-      setStep('share');
+      return;
     }
+
+    const logged = await logOrderToSupabase(customer, nextBills);
+    const billsWithIds = nextBills.map((b, i) => ({
+      ...b,
+      id: logged[i]?.id ?? null,
+      billNo: logged[i]?.billNo ?? null,
+    }));
+    setBills(billsWithIds);
+    setStep('share');
   }
 
   const stepIndex = STEPS.indexOf(step);

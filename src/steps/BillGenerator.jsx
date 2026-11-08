@@ -32,6 +32,7 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
   const [addCode, setAddCode] = useState(addonCodes[0] || '');
   const [addQty, setAddQty] = useState('');
   const [makingChargeOverride, setMakingChargeOverride] = useState(null);
+  const [confirming, setConfirming] = useState(false);
 
   const result = priceRecipe(orderItem.recipeKey, {
     overrides,
@@ -65,8 +66,9 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
     setAdditions(additions.filter((a) => a.id !== id));
   }
 
-  function handleConfirm() {
-    onConfirm({
+  async function handleConfirm() {
+    setConfirming(true);
+    await onConfirm({
       orderItemId: orderItem.id,
       type: orderItem.type,
       qtyLabel: orderItem.qtyLabel,
@@ -77,6 +79,9 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
       makingCharge: result.makingCharge,
       total: result.total,
     });
+    // No reset on success -- the last bill's confirm navigates away (to
+    // Share) and earlier bills remount a fresh BillGenerator for the next
+    // item, so this component is gone either way once onConfirm resolves.
   }
 
   const additionCodes = new Set(additions.map((a) => a.code));
@@ -95,7 +100,8 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
   return (
     <section className="card">
       <h2>
-        {t('billTitle')} {itemNumber} {t('of')} {itemCount} — {masalaTypeLabel(t, orderItem.type)}{' '}
+        {t('billTitle')}
+        {itemCount > 1 ? ` ${itemNumber} ${t('of')} ${itemCount}` : ''} — {masalaTypeLabel(t, orderItem.type)}{' '}
         {orderItem.qtyLabel} kg
       </h2>
       <div className="section-divider" />
@@ -193,8 +199,8 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
       </div>
 
       <div className="actions">
-        <button className="btn-primary btn-accent" onClick={handleConfirm}>
-          {t('confirmBill')}
+        <button className="btn-primary btn-accent" onClick={handleConfirm} disabled={confirming}>
+          {confirming ? t('savingBill') : t('confirmBill')}
         </button>
       </div>
     </section>

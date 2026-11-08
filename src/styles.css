@@ -23,6 +23,9 @@
   --chili: #b5362a;
   --chili-dark: #8a2219;
   --chili-tint: #fbe9e6;
+  /* Matches shindrajmasale.com's link/highlight accent -- used sparingly for
+     hover states, not as a second primary color. */
+  --accent-orange: #f05b32;
   --turmeric: #c98a1f;
   --turmeric-dark: #9c6a14;
   --turmeric-tint: #fbf0dc;
@@ -206,7 +209,7 @@ h3 {
 @media (hover: hover) and (pointer: fine) {
   .admin-link:hover {
     background: var(--rail);
-    color: var(--ink);
+    color: var(--accent-orange);
   }
   .lang-toggle button:not(.active):hover {
     color: var(--ink);
@@ -323,7 +326,8 @@ h3 {
 }
 
 input,
-select {
+select,
+textarea {
   font: inherit;
   font-size: 16px;
   padding: 0.6rem 0.7rem;
@@ -334,13 +338,15 @@ select {
   transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
 }
 
-input::placeholder {
+input::placeholder,
+textarea::placeholder {
   color: var(--ink-soft);
   opacity: 0.6;
 }
 
 input:focus-visible,
-select:focus-visible {
+select:focus-visible,
+textarea:focus-visible {
   outline: none;
   border-color: var(--chili);
   box-shadow: 0 0 0 3px var(--chili-tint);
@@ -351,6 +357,11 @@ select:disabled {
   background: var(--rail);
   color: var(--ink-soft);
   cursor: not-allowed;
+}
+
+textarea {
+  resize: vertical;
+  width: 100%;
 }
 
 .form-error {
@@ -567,6 +578,24 @@ button:active {
 
 /* ---------- share / printable summary ---------- */
 
+.bill-notes-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-bottom: 1.25rem;
+}
+
+.bill-notes-recap {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.8rem;
+  background: var(--turmeric-tint);
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
 .customer-recap {
   margin-bottom: 1rem;
 }
@@ -763,6 +792,28 @@ button:active {
   .ledger-row:hover td {
     background: var(--rail);
   }
+}
+
+.ledger-row-clickable {
+  cursor: pointer;
+}
+
+.customer-detail-back {
+  margin-bottom: 1.25rem;
+}
+
+.customer-detail-header {
+  margin-bottom: 1.25rem;
+}
+
+.customer-detail-header h2 {
+  margin-bottom: 0.2rem;
+}
+
+.customer-detail .admin-search-stats {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--line);
 }
 
 .ledger-detail-row td {

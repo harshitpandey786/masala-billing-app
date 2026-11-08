@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
 import { useLanguage, masalaTypeLabel, storeLabel } from '../i18n.jsx';
+import { updateBillNotes } from '../orderLogger.js';
 import pricingConfig from '../../data/pricing-config.json' with { type: 'json' };
 
 const businessInfo = pricingConfig.business_info || {};
@@ -26,6 +27,7 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
   const [imageUrl, setImageUrl] = useState(null);
   const [imageBlob, setImageBlob] = useState(null);
   const [pdfStatus, setPdfStatus] = useState('idle'); // idle | generating | error
+  const [notes, setNotes] = useState('');
 
   const grandTotal = bills.reduce((sum, b) => sum + b.total, 0);
   const isMultiItem = bills.length > 1;
@@ -63,6 +65,26 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Re-render the bill image (and save the note) a beat after the operator
+  // stops typing -- debounced since html2canvas is too slow to run on every
+  // keystroke. touchedNotesRef skips this on mount (generateImage() above
+  // already covers the initial, note-less render) but still fires if they
+  // type then clear the field back to empty.
+  const touchedNotesRef = useRef(false);
+  const billIds = bills.map((b) => b.id).filter(Boolean);
+  useEffect(() => {
+    if (!touchedNotesRef.current) {
+      touchedNotesRef.current = true;
+      return;
+    }
+    const id = setTimeout(() => {
+      generateImage();
+      updateBillNotes(billIds, notes);
+    }, 800);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [notes]);
 
   function downloadBlob(blob, name) {
     const url = URL.createObjectURL(blob);
@@ -133,6 +155,17 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
       <h2>{isMultiItem ? t('combinedOrderSummary') : t('billSummary')}</h2>
       <div className="section-divider" />
 
+      <label className="bill-notes-field">
+        {t('billNotesLabel')}
+        <textarea
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder={t('billNotesPlaceholder')}
+          rows={2}
+        />
+        <span className="hint">{t('billNotesHint')}</span>
+      </label>
+
       <div ref={printRef} className="printable-summary">
         <div className="bill-letterhead">
           <img src="/logo-mark.png" alt="Shindraj Masale logo" className="bill-letterhead-logo" />
@@ -155,10 +188,17 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
           </p>
         </div>
 
+        {notes && (
+          <p className="bill-notes-recap">
+            <strong>{t('billNotesLabel')}:</strong> {notes}
+          </p>
+        )}
+
         {bills.map((bill, i) => (
           <div key={bill.orderItemId} className="bill-summary-block">
             <h3>
               {i + 1}. {masalaTypeLabel(t, bill.type)} {bill.qtyLabel} kg
+              {bill.billNo ? ` · ${t('billNoLabel')} ${bill.billNo}` : ''}
             </h3>
             <table className="bill-table">
               <thead>
