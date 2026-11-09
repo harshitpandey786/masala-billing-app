@@ -297,6 +297,29 @@ h3 {
   letter-spacing: -0.02em;
 }
 
+/* A short brand-color underline on section titles in the admin/analytics/
+   customer-lookup areas -- a small warmth touch where the rest of the page
+   otherwise reads as plain tables and numbers. */
+.admin-dashboard h2,
+.analytics-card h2,
+.customer-detail-header h2 {
+  position: relative;
+  padding-bottom: 0.65rem;
+}
+
+.admin-dashboard h2::after,
+.analytics-card h2::after,
+.customer-detail-header h2::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 44px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--chili);
+}
+
 .card h3 {
   color: var(--ink);
   margin: 1.5rem 0 0.5rem;
@@ -730,13 +753,22 @@ button:active {
 
 .stat-tiles {
   display: flex;
-  gap: 2rem;
+  gap: 0.75rem;
   flex-wrap: wrap;
 }
 
 .stat-tile {
   display: flex;
   flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius-sm);
+  background: var(--chili-tint);
+  min-width: 108px;
+}
+
+.stat-tile:nth-child(even) {
+  background: var(--turmeric-tint);
 }
 
 .stat-value {
@@ -781,6 +813,22 @@ button:active {
 .ledger-table th:last-child,
 .ledger-table td:last-child {
   text-align: right;
+}
+
+.ledger-table thead th {
+  background: var(--rail);
+}
+
+.ledger-table thead th:first-child {
+  border-top-left-radius: var(--radius-sm);
+}
+
+.ledger-table thead th:last-child {
+  border-top-right-radius: var(--radius-sm);
+}
+
+.ledger-row:nth-child(even) td {
+  background: var(--paper);
 }
 
 .ledger-row td {
@@ -956,6 +1004,123 @@ button:active {
   justify-content: space-between;
   font-size: 0.76rem;
   color: var(--ink-soft);
+}
+
+/* ---------- admin pricing manager ---------- */
+
+.pricing-section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--line);
+}
+
+.pricing-section:first-of-type {
+  margin-top: 1.5rem;
+  padding-top: 0;
+  border-top: none;
+}
+
+.pricing-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.pricing-section-header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pricing-saved-flash {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 0.3rem 0.75rem;
+  background: var(--success);
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.pricing-inline-field {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
+  font-size: 0.9rem;
+}
+
+.pricing-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+
+.pricing-add-form {
+  background: var(--rail);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.pricing-add-recipe-form {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.pricing-cell-input {
+  font-size: 0.85rem;
+  padding: 0.3rem 0.4rem;
+  width: 100%;
+  min-width: 80px;
+}
+
+.pricing-cell-input-narrow {
+  width: 70px;
+  min-width: 70px;
+}
+
+.pricing-type-group {
+  margin-top: 1.25rem;
+}
+
+.pricing-type-group h4 {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  color: var(--chili-dark);
+}
+
+.pricing-recipe-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.6rem;
+}
+
+.pricing-recipe-toggle {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+  text-align: left;
+}
+
+.pricing-recipe-body {
+  margin-top: 0.85rem;
 }
 
 @media (max-width: 760px) {

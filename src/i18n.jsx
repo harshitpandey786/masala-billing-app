@@ -124,6 +124,36 @@ const STRINGS = {
     backToCustomers: 'Back to customers',
     noCustomersFound: 'No customers match your search yet.',
     customersNavLink: 'Customers',
+
+    cancel: 'Cancel',
+    save: 'Save',
+    saved: 'Saved',
+    pricingManagerTitle: 'Pricing',
+    ingredientRateCardTitle: 'Ingredient Rates',
+    tableCode: 'Code',
+    tableNameEn: 'Name (English)',
+    tableNameMr: 'Name (Marathi)',
+    tablePricePerKg: 'Price/kg (₹)',
+    tablePricePerPiece: 'Price/piece (₹)',
+    tableAddon: 'Addon Chili',
+    addIngredient: '+ Add Ingredient',
+    pricingCodeRequired: 'Enter a code for the new ingredient.',
+    pricingPriceRequired: 'Enter a price greater than 0.',
+    makingChargePerKgLabel: 'Default Making Charge (₹/kg)',
+    makingChargePerKgHint: 'Used when a recipe has no fixed making charge of its own.',
+    masalaTypesRecipesTitle: 'Masala Types & Recipes',
+    addMasalaType: '+ Add Masala Type',
+    addRecipe: '+ Add Recipe',
+    keyLabel: 'Key (unique, e.g. kolhapuri)',
+    pricingTypeRequired: 'Enter a key and an English name.',
+    fixedMakingChargeLabel: 'Fixed Making Charge',
+    pricingUsesDefault: 'uses default',
+    coreChili: 'Core Chili',
+    ingredientsCountSuffix: 'ingredients',
+    qtyLabelField: 'Qty label (e.g. 1.25)',
+    addLine: '+ Add Line',
+    pricingRecipeRequired: 'Pick a masala type and enter a quantity label.',
+    pricingRecipeLinesRequired: 'Add at least one ingredient line with a quantity.',
     orderFrequencyLabel: 'Order Frequency',
     daysUnit: 'days',
     preferredChannelLabel: 'Preferred Channel',
@@ -253,6 +283,36 @@ const STRINGS = {
     backToCustomers: 'ग्राहकांकडे परत',
     noCustomersFound: 'अजून कोणताही जुळणारा ग्राहक नाही.',
     customersNavLink: 'ग्राहक शोध',
+
+    cancel: 'रद्द करा',
+    save: 'जतन करा',
+    saved: 'जतन झाले',
+    pricingManagerTitle: 'किंमत',
+    ingredientRateCardTitle: 'साहित्य दर',
+    tableCode: 'कोड',
+    tableNameEn: 'नाव (इंग्रजी)',
+    tableNameMr: 'नाव (मराठी)',
+    tablePricePerKg: 'दर/किलो (₹)',
+    tablePricePerPiece: 'दर/नग (₹)',
+    tableAddon: 'अतिरिक्त मिरची',
+    addIngredient: '+ साहित्य जोडा',
+    pricingCodeRequired: 'नवीन साहित्यासाठी कोड टाका.',
+    pricingPriceRequired: '0 पेक्षा जास्त किंमत टाका.',
+    makingChargePerKgLabel: 'डिफॉल्ट बनावट खर्च (₹/किलो)',
+    makingChargePerKgHint: 'रेसिपीचा स्वतःचा निश्चित बनावट खर्च नसेल तेव्हा वापरला जातो.',
+    masalaTypesRecipesTitle: 'मसाल्याचे प्रकार आणि रेसिपी',
+    addMasalaType: '+ मसाल्याचा प्रकार जोडा',
+    addRecipe: '+ रेसिपी जोडा',
+    keyLabel: 'की (अद्वितीय, उदा. kolhapuri)',
+    pricingTypeRequired: 'की आणि इंग्रजी नाव टाका.',
+    fixedMakingChargeLabel: 'निश्चित बनावट खर्च',
+    pricingUsesDefault: 'डिफॉल्ट वापरला जातो',
+    coreChili: 'मुख्य मिरची',
+    ingredientsCountSuffix: 'साहित्य',
+    qtyLabelField: 'प्रमाण लेबल (उदा. 1.25)',
+    addLine: '+ ओळ जोडा',
+    pricingRecipeRequired: 'मसाल्याचा प्रकार निवडा आणि प्रमाण लेबल टाका.',
+    pricingRecipeLinesRequired: 'किमान एक साहित्य ओळ प्रमाणासह जोडा.',
     orderFrequencyLabel: 'ऑर्डर वारंवारता',
     daysUnit: 'दिवस',
     preferredChannelLabel: 'पसंतीचे माध्यम',
@@ -312,7 +372,16 @@ export function useLanguage() {
 // Masala type names (Malvani, Ghati, ...) come from the pricing config's recipe
 // keys, so new types can appear without a matching translation yet -- fall back
 // to a capitalized version of the raw key rather than showing a missing string.
-export function masalaTypeLabel(t, type) {
+// dbLabels/lang are optional -- only the live billing flow has a fresh
+// pricingConfig.masala_types to check (needed for a type the admin just
+// added, which has no entry in the STRINGS dict below). Historical/admin
+// views that don't pass them just fall through to the static lookup.
+export function masalaTypeLabel(t, type, dbLabels, lang) {
+  const dbEntry = dbLabels?.[type];
+  if (dbEntry) {
+    const dbLabel = lang === 'mr' ? dbEntry.label_mr : dbEntry.label_en;
+    if (dbLabel) return dbLabel;
+  }
   const key = `masalaType_${type}`;
   const translated = t(key);
   if (translated !== key) return translated;

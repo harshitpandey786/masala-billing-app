@@ -2,18 +2,18 @@ import { useState } from 'react';
 import { DEMO_STORAGE_KEY, getInitialDemoMode } from './demoData.js';
 import { useLanguage } from '../i18n.jsx';
 import AdminAnalytics from './AdminAnalytics.jsx';
-import CustomerList from './CustomerList.jsx';
-import CustomerDetail from './CustomerDetail.jsx';
+import AdminPricing from './AdminPricing.jsx';
 
+// Owner-only: business analytics (and, eventually, pricing control). Looking
+// up a specific customer's order history is a front-of-house task now, done
+// on the public /customers page instead -- no password needed for that.
 export default function AdminDashboard({ onLogOut }) {
   const { t } = useLanguage();
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [demoMode, setDemoMode] = useState(getInitialDemoMode);
-  const [selectedPhone, setSelectedPhone] = useState(null);
 
   function toggleDemoMode() {
-    setSelectedPhone(null);
     setDemoMode((prev) => {
       const next = !prev;
       try {
@@ -58,19 +58,7 @@ export default function AdminDashboard({ onLogOut }) {
 
       <AdminAnalytics fromDate={fromDate} toDate={toDate} demoMode={demoMode} />
 
-      {selectedPhone ? (
-        <CustomerDetail phone={selectedPhone} demoMode={demoMode} onBack={() => setSelectedPhone(null)} />
-      ) : (
-        <section className="card admin-dashboard">
-          <h2>{t('customerLookupTitle')}</h2>
-          <CustomerList
-            demoMode={demoMode}
-            fromDate={fromDate}
-            toDate={toDate}
-            onSelectCustomer={setSelectedPhone}
-          />
-        </section>
-      )}
+      <AdminPricing />
     </>
   );
 }

@@ -45,6 +45,9 @@ export default function AdminApp() {
           </div>
           <div className="app-header-tools">
             <LanguageToggle />
+            <a className="admin-link" href="/customers">
+              {t('customersNavLink')}
+            </a>
             <a className="admin-link" href="/">
               {t('backToBilling')}
             </a>

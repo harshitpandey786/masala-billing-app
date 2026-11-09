@@ -19,8 +19,8 @@ function formatPhoneForWhatsApp(phone) {
   return digits.length === 10 ? `91${digits}` : digits;
 }
 
-export default function ShareOutput({ customer, bills, onStartOver }) {
-  const { t } = useLanguage();
+export default function ShareOutput({ customer, bills, onStartOver, pricingConfig }) {
+  const { t, lang } = useLanguage();
   const printRef = useRef(null);
   const imageUrlRef = useRef(null);
   const [status, setStatus] = useState('generating'); // generating | ready | error
@@ -197,7 +197,7 @@ export default function ShareOutput({ customer, bills, onStartOver }) {
         {bills.map((bill, i) => (
           <div key={bill.orderItemId} className="bill-summary-block">
             <h3>
-              {i + 1}. {masalaTypeLabel(t, bill.type)} {bill.qtyLabel} kg
+              {i + 1}. {masalaTypeLabel(t, bill.type, pricingConfig?.masala_types, lang)} {bill.qtyLabel} kg
               {bill.billNo ? ` · ${t('billNoLabel')} ${bill.billNo}` : ''}
             </h3>
             <table className="bill-table">

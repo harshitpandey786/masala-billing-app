@@ -1,10 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { priceRecipe } from '../pricing-engine.js';
 import { getAddonIngredientCodes, getCoreChiliRowCodes } from '../recipeCatalog.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
-
-const addonCodes = getAddonIngredientCodes();
-const coreChiliCodes = getCoreChiliRowCodes();
 
 function BaseLineRow({ line, overrides, onChangeQty }) {
   return (
@@ -25,8 +22,10 @@ function BaseLineRow({ line, overrides, onChangeQty }) {
   );
 }
 
-export default function BillGenerator({ orderItem, itemNumber, itemCount, onConfirm }) {
-  const { t } = useLanguage();
+export default function BillGenerator({ orderItem, itemNumber, itemCount, onConfirm, pricingConfig }) {
+  const { t, lang } = useLanguage();
+  const addonCodes = useMemo(() => getAddonIngredientCodes(pricingConfig), [pricingConfig]);
+  const coreChiliCodes = useMemo(() => getCoreChiliRowCodes(pricingConfig), [pricingConfig]);
   const [overrides, setOverrides] = useState({});
   const [additions, setAdditions] = useState([]);
   const [addCode, setAddCode] = useState(addonCodes[0] || '');
@@ -38,6 +37,7 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
     overrides,
     additions: additions.map(({ code, qty }) => ({ code, qty })),
     makingChargeOverride: makingChargeOverride != null ? makingChargeOverride : undefined,
+    config: pricingConfig,
   });
 
   function updateOverride(code, rawValue) {
@@ -101,7 +101,8 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
     <section className="card">
       <h2>
         {t('billTitle')}
-        {itemCount > 1 ? ` ${itemNumber} ${t('of')} ${itemCount}` : ''} — {masalaTypeLabel(t, orderItem.type)}{' '}
+        {itemCount > 1 ? ` ${itemNumber} ${t('of')} ${itemCount}` : ''} —{' '}
+        {masalaTypeLabel(t, orderItem.type, pricingConfig?.masala_types, lang)}{' '}
         {orderItem.qtyLabel} kg
       </h2>
       <div className="section-divider" />

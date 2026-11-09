@@ -197,7 +197,7 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode }) {
           <div className="analytics-section">
             <h3>{t('topCustomersTitle')}</h3>
             <div className="table-scroll">
-              <table className="bill-table">
+              <table className="bill-table ledger-table">
                 <thead>
                   <tr>
                     <th>{t('tableCustomer')}</th>

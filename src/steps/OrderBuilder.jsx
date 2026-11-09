@@ -1,12 +1,11 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { getRecipeCatalog } from '../recipeCatalog.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 
-const catalog = getRecipeCatalog();
-const types = Object.keys(catalog);
-
-export default function OrderBuilder({ orderItems, onChange, onBack, onNext }) {
-  const { t } = useLanguage();
+export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pricingConfig }) {
+  const { t, lang } = useLanguage();
+  const catalog = useMemo(() => getRecipeCatalog(pricingConfig), [pricingConfig]);
+  const types = Object.keys(catalog);
   const [type, setType] = useState(types[0]);
   const [qtyLabel, setQtyLabel] = useState(catalog[types[0]][0].qtyLabel);
 
@@ -44,7 +43,7 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext }) {
           <select value={type} onChange={(e) => handleTypeChange(e.target.value)}>
             {types.map((ty) => (
               <option key={ty} value={ty}>
-                {masalaTypeLabel(t, ty)}
+                {masalaTypeLabel(t, ty, pricingConfig?.masala_types, lang)}
               </option>
             ))}
           </select>
@@ -71,7 +70,7 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext }) {
           {orderItems.map((item, i) => (
             <li key={item.id}>
               <span>
-                {i + 1}. {masalaTypeLabel(t, item.type)} — {item.qtyLabel} kg
+                {i + 1}. {masalaTypeLabel(t, item.type, pricingConfig?.masala_types, lang)} — {item.qtyLabel} kg
               </span>
               <button type="button" className="btn-remove" onClick={() => handleRemove(item.id)}>
                 {t('remove')}

@@ -1,12 +1,14 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import CustomerDetails from './steps/CustomerDetails.jsx';
 import OrderBuilder from './steps/OrderBuilder.jsx';
 import BillGenerator from './steps/BillGenerator.jsx';
 import ShareOutput from './steps/ShareOutput.jsx';
 import { logOrderToSupabase } from './orderLogger.js';
+import { fetchPricingConfig } from './pricingData.js';
 import { useLanguage } from './i18n.jsx';
 import LanguageToggle from './components/LanguageToggle.jsx';
 import { CustomerIcon, OrderIcon, BillIcon, ShareIcon } from './components/StepIcons.jsx';
+import staticPricingConfig from '../data/pricing-config.json' with { type: 'json' };
 
 const STEPS = ['customer', 'order', 'bill', 'share'];
 const STEP_LABEL_KEYS = {
@@ -39,6 +41,21 @@ export default function App() {
   const [orderItems, setOrderItems] = useState([]);
   const [billIndex, setBillIndex] = useState(0);
   const [bills, setBills] = useState([]);
+  // Starts as the bundled file (synchronous, so the Order step never blocks)
+  // and swaps to Supabase's live pricing as soon as that fetch resolves --
+  // if it never resolves (offline, misconfigured), billing just keeps using
+  // whatever shipped in the last deploy, same as before this feature existed.
+  const [pricingConfig, setPricingConfig] = useState(staticPricingConfig);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchPricingConfig().then((cfg) => {
+      if (!cancelled) setPricingConfig(cfg);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function handleStartOver() {
     setStep('customer');
@@ -87,6 +104,9 @@ export default function App() {
           </div>
           <div className="app-header-tools">
             <LanguageToggle />
+            <a className="admin-link" href="/customers">
+              {t('customersNavLink')}
+            </a>
             <a className="admin-link" href="/admin">
               {t('adminLink')}
             </a>
@@ -127,6 +147,7 @@ export default function App() {
                 setBillIndex(0);
                 setStep('bill');
               }}
+              pricingConfig={pricingConfig}
             />
           )}
 
@@ -137,11 +158,17 @@ export default function App() {
               itemNumber={billIndex + 1}
               itemCount={orderItems.length}
               onConfirm={handleConfirmBill}
+              pricingConfig={pricingConfig}
             />
           )}
 
           {step === 'share' && (
-            <ShareOutput customer={customer} bills={bills} onStartOver={handleStartOver} />
+            <ShareOutput
+              customer={customer}
+              bills={bills}
+              onStartOver={handleStartOver}
+              pricingConfig={pricingConfig}
+            />
           )}
         </main>
       </div>
