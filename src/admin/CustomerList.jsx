@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
+import { groupBillsByCustomer } from '../customerSearch.js';
 import { DEMO_ROWS } from './demoData.js';
 
 const RESULT_LIMIT = 500;
@@ -87,29 +88,7 @@ export default function CustomerList({ demoMode, fromDate = '', toDate = '', sho
     return { count: rows.length, totalRevenue, customers: uniquePhones.size };
   }, [rows]);
 
-  const customers = useMemo(() => {
-    const byPhone = new Map();
-    for (const row of rows) {
-      if (!row.phone) continue;
-      const entry = byPhone.get(row.phone) || {
-        phone: row.phone,
-        name: row.customer_name,
-        area: row.area,
-        totalBills: 0,
-        totalSpent: 0,
-        lastOrderDate: row.order_date,
-      };
-      entry.totalBills += 1;
-      entry.totalSpent += Number(row.total) || 0;
-      entry.name = row.customer_name || entry.name;
-      entry.area = entry.area || row.area;
-      if (!entry.lastOrderDate || row.order_date > entry.lastOrderDate) {
-        entry.lastOrderDate = row.order_date;
-      }
-      byPhone.set(row.phone, entry);
-    }
-    return [...byPhone.values()].sort((a, b) => (a.lastOrderDate < b.lastOrderDate ? 1 : -1));
-  }, [rows]);
+  const customers = useMemo(() => groupBillsByCustomer(rows), [rows]);
 
   function clearFilters() {
     setSearch('');

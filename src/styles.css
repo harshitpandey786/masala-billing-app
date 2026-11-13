@@ -1273,3 +1273,95 @@ button:active {
     font-size: 1.25rem;
   }
 }
+
+/* ---------- start screen / shop login ---------- */
+
+.start-screen {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.current-location-badge {
+  background: var(--rail);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 0.3rem 0.7rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.admin-link-button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* ---------- barcode scan / product cart section ---------- */
+
+.product-scan-section {
+  margin: 1.25rem 0;
+}
+
+.product-match-list,
+.customer-match-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--paper-raised);
+}
+
+.customer-match-list {
+  position: absolute;
+  z-index: 5;
+  width: 100%;
+  box-shadow: var(--shadow-sm);
+}
+
+.customer-phone-field {
+  position: relative;
+}
+
+.product-match-button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  cursor: pointer;
+  border-bottom: 1px solid var(--line);
+}
+
+.product-match-button:last-child {
+  border-bottom: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .product-match-button:hover {
+    background: var(--rail);
+  }
+}
+
+.product-pending-card {
+  margin-top: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper-raised);
+}
+
+.product-pending-name {
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+}
+
+.cart-running-total {
+  font-weight: 700;
+  margin-top: 0.75rem;
+}

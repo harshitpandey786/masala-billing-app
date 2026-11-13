@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { searchCustomers } from '../customerSearch.js';
 import { useLanguage } from '../i18n.jsx';
 
 const POC_OPTIONS = ['Sachin', 'Bhaskar', 'Sanket', 'Shreyash', 'Suvarna', 'Rampal', 'Sonu'];
@@ -6,16 +7,48 @@ const POC_OPTIONS = ['Sachin', 'Bhaskar', 'Sanket', 'Shreyash', 'Suvarna', 'Ramp
 export default function CustomerDetails({ customer, onChange, onNext }) {
   const { t } = useLanguage();
   const [touched, setTouched] = useState(false);
+  const [matches, setMatches] = useState([]);
+  const [matchesOpen, setMatchesOpen] = useState(false);
 
-  const isValid =
-    customer.name.trim() &&
-    customer.phone.trim() &&
-    customer.area.trim() &&
-    customer.pocName &&
-    (customer.billingMode === 'online' || customer.store);
+  const isValid = customer.name.trim() && customer.phone.trim() && customer.area.trim() && customer.pocName;
 
   function update(field, value) {
     onChange({ ...customer, [field]: value });
+  }
+
+  // Looks up returning customers as the phone number is typed, so the
+  // shopkeeper doesn't have to re-type name/area for someone who has
+  // ordered before -- see customerSearch.js (shared with the admin
+  // customer list).
+  useEffect(() => {
+    if (customer.phone.trim().length < 3) {
+      setMatches([]);
+      return;
+    }
+    let cancelled = false;
+    const id = setTimeout(async () => {
+      const results = await searchCustomers(customer.phone);
+      if (!cancelled) {
+        setMatches(results);
+        setMatchesOpen(results.length > 0);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(id);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customer.phone]);
+
+  function selectMatch(match) {
+    onChange({
+      ...customer,
+      name: match.name || customer.name,
+      phone: match.phone,
+      area: match.area || customer.area,
+      pocName: match.pocName || customer.pocName,
+    });
+    setMatchesOpen(false);
   }
 
   function handleNext() {
@@ -39,14 +72,28 @@ export default function CustomerDetails({ customer, onChange, onNext }) {
           />
         </label>
 
-        <label>
+        <label className="customer-phone-field">
           {t('phoneNumber')}
           <input
             type="tel"
             value={customer.phone}
             onChange={(e) => update('phone', e.target.value)}
+            onFocus={() => setMatchesOpen(matches.length > 0)}
+            onBlur={() => setTimeout(() => setMatchesOpen(false), 150)}
             placeholder={t('phonePlaceholder')}
           />
+          {matchesOpen && (
+            <ul className="customer-match-list">
+              {matches.map((m) => (
+                <li key={m.phone}>
+                  <button type="button" className="product-match-button" onClick={() => selectMatch(m)}>
+                    {m.name} — {m.phone}
+                    {m.area ? ` · ${m.area}` : ''}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </label>
 
         <label>
@@ -86,25 +133,9 @@ export default function CustomerDetails({ customer, onChange, onNext }) {
             <option value="offline">{t('offline')}</option>
           </select>
         </label>
-
-        {customer.billingMode === 'offline' && (
-          <label>
-            {t('store')}
-            <select value={customer.store} onChange={(e) => update('store', e.target.value)}>
-              <option value="">{t('selectStore')}</option>
-              <option value="lalbaug">{t('lalbaug')}</option>
-              <option value="sewri">{t('sewri')}</option>
-            </select>
-          </label>
-        )}
       </div>
 
-      {touched && !isValid && (
-        <p className="form-error">
-          {t('fillAllFields')}
-          {customer.billingMode === 'offline' ? t('andSelectStore') : ''}.
-        </p>
-      )}
+      {touched && !isValid && <p className="form-error">{t('fillAllFields')}.</p>}
 
       <div className="actions">
         <button className="btn-primary" onClick={handleNext}>

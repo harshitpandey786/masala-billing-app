@@ -20,8 +20,13 @@ function withTimeout(promise, ms) {
  * inserted rows' id/bill_no in the same order as `bills`, or null entries if
  * logging wasn't possible (not configured, failed, or timed out) -- the bill
  * number is then just not shown rather than blocking anything.
+ *
+ * `location` is the shop logged in on this device ({ id, name }, or null if
+ * not configured yet) -- its name is written to the legacy `store` column so
+ * existing channel-breakdown analytics keeps working, and its id to the new
+ * `location_id` column for precise per-shop joins and stock tracking.
  */
-export async function logOrderToSupabase(customer, bills) {
+export async function logOrderToSupabase(customer, bills, location) {
   if (!supabase) {
     console.warn('Supabase is not configured -- skipping order logging.');
     return bills.map(() => null);
@@ -34,9 +39,12 @@ export async function logOrderToSupabase(customer, bills) {
     area: customer.area,
     poc_name: customer.pocName,
     billing_mode: customer.billingMode,
-    store: customer.store,
-    masala_type: bill.type,
-    quantity_kg: bill.qtyLabel,
+    store: location?.name ?? null,
+    location_id: location?.id ?? null,
+    kind: bill.kind || 'custom',
+    product_id: bill.productId ?? null,
+    masala_type: bill.kind === 'product' ? null : bill.type,
+    quantity_kg: bill.kind === 'product' ? null : bill.qtyLabel,
     ingredients_subtotal: bill.ingredientsSubtotal,
     making_charge: bill.makingCharge,
     total: bill.total,

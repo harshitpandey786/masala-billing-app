@@ -28,12 +28,10 @@ const STRINGS = {
     online: 'Online',
     offline: 'Offline',
     store: 'Store',
-    selectStore: 'Select store',
     lalbaug: 'Lalbaug',
     sewri: 'Sewri',
     next: 'Next',
     fillAllFields: 'Please fill in all fields',
-    andSelectStore: ' and select a store',
 
     orderBuilderTitle: 'Order Builder',
     masalaType: 'Masala Type',
@@ -162,6 +160,50 @@ const STRINGS = {
 
     masalaType_malvani: 'Malvani',
     masalaType_ghati: 'Ghati',
+
+    locationLoginTitle: 'Shop Login',
+    locationLoginHint: 'Log in once with this shop’s username and password.',
+    shopUsername: 'Username',
+    switchShop: 'Switch shop',
+    startScreenHint: 'Ready to bill a customer?',
+    generateNewBill: 'Generate New Bill',
+    finalizingBill: 'Finalizing your bill…',
+
+    readyMadeProductsTitle: 'Ready-made / Loose Products',
+    scanBarcodeLabel: 'Scan Barcode',
+    scanBarcodePlaceholder: 'Scan or type barcode, then Enter',
+    searchProductLabel: 'Or search by name',
+    searchProductPlaceholder: 'e.g. Chana Masala 500g',
+    unknownBarcode: 'No product matches that barcode.',
+    stockHereLabel: 'Stock at this shop',
+    outOfStockWarning: '⚠ Stock shows 0 at this shop — you can still add it.',
+    cartTotalLabel: 'Cart Total',
+
+    productsManagerTitle: 'Products & Stock',
+    productsTableTitle: 'Products',
+    addProduct: '+ Add Product',
+    productNameRequired: 'Enter a name for the new product.',
+    readyMadeLabel: 'Ready-made',
+    looseLabel: 'Loose',
+    unitPiece: 'Piece',
+    unitKg: 'Kg',
+    unitGram: 'Gram',
+    barcodeOptionalPlaceholder: 'Barcode (leave blank to auto-generate)',
+    categoryLabel: 'Category',
+    unitLabel: 'Unit',
+    priceLabel: 'Price (₹)',
+    barcodeLabel: 'Barcode',
+    activeLabel: 'Active',
+    printLabel: 'Print Label',
+    stockGridTitle: 'Stock by Shop',
+    noLocationsYetHint: 'Add a shop below before setting stock levels.',
+
+    locationsManagerTitle: 'Shops',
+    shopsTableTitle: 'Shop Logins',
+    addShop: '+ Add Shop',
+    shopNamePlaceholder: 'Shop name, e.g. Lalbaug',
+    shopNameLabel: 'Shop Name',
+    locationFieldsRequired: 'Enter a shop name, username, and password.',
   },
   mr: {
     appName: 'शिंदराज मसाले',
@@ -187,12 +229,10 @@ const STRINGS = {
     online: 'ऑनलाइन',
     offline: 'ऑफलाइन',
     store: 'दुकान',
-    selectStore: 'दुकान निवडा',
     lalbaug: 'लालबाग',
     sewri: 'शिवडी',
     next: 'पुढे',
     fillAllFields: 'कृपया सर्व माहिती भरा',
-    andSelectStore: ' आणि दुकान निवडा',
 
     orderBuilderTitle: 'ऑर्डर तयार करा',
     masalaType: 'मसाल्याचा प्रकार',
@@ -321,6 +361,50 @@ const STRINGS = {
 
     masalaType_malvani: 'मालवणी',
     masalaType_ghati: 'घाटी',
+
+    locationLoginTitle: 'दुकान लॉगिन',
+    locationLoginHint: 'या दुकानाचे युजरनेम आणि पासवर्ड वापरून एकदा लॉगिन करा.',
+    shopUsername: 'युजरनेम',
+    switchShop: 'दुकान बदला',
+    startScreenHint: 'ग्राहकाचे बिल तयार करायचे आहे?',
+    generateNewBill: 'नवीन बिल तयार करा',
+    finalizingBill: 'तुमचे बिल अंतिम होत आहे...',
+
+    readyMadeProductsTitle: 'रेडीमेड / सुटे पदार्थ',
+    scanBarcodeLabel: 'बारकोड स्कॅन करा',
+    scanBarcodePlaceholder: 'बारकोड स्कॅन करा किंवा टाका, नंतर Enter दाबा',
+    searchProductLabel: 'किंवा नावाने शोधा',
+    searchProductPlaceholder: 'उदा. चणा मसाला ५०० ग्रॅम',
+    unknownBarcode: 'या बारकोडशी जुळणारा कोणताही पदार्थ नाही.',
+    stockHereLabel: 'या दुकानातील स्टॉक',
+    outOfStockWarning: '⚠ या दुकानात स्टॉक ० दाखवत आहे — तरीही जोडू शकता.',
+    cartTotalLabel: 'कार्ट एकूण',
+
+    productsManagerTitle: 'पदार्थ आणि स्टॉक',
+    productsTableTitle: 'पदार्थ',
+    addProduct: '+ पदार्थ जोडा',
+    productNameRequired: 'नवीन पदार्थासाठी नाव टाका.',
+    readyMadeLabel: 'रेडीमेड',
+    looseLabel: 'सुटे',
+    unitPiece: 'नग',
+    unitKg: 'किलो',
+    unitGram: 'ग्रॅम',
+    barcodeOptionalPlaceholder: 'बारकोड (रिकामे ठेवल्यास आपोआप तयार होईल)',
+    categoryLabel: 'प्रकार',
+    unitLabel: 'एकक',
+    priceLabel: 'किंमत (₹)',
+    barcodeLabel: 'बारकोड',
+    activeLabel: 'सक्रिय',
+    printLabel: 'लेबल प्रिंट करा',
+    stockGridTitle: 'दुकानानुसार स्टॉक',
+    noLocationsYetHint: 'स्टॉक सेट करण्यापूर्वी खाली एक दुकान जोडा.',
+
+    locationsManagerTitle: 'दुकाने',
+    shopsTableTitle: 'दुकान लॉगिन',
+    addShop: '+ दुकान जोडा',
+    shopNamePlaceholder: 'दुकानाचे नाव, उदा. लालबाग',
+    shopNameLabel: 'दुकानाचे नाव',
+    locationFieldsRequired: 'दुकानाचे नाव, युजरनेम आणि पासवर्ड टाका.',
   },
 };
 
@@ -399,5 +483,7 @@ export function storeLabel(t, store) {
 export function channelLabel(t, key) {
   if (key === 'online') return t('online');
   if (key === 'lalbaug' || key === 'sewri') return storeLabel(t, key);
-  return t('offline');
+  // Any other store name (a shop set up after the original two) is shown
+  // as-is rather than collapsing to a generic "Offline" bucket.
+  return key || t('offline');
 }

@@ -3,8 +3,11 @@ import CustomerDetails from './steps/CustomerDetails.jsx';
 import OrderBuilder from './steps/OrderBuilder.jsx';
 import BillGenerator from './steps/BillGenerator.jsx';
 import ShareOutput from './steps/ShareOutput.jsx';
+import LocationLogin from './steps/LocationLogin.jsx';
 import { logOrderToSupabase } from './orderLogger.js';
+import { decrementStock } from './productLookup.js';
 import { fetchPricingConfig } from './pricingData.js';
+import { getStoredLocation, clearStoredLocation } from './locationSession.js';
 import { useLanguage } from './i18n.jsx';
 import LanguageToggle from './components/LanguageToggle.jsx';
 import { CustomerIcon, OrderIcon, BillIcon, ShareIcon } from './components/StepIcons.jsx';
@@ -26,16 +29,39 @@ const STEP_ICONS = {
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
+// A ready-made/loose product is already fully priced the moment it's added
+// to the cart (fixed price × qty, no ingredient breakdown to edit), so it
+// never needs the BillGenerator step -- it's converted straight into the
+// same bill shape custom items end up with (lineItems/ingredientsSubtotal/
+// makingCharge/total), just with one synthetic line item. This is what lets
+// ShareOutput render every bill generically regardless of where it came from.
+function synthesizeProductBill(item) {
+  const amount = Math.round(item.qty * item.unitPrice);
+  return {
+    orderItemId: item.id,
+    kind: 'product',
+    type: item.name,
+    qtyLabel: `${item.qty} ${item.unit === 'piece' ? 'pcs' : item.unit}`,
+    recipeKey: null,
+    lineItems: [{ code: item.name, qty: item.qty, unit: item.unit, amount }],
+    ingredientsSubtotal: amount,
+    makingCharge: 0,
+    total: amount,
+    productId: item.productId,
+    productQty: item.qty,
+  };
+}
+
 export default function App() {
   const { t } = useLanguage();
-  const [step, setStep] = useState('customer');
+  const [location, setLocation] = useState(getStoredLocation);
+  const [step, setStep] = useState('start');
   const [customer, setCustomer] = useState({
     name: '',
     phone: '',
     area: '',
     pocName: '',
     billingMode: 'online',
-    store: '',
     date: todayISO(),
   });
   const [orderItems, setOrderItems] = useState([]);
@@ -58,14 +84,13 @@ export default function App() {
   }, []);
 
   function handleStartOver() {
-    setStep('customer');
+    setStep('start');
     setCustomer({
       name: '',
       phone: '',
       area: '',
       pocName: '',
       billingMode: 'online',
-      store: '',
       date: todayISO(),
     });
     setOrderItems([]);
@@ -73,22 +98,72 @@ export default function App() {
     setBills([]);
   }
 
-  async function handleConfirmBill(bill) {
-    const nextBills = [...bills, bill];
-    if (billIndex + 1 < orderItems.length) {
-      setBills(nextBills);
-      setBillIndex(billIndex + 1);
+  function handleSwitchShop() {
+    clearStoredLocation();
+    setLocation(null);
+  }
+
+  // Walks forward from `fromIndex`, instantly converting any ready-made
+  // product items into their final bill shape (no UI needed for those), and
+  // stops at the first custom-masala item so BillGenerator can render for
+  // it. If every remaining item is a product, it logs the whole order and
+  // moves straight to Share -- same as confirming the last custom item does.
+  async function advanceBilling(accumulatedBills, fromIndex) {
+    let idx = fromIndex;
+    let acc = accumulatedBills;
+    while (idx < orderItems.length && orderItems[idx].kind === 'product') {
+      acc = [...acc, synthesizeProductBill(orderItems[idx])];
+      idx += 1;
+    }
+
+    if (idx >= orderItems.length) {
+      setStep('bill');
+      const logged = await logOrderToSupabase(customer, acc, location);
+      const billsWithIds = acc.map((b, i) => ({
+        ...b,
+        id: logged[i]?.id ?? null,
+        billNo: logged[i]?.billNo ?? null,
+      }));
+      const productLines = acc
+        .filter((b) => b.kind === 'product')
+        .map((b) => ({ productId: b.productId, qty: b.productQty }));
+      decrementStock(location?.id, productLines);
+      setBills(billsWithIds);
+      setStep('share');
       return;
     }
 
-    const logged = await logOrderToSupabase(customer, nextBills);
-    const billsWithIds = nextBills.map((b, i) => ({
-      ...b,
-      id: logged[i]?.id ?? null,
-      billNo: logged[i]?.billNo ?? null,
-    }));
-    setBills(billsWithIds);
-    setStep('share');
+    setBills(acc);
+    setBillIndex(idx);
+    setStep('bill');
+  }
+
+  async function handleConfirmBill(bill) {
+    await advanceBilling([...bills, bill], billIndex + 1);
+  }
+
+  if (!location) {
+    return (
+      <div className="app-shell">
+        <header className="app-header">
+          <div className="app-header-inner">
+            <img src="/logo-mark.png" alt="Shindraj Masale logo" className="app-logo" />
+            <div className="app-header-text">
+              <h1>{t('appName')}</h1>
+              <p className="tagline">{t('tagline')}</p>
+            </div>
+            <div className="app-header-tools">
+              <LanguageToggle />
+            </div>
+          </div>
+        </header>
+        <div className="app-layout app-layout-single">
+          <main className="app-main">
+            <LocationLogin onLoggedIn={setLocation} />
+          </main>
+        </div>
+      </div>
+    );
   }
 
   const stepIndex = STEPS.indexOf(step);
@@ -104,32 +179,50 @@ export default function App() {
           </div>
           <div className="app-header-tools">
             <LanguageToggle />
+            <span className="current-location-badge">{location.name}</span>
             <a className="admin-link" href="/customers">
               {t('customersNavLink')}
             </a>
             <a className="admin-link" href="/admin">
               {t('adminLink')}
             </a>
+            <button type="button" className="admin-link admin-link-button" onClick={handleSwitchShop}>
+              {t('switchShop')}
+            </button>
           </div>
         </div>
       </header>
 
       <div className="app-layout">
-        <nav className="step-rail" aria-label={t('stepCustomer')}>
-          <ol>
-            {STEPS.map((s, i) => {
-              const Icon = STEP_ICONS[s];
-              return (
-                <li key={s} className={s === step ? 'active' : stepIndex > i ? 'done' : ''}>
-                  <Icon />
-                  <span className="step-rail-label">{t(STEP_LABEL_KEYS[s])}</span>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+        {step !== 'start' && (
+          <nav className="step-rail" aria-label={t('stepCustomer')}>
+            <ol>
+              {STEPS.map((s, i) => {
+                const Icon = STEP_ICONS[s];
+                return (
+                  <li key={s} className={s === step ? 'active' : stepIndex > i ? 'done' : ''}>
+                    <Icon />
+                    <span className="step-rail-label">{t(STEP_LABEL_KEYS[s])}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+        )}
 
         <main className="app-main">
+          {step === 'start' && (
+            <section className="card start-screen">
+              <h2>{location.name}</h2>
+              <p className="hint">{t('startScreenHint')}</p>
+              <div className="actions">
+                <button className="btn-primary btn-accent" onClick={() => setStep('customer')}>
+                  {t('generateNewBill')}
+                </button>
+              </div>
+            </section>
+          )}
+
           {step === 'customer' && (
             <CustomerDetails
               customer={customer}
@@ -143,11 +236,9 @@ export default function App() {
               orderItems={orderItems}
               onChange={setOrderItems}
               onBack={() => setStep('customer')}
-              onNext={() => {
-                setBillIndex(0);
-                setStep('bill');
-              }}
+              onNext={() => advanceBilling([], 0)}
               pricingConfig={pricingConfig}
+              locationId={location.id}
             />
           )}
 
@@ -162,12 +253,15 @@ export default function App() {
             />
           )}
 
+          {step === 'bill' && !orderItems[billIndex] && <p className="hint">{t('finalizingBill')}</p>}
+
           {step === 'share' && (
             <ShareOutput
               customer={customer}
               bills={bills}
               onStartOver={handleStartOver}
               pricingConfig={pricingConfig}
+              location={location}
             />
           )}
         </main>

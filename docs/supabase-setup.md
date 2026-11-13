@@ -266,3 +266,86 @@ grant update (notes) on public.bills to anon;
 layer (PostgREST) can take a moment to notice the new privilege and will
 return `permission denied` (`42501`) until it does. If a fresh grant doesn't
 seem to work immediately, run `NOTIFY pgrst, 'reload schema';` to force it.
+
+## 8. Multi-shop login, barcoded products, and per-shop stock
+
+Adds: a shop login per physical location (so every bill is tagged with the
+shop that made it, with no manual picker), a barcode-scannable product
+catalog for ready-made/loose items sold alongside custom masala, and
+per-shop stock levels that decrement automatically when a scanned product
+is billed.
+
+Run this once in the **SQL Editor**:
+
+```sql
+create table public.locations (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  login_username text not null unique,
+  login_password text not null,
+  created_at timestamptz not null default now()
+);
+
+create table public.products (
+  id uuid primary key default gen_random_uuid(),
+  barcode text not null unique,
+  name_en text not null,
+  name_mr text,
+  category text not null default 'ready_made', -- 'ready_made' | 'loose'
+  unit text not null default 'piece',           -- 'piece' | 'kg' | 'g'
+  price numeric not null,
+  is_active boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+create table public.stock_levels (
+  product_id uuid not null references public.products(id) on delete cascade,
+  location_id uuid not null references public.locations(id) on delete cascade,
+  qty_on_hand numeric not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (product_id, location_id)
+);
+
+alter table public.bills add column if not exists location_id uuid references public.locations(id);
+alter table public.bills add column if not exists kind text not null default 'custom';
+alter table public.bills add column if not exists product_id uuid references public.products(id);
+
+alter table public.locations enable row level security;
+alter table public.products enable row level security;
+alter table public.stock_levels enable row level security;
+
+-- Logging in checks username+password against this table directly from the
+-- browser (anon key) -- same tradeoff as the /admin password: this policy
+-- gates nothing but the UI, not real row security.
+create policy "Allow anonymous read" on public.locations for select to anon using (true);
+create policy "Allow anonymous read/write" on public.products for all to anon using (true) with check (true);
+create policy "Allow anonymous read/write" on public.stock_levels for all to anon using (true) with check (true);
+
+grant usage on schema public to anon;
+grant select on public.locations to anon;
+grant select, insert, update on public.products to anon;
+grant select, insert, update on public.stock_levels to anon;
+
+-- Atomic stock decrement, called once per sold product line right after a
+-- bill logs successfully. Floors at 0 instead of going negative.
+create or replace function public.decrement_stock(p_product_id uuid, p_location_id uuid, p_qty numeric)
+returns void language sql as $$
+  insert into public.stock_levels (product_id, location_id, qty_on_hand)
+  values (p_product_id, p_location_id, -p_qty)
+  on conflict (product_id, location_id)
+  do update set qty_on_hand = greatest(public.stock_levels.qty_on_hand - p_qty, 0),
+                updated_at = now();
+$$;
+
+grant execute on function public.decrement_stock to anon;
+```
+
+Then open `/admin` → **Shops** section to create a username/password for each
+physical shop, and **Products** to add ready-made/loose items (a barcode is
+auto-generated if you leave it blank) and set starting stock per shop.
+
+**Security note:** same as the rest of this file -- `login_password` is
+compared as plain text from the browser with the anon key. That's an
+acceptable tradeoff for gating a shop till, same level as the single
+`VITE_ADMIN_PASSWORD` used for `/admin` -- not a substitute for real auth if
+the data ever needs stronger protection.

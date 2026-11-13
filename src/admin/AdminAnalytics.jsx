@@ -13,7 +13,9 @@ const ANALYTICS_LIMIT = 2000;
 function channelLabel(t, key) {
   if (key === 'online') return t('online');
   if (key === 'lalbaug' || key === 'sewri') return storeLabel(t, key);
-  return t('offline');
+  // Any other store name (a shop set up after the original two) is shown
+  // as-is rather than collapsing to a generic "Offline" bucket.
+  return key || t('offline');
 }
 
 export default function AdminAnalytics({ fromDate, toDate, demoMode }) {

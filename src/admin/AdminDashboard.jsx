@@ -3,6 +3,8 @@ import { DEMO_STORAGE_KEY, getInitialDemoMode } from './demoData.js';
 import { useLanguage } from '../i18n.jsx';
 import AdminAnalytics from './AdminAnalytics.jsx';
 import AdminPricing from './AdminPricing.jsx';
+import AdminProducts from './AdminProducts.jsx';
+import AdminLocations from './AdminLocations.jsx';
 
 // Owner-only: business analytics (and, eventually, pricing control). Looking
 // up a specific customer's order history is a front-of-house task now, done
@@ -59,6 +61,10 @@ export default function AdminDashboard({ onLogOut }) {
       <AdminAnalytics fromDate={fromDate} toDate={toDate} demoMode={demoMode} />
 
       <AdminPricing />
+
+      <AdminProducts />
+
+      <AdminLocations />
     </>
   );
 }

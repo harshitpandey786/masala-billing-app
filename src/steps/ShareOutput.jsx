@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { useLanguage, masalaTypeLabel, storeLabel } from '../i18n.jsx';
+import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import { updateBillNotes } from '../orderLogger.js';
 import pricingConfig from '../../data/pricing-config.json' with { type: 'json' };
 
@@ -19,7 +19,7 @@ function formatPhoneForWhatsApp(phone) {
   return digits.length === 10 ? `91${digits}` : digits;
 }
 
-export default function ShareOutput({ customer, bills, onStartOver, pricingConfig }) {
+export default function ShareOutput({ customer, bills, onStartOver, pricingConfig, location }) {
   const { t, lang } = useLanguage();
   const printRef = useRef(null);
   const imageUrlRef = useRef(null);
@@ -181,7 +181,8 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
           </p>
           <p>
             {customer.area} · {customer.date} ·{' '}
-            {customer.billingMode === 'online' ? t('online') : `${t('offline')} (${storeLabel(t, customer.store)})`}
+            {customer.billingMode === 'online' ? t('online') : t('offline')}
+            {location?.name ? ` · ${location.name}` : ''}
           </p>
           <p>
             {t('billMadeByLabel')}: {customer.pocName}
@@ -197,7 +198,10 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
         {bills.map((bill, i) => (
           <div key={bill.orderItemId} className="bill-summary-block">
             <h3>
-              {i + 1}. {masalaTypeLabel(t, bill.type, pricingConfig?.masala_types, lang)} {bill.qtyLabel} kg
+              {i + 1}.{' '}
+              {bill.kind === 'product'
+                ? `${bill.type} — ${bill.qtyLabel}`
+                : `${masalaTypeLabel(t, bill.type, pricingConfig?.masala_types, lang)} ${bill.qtyLabel} kg`}
               {bill.billNo ? ` · ${t('billNoLabel')} ${bill.billNo}` : ''}
             </h3>
             <table className="bill-table">
@@ -213,19 +217,23 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
                   <tr key={line.code}>
                     <td>{line.code}</td>
                     <td>
-                      {line.qty} {line.unit === 'piece' ? 'pcs' : 'g'}
+                      {line.qty} {line.unit === 'piece' ? 'pcs' : line.unit === 'kg' ? 'kg' : 'g'}
                     </td>
                     <td>₹{line.amount}</td>
                   </tr>
                 ))}
-                <tr className="subtotal-row">
-                  <td colSpan={2}>{t('ingredientsSubtotal')}</td>
-                  <td>₹{bill.ingredientsSubtotal}</td>
-                </tr>
-                <tr className="making-charge-row">
-                  <td colSpan={2}>{t('makingCharge')}</td>
-                  <td>₹{bill.makingCharge}</td>
-                </tr>
+                {bill.kind !== 'product' && (
+                  <>
+                    <tr className="subtotal-row">
+                      <td colSpan={2}>{t('ingredientsSubtotal')}</td>
+                      <td>₹{bill.ingredientsSubtotal}</td>
+                    </tr>
+                    <tr className="making-charge-row">
+                      <td colSpan={2}>{t('makingCharge')}</td>
+                      <td>₹{bill.makingCharge}</td>
+                    </tr>
+                  </>
+                )}
                 <tr className="total-row">
                   <td colSpan={2}>{t('total')}</td>
                   <td>₹{bill.total}</td>
