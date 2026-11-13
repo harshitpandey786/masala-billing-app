@@ -1,14 +1,19 @@
 /* ============================================================
    Shindraj Masale — billing & order register
-   Design language: Apple's — platform system font (so English
-   renders in real SF Pro on Mac/iOS instead of a webfont's Latin
-   fallback glyphs), flat confident color instead of decorative
-   gradients, soft dual-layer shadows for depth, a translucent
-   blurred nav bar, and generous continuous corner radii. One bold
-   color moment (the total) instead of color spread everywhere.
-   Devanagari gets its own stack, swapped in via html[lang="mr"] so
-   Marathi and English each render in a font actually built for
-   that script, rather than one font standing in for both.
+   Design language: Apple's liquid glass — translucent, blurred
+   surfaces that float above a warm chili/turmeric gradient wash,
+   with soft layered shadows for real depth and generous continuous
+   corner radii. Every screen (not just /admin) sits in a proper
+   glass panel now, so the billing flow reads as one consistent
+   business dashboard rather than a bare form on a flat page.
+   Data-dense surfaces (tables, charts, the shared bill image) stay
+   solid and opaque on purpose -- glass is for chrome and containers,
+   never for the numbers themselves, and the printable bill image
+   must render flat for WhatsApp/PDF export regardless of blur
+   support. Devanagari gets its own stack, swapped in via
+   html[lang="mr"], so Marathi and English each render in a font
+   actually built for that script, rather than one font standing in
+   for both.
    ============================================================ */
 
 :root {
@@ -32,10 +37,24 @@
   --success: #4b7a3e;
   --error: #ab2a1f;
 
+  /* Liquid-glass surface tokens. Three translucency levels (panel / menu /
+     well) cover every glass surface in the app -- outer page panels, floating
+     menus, and small nested wells inside a panel -- so blur doesn't stack
+     into mush when one glass surface sits on top of another. */
+  --glass-panel: rgba(255, 255, 255, 0.56);
+  --glass-menu: rgba(255, 255, 255, 0.78);
+  --glass-well: rgba(255, 255, 255, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.65);
+  --glass-blur: blur(28px) saturate(180%);
+  --glass-blur-soft: blur(12px) saturate(160%);
+
   --radius-sm: 10px;
   --radius-md: 16px;
+  --radius-lg: 22px;
+  --radius-pill: 999px;
   --shadow-sm: 0 1px 2px rgba(20, 16, 12, 0.04), 0 1px 1px rgba(20, 16, 12, 0.03);
   --shadow-md: 0 10px 24px -8px rgba(20, 16, 12, 0.18), 0 2px 6px rgba(20, 16, 12, 0.06);
+  --shadow-lg: 0 24px 56px -20px rgba(34, 24, 18, 0.26), 0 2px 8px rgba(34, 24, 18, 0.08);
 
   --font-latin: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', Roboto, Helvetica, Arial,
     sans-serif;
@@ -63,7 +82,15 @@ html[lang='mr'] {
 body {
   margin: 0;
   min-height: 100%;
-  background: var(--paper);
+  /* Warm chili/turmeric color washes on a soft cream base -- the gradient
+     glass panels need some variation behind them to actually read as glass;
+     a flat background makes backdrop-filter blur invisible. Grounded in the
+     shop's own palette rather than the generic blue/violet glass demo look. */
+  background: radial-gradient(1100px 640px at 6% -12%, rgba(240, 91, 50, 0.16), transparent 60%),
+    radial-gradient(900px 540px at 104% 4%, rgba(201, 138, 31, 0.18), transparent 58%),
+    radial-gradient(820px 520px at 50% 112%, rgba(181, 54, 42, 0.09), transparent 55%),
+    linear-gradient(180deg, #faf8f4 0%, #efeae1 100%);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: inherit;
   font-size: 16px;
@@ -103,22 +130,24 @@ h3 {
 /* ---------- shell & header ---------- */
 
 .app-shell {
-  max-width: 920px;
+  max-width: 980px;
   margin: 0 auto;
   padding: 0 1rem 3rem;
 }
 
 .app-header {
   position: sticky;
-  top: 0;
+  top: 0.75rem;
   z-index: 10;
-  background: rgba(247, 245, 242, 0.82);
-  backdrop-filter: blur(20px) saturate(180%);
-  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  background: var(--glass-menu);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
   color: var(--ink);
-  padding: max(0.75rem, env(safe-area-inset-top)) 1rem 0.75rem;
-  margin: 0 -1rem 1.5rem;
-  border-bottom: 1px solid var(--line);
+  padding: 0.75rem 1.1rem;
+  margin: max(0.75rem, env(safe-area-inset-top)) 0 1.75rem;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
 }
 
 @supports not (backdrop-filter: blur(1px)) {
@@ -172,8 +201,8 @@ h3 {
 
 .lang-toggle {
   display: flex;
-  background: var(--rail);
-  border-radius: 999px;
+  background: var(--glass-well);
+  border-radius: var(--radius-pill);
   padding: 2px;
 }
 
@@ -181,7 +210,7 @@ h3 {
   background: transparent;
   color: var(--ink-soft);
   border: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.28rem 0.6rem;
   font-size: 0.76rem;
   font-weight: 600;
@@ -201,14 +230,14 @@ h3 {
   font-size: 0.8rem;
   font-weight: 600;
   text-decoration: none;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.3rem 0.7rem;
   white-space: nowrap;
 }
 
 @media (hover: hover) and (pointer: fine) {
   .admin-link:hover {
-    background: var(--rail);
+    background: var(--glass-well);
     color: var(--accent-orange);
   }
   .lang-toggle button:not(.active):hover {
@@ -231,7 +260,7 @@ h3 {
 
 .step-rail {
   position: sticky;
-  top: 5.5rem;
+  top: 6.5rem;
 }
 
 .step-rail ol {
@@ -241,8 +270,18 @@ h3 {
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  background: var(--rail);
-  border-radius: var(--radius-md);
+  background: var(--glass-panel);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .step-rail ol {
+    background: var(--rail);
+  }
 }
 
 .step-rail li {
@@ -250,7 +289,7 @@ h3 {
   align-items: center;
   gap: 0.65rem;
   padding: 0.5rem 0.65rem;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: var(--ink-soft);
   font-size: 0.86rem;
   font-weight: 500;
@@ -281,12 +320,23 @@ h3 {
   padding: 0.15rem 0 0 1.75rem;
 }
 
+/* The one glass panel style, shared by every screen -- the billing flow's
+   steps and every /admin section alike -- so the whole app reads as one
+   consistent dashboard instead of admin-only panels on a bare billing flow. */
 .card {
-  background: transparent;
-  border: none;
-  border-radius: 0;
-  padding: 0;
-  box-shadow: none;
+  background: var(--glass-panel);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  padding: 2rem;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .card {
+    background: var(--paper-raised);
+  }
 }
 
 .card h2 {
@@ -316,7 +366,7 @@ h3 {
   bottom: 0;
   width: 44px;
   height: 3px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--chili);
 }
 
@@ -353,12 +403,12 @@ select,
 textarea {
   font: inherit;
   font-size: 16px;
-  padding: 0.6rem 0.7rem;
+  padding: 0.62rem 0.75rem;
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: rgba(255, 255, 255, 0.65);
   color: var(--ink);
-  transition: border-color 140ms ease-out, box-shadow 140ms ease-out;
+  transition: border-color 140ms ease-out, box-shadow 140ms ease-out, background-color 140ms ease-out;
 }
 
 input::placeholder,
@@ -372,12 +422,13 @@ select:focus-visible,
 textarea:focus-visible {
   outline: none;
   border-color: var(--chili);
+  background: #fff;
   box-shadow: 0 0 0 3px var(--chili-tint);
 }
 
 input:disabled,
 select:disabled {
-  background: var(--rail);
+  background: rgba(241, 239, 234, 0.7);
   color: var(--ink-soft);
   cursor: not-allowed;
 }
@@ -410,8 +461,8 @@ textarea {
 button {
   font: inherit;
   cursor: pointer;
-  border-radius: var(--radius-sm);
-  padding: 0.6rem 1.15rem;
+  border-radius: var(--radius-pill);
+  padding: 0.65rem 1.3rem;
   border: none;
   touch-action: manipulation;
   user-select: none;
@@ -425,10 +476,10 @@ button:active {
 }
 
 .btn-primary {
-  background: var(--chili);
+  background: linear-gradient(180deg, var(--chili) 0%, var(--chili-dark) 100%);
   color: #fff;
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(138, 34, 25, 0.15);
+  box-shadow: 0 1px 2px rgba(138, 34, 25, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
 
 .btn-primary:disabled {
@@ -436,16 +487,19 @@ button:active {
   color: var(--ink-soft);
   cursor: not-allowed;
   transform: none;
+  box-shadow: none;
 }
 
 .btn-primary.btn-accent {
-  background: var(--chili-dark);
+  background: linear-gradient(180deg, var(--chili-dark) 0%, #6e1b13 100%);
 }
 
 .btn-secondary {
-  background: transparent;
+  background: var(--glass-panel);
   color: var(--chili-dark);
-  border: 1px solid var(--line-strong);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur-soft);
+  -webkit-backdrop-filter: var(--glass-blur-soft);
 }
 
 .btn-secondary:disabled {
@@ -455,9 +509,10 @@ button:active {
 }
 
 .btn-add {
-  background: var(--turmeric);
+  background: linear-gradient(180deg, var(--turmeric) 0%, var(--turmeric-dark) 100%);
   color: #3a2808;
   font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .btn-remove {
@@ -465,24 +520,26 @@ button:active {
   color: var(--error);
   padding: 0.15rem 0.45rem;
   font-size: 0.85rem;
+  border-radius: var(--radius-sm);
 }
 
 .btn-small {
   padding: 0.35rem 0.75rem;
   font-size: 0.8rem;
+  border-radius: var(--radius-sm);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .btn-primary:not(:disabled):hover {
-    background: var(--chili-dark);
+    background: linear-gradient(180deg, var(--chili-dark) 0%, #6e1b13 100%);
     box-shadow: 0 4px 10px -2px rgba(138, 34, 25, 0.35);
     transform: translateY(-1px);
   }
   .btn-secondary:not(:disabled):hover {
-    background: var(--rail);
+    background: var(--glass-menu);
   }
   .btn-add:hover {
-    background: var(--turmeric-dark);
+    background: linear-gradient(180deg, var(--turmeric-dark) 0%, #7a5310 100%);
     color: #fff;
   }
   .btn-remove:hover {
@@ -600,6 +657,10 @@ button:active {
 }
 
 /* ---------- share / printable summary ---------- */
+/* Deliberately solid, opaque, and glass-free: this block is rasterized by
+   html2canvas into the bill image/PDF that gets shared over WhatsApp, where
+   backdrop-filter either doesn't render or would just look like a flat tint
+   with nothing real behind it. A receipt should read like a receipt. */
 
 .bill-notes-field {
   display: flex;
@@ -705,6 +766,9 @@ button:active {
 }
 
 /* ---------- admin dashboard ---------- */
+/* .admin-dashboard / .analytics-card / .admin-login-card are always used
+   together with .card in the markup (that's what supplies the glass panel
+   chrome) -- these are layout-only modifiers now, not a second panel style. */
 
 .admin-dashboard + .admin-dashboard,
 .admin-dashboard + .analytics-card,
@@ -717,16 +781,6 @@ button:active {
   gap: 0.75rem;
   flex-wrap: wrap;
   align-items: end;
-}
-
-.admin-dashboard,
-.admin-login-card,
-.analytics-card {
-  background: var(--paper-raised);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  padding: 1.75rem;
-  box-shadow: var(--shadow-sm);
 }
 
 .admin-login-card {
@@ -763,12 +817,14 @@ button:active {
   gap: 0.15rem;
   padding: 0.75rem 1.1rem;
   border-radius: var(--radius-sm);
-  background: var(--chili-tint);
+  background: rgba(181, 54, 42, 0.08);
+  border: 1px solid rgba(181, 54, 42, 0.12);
   min-width: 108px;
 }
 
 .stat-tile:nth-child(even) {
-  background: var(--turmeric-tint);
+  background: rgba(201, 138, 31, 0.1);
+  border-color: rgba(201, 138, 31, 0.18);
 }
 
 .stat-value {
@@ -816,7 +872,7 @@ button:active {
 }
 
 .ledger-table thead th {
-  background: var(--rail);
+  background: rgba(241, 239, 234, 0.6);
 }
 
 .ledger-table thead th:first-child {
@@ -828,7 +884,7 @@ button:active {
 }
 
 .ledger-row:nth-child(even) td {
-  background: var(--paper);
+  background: rgba(247, 245, 242, 0.5);
 }
 
 .ledger-row td {
@@ -838,7 +894,7 @@ button:active {
 
 @media (hover: hover) and (pointer: fine) {
   .ledger-row:hover td {
-    background: var(--rail);
+    background: rgba(241, 239, 234, 0.75);
   }
 }
 
@@ -866,7 +922,7 @@ button:active {
 
 .ledger-detail-row td {
   padding: 0;
-  background: var(--rail);
+  background: rgba(241, 239, 234, 0.5);
 }
 
 .ledger-detail-table {
@@ -981,14 +1037,14 @@ button:active {
 
 .bar-list-track {
   height: 8px;
-  background: var(--rail);
-  border-radius: 999px;
+  background: rgba(241, 239, 234, 0.8);
+  border-radius: var(--radius-pill);
   overflow: hidden;
 }
 
 .bar-list-fill {
   height: 100%;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .bar-list-fill-chili {
@@ -1040,7 +1096,7 @@ button:active {
   padding: 0.3rem 0.75rem;
   background: var(--success);
   color: #fff;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-size: 0.8rem;
   font-weight: 600;
 }
@@ -1064,8 +1120,11 @@ button:active {
 }
 
 .pricing-add-form {
-  background: var(--rail);
-  border-radius: var(--radius-sm);
+  background: var(--glass-well);
+  backdrop-filter: var(--glass-blur-soft);
+  -webkit-backdrop-filter: var(--glass-blur-soft);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
   padding: 1rem;
   margin-bottom: 1rem;
   display: flex;
@@ -1106,6 +1165,7 @@ button:active {
   border-radius: var(--radius-sm);
   padding: 0.75rem 1rem;
   margin-bottom: 0.6rem;
+  background: rgba(255, 255, 255, 0.35);
 }
 
 .pricing-recipe-toggle {
@@ -1168,8 +1228,23 @@ button:active {
   }
 
   .app-header {
-    padding: max(0.75rem, env(safe-area-inset-top)) 0.75rem 0.75rem;
-    margin: 0 -0.75rem 1.1rem;
+    padding: 0.7rem 0.85rem;
+    margin: max(0.6rem, env(safe-area-inset-top)) 0 1.1rem;
+  }
+
+  /* The title/tagline column and the nav tools no longer fight over the same
+     row on narrow screens -- the tools wrap to their own row underneath
+     instead of squeezing the title into a sliver that wraps one Devanagari
+     syllable per line. */
+  .app-header-inner {
+    flex-wrap: wrap;
+  }
+
+  .app-header-tools {
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: flex-start;
+    margin-top: 0.5rem;
   }
 
   .app-logo {
@@ -1186,7 +1261,7 @@ button:active {
   }
 
   .card {
-    padding: 1.1rem;
+    padding: 1.25rem;
   }
 
   .form-grid {
@@ -1282,12 +1357,12 @@ button:active {
 }
 
 .current-location-badge {
-  background: var(--rail);
+  background: var(--glass-well);
   color: var(--ink);
   font-size: 0.78rem;
   font-weight: 700;
   padding: 0.3rem 0.7rem;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   white-space: nowrap;
 }
 
@@ -1309,17 +1384,26 @@ button:active {
   list-style: none;
   margin: 0.4rem 0 0;
   padding: 0;
-  border: 1px solid var(--line);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
   overflow: hidden;
-  background: var(--paper-raised);
+  background: var(--glass-menu);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+@supports not (backdrop-filter: blur(1px)) {
+  .product-match-list,
+  .customer-match-list {
+    background: var(--paper-raised);
+  }
 }
 
 .customer-match-list {
   position: absolute;
   z-index: 5;
   width: 100%;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-md);
 }
 
 .customer-phone-field {
@@ -1332,6 +1416,7 @@ button:active {
   text-align: left;
   background: none;
   border: none;
+  border-radius: 0;
   padding: 0.5rem 0.75rem;
   font: inherit;
   cursor: pointer;
@@ -1344,16 +1429,18 @@ button:active {
 
 @media (hover: hover) and (pointer: fine) {
   .product-match-button:hover {
-    background: var(--rail);
+    background: var(--glass-well);
   }
 }
 
 .product-pending-card {
   margin-top: 0.75rem;
-  padding: 0.85rem;
-  border: 1px solid var(--line);
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  background: var(--paper-raised);
+  background: var(--glass-well);
+  backdrop-filter: var(--glass-blur-soft);
+  -webkit-backdrop-filter: var(--glass-blur-soft);
 }
 
 .product-pending-name {
@@ -1364,4 +1451,18 @@ button:active {
 .cart-running-total {
   font-weight: 700;
   margin-top: 0.75rem;
+}
+
+/* ---------- barcode label printing ---------- */
+
+.label-qty-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.label-qty-field input {
+  width: 56px;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.85rem;
 }

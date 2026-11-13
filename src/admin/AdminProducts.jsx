@@ -7,19 +7,43 @@ function generateBarcode() {
   return `MB-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
-function printBarcodeLabel(product) {
+// Prints `count` copies of the same product's barcode label on one page, laid
+// out in a grid so they can be cut apart and stuck on each unit of a batch --
+// e.g. "making 40 packets of Malvani ready-made today" prints 40 labels in
+// one go instead of one at a time.
+function printBarcodeLabels(product, count) {
   const canvas = document.createElement('canvas');
-  JsBarcode(canvas, product.barcode, { format: 'CODE128', displayValue: true, fontSize: 16, height: 60 });
+  JsBarcode(canvas, product.barcode, { format: 'CODE128', displayValue: true, fontSize: 14, height: 50 });
   const dataUrl = canvas.toDataURL('image/png');
-  const win = window.open('', '_blank', 'width=420,height=320');
+  const win = window.open('', '_blank', 'width=640,height=480');
   if (!win) return;
+  const label = `
+    <div class="label">
+      <div class="name">${product.name_en}</div>
+      <div class="price">₹${product.price}</div>
+      <img src="${dataUrl}" alt="barcode" />
+    </div>`;
   win.document.write(`
     <html>
-      <head><title>${product.name_en}</title></head>
-      <body style="text-align:center; font-family: sans-serif; padding: 24px;">
-        <h3 style="margin: 0 0 4px;">${product.name_en}</h3>
-        <p style="margin: 0 0 12px;">₹${product.price}</p>
-        <img src="${dataUrl}" alt="barcode" />
+      <head>
+        <title>${product.name_en}</title>
+        <style>
+          body { font-family: sans-serif; margin: 16px; }
+          .sheet { display: flex; flex-wrap: wrap; gap: 10px; }
+          .label {
+            width: 190px;
+            padding: 10px;
+            border: 1px dashed #999;
+            border-radius: 8px;
+            text-align: center;
+          }
+          .name { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+          .price { font-size: 12px; margin-bottom: 6px; }
+          .label img { max-width: 100%; }
+        </style>
+      </head>
+      <body>
+        <div class="sheet">${label.repeat(count)}</div>
         <script>window.onload = () => window.print();</script>
       </body>
     </html>
@@ -107,8 +131,10 @@ function ProductTable({ products, onChanged, onSaved }) {
     category: 'ready_made',
     unit: 'piece',
     price: '',
+    batchQty: '',
   });
   const [addError, setAddError] = useState('');
+  const [printQty, setPrintQty] = useState({});
 
   function fieldFor(p, field) {
     return edits[p.id]?.[field] !== undefined ? edits[p.id][field] : p[field] ?? '';
@@ -159,19 +185,33 @@ function ProductTable({ products, onChanged, onSaved }) {
       return;
     }
     const barcode = newProduct.barcode.trim() || generateBarcode();
-    const { error } = await supabase.from('products').insert({
-      barcode,
-      name_en: newProduct.name_en.trim(),
-      name_mr: newProduct.name_mr.trim() || null,
-      category: newProduct.category,
-      unit: newProduct.unit,
-      price: Number(newProduct.price),
-    });
+    const { data, error } = await supabase
+      .from('products')
+      .insert({
+        barcode,
+        name_en: newProduct.name_en.trim(),
+        name_mr: newProduct.name_mr.trim() || null,
+        category: newProduct.category,
+        unit: newProduct.unit,
+        price: Number(newProduct.price),
+      })
+      .select()
+      .single();
     if (error) {
       setAddError(error.message);
       return;
     }
-    setNewProduct({ barcode: '', name_en: '', name_mr: '', category: 'ready_made', unit: 'piece', price: '' });
+    const batchQty = Number(newProduct.batchQty);
+    if (batchQty > 0) printBarcodeLabels(data, batchQty);
+    setNewProduct({
+      barcode: '',
+      name_en: '',
+      name_mr: '',
+      category: 'ready_made',
+      unit: 'piece',
+      price: '',
+      batchQty: '',
+    });
     setShowAddForm(false);
     onChanged();
     onSaved();
@@ -223,6 +263,16 @@ function ProductTable({ products, onChanged, onSaved }) {
             value={newProduct.barcode}
             onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
           />
+          <label className="label-qty-field">
+            {t('batchQtyLabel')}
+            <input
+              type="number"
+              min="0"
+              placeholder={t('batchQtyPlaceholder')}
+              value={newProduct.batchQty}
+              onChange={(e) => setNewProduct({ ...newProduct, batchQty: e.target.value })}
+            />
+          </label>
           <button className="btn-add btn-small" onClick={addProduct}>
             {t('addItem')}
           </button>
@@ -302,7 +352,18 @@ function ProductTable({ products, onChanged, onSaved }) {
                         {t('save')}
                       </button>
                     )}
-                    <button className="btn-secondary btn-small" onClick={() => printBarcodeLabel(p)}>
+                    <label className="label-qty-field">
+                      <input
+                        type="number"
+                        min="1"
+                        value={printQty[p.id] ?? 1}
+                        onChange={(e) => setPrintQty((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                      />
+                    </label>
+                    <button
+                      className="btn-secondary btn-small"
+                      onClick={() => printBarcodeLabels(p, Math.max(1, Number(printQty[p.id] ?? 1)))}
+                    >
                       {t('printLabel')}
                     </button>
                   </div>
