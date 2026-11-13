@@ -9,22 +9,36 @@ import defaultConfig from '../data/pricing-config.json' with { type: 'json' };
 // fails, same resilience rule as the rest of this app -- a flaky connection
 // should never stop an operator from billing a customer, just mean the
 // prices are whatever shipped in the last deploy instead of the latest edit.
-export async function fetchPricingConfig() {
-  if (!supabase) return defaultConfig;
+//
+// `locationId` scopes every table to one shop -- pricing is fully
+// independent per shop (see docs/supabase-setup.md §9), so there is no
+// business-wide config anymore, only each shop's own.
+export async function fetchPricingConfig(locationId) {
+  if (!supabase || !locationId) return defaultConfig;
 
   try {
-    const [ingredientsRes, typesRes, recipesRes, linesRes, settingsRes] = await Promise.all([
-      supabase.from('ingredients').select('*'),
-      supabase.from('masala_types').select('*').order('sort_order'),
-      supabase.from('recipes').select('*').order('sort_order'),
-      supabase.from('recipe_lines').select('*').order('recipe_id').order('row_order'),
-      supabase.from('pricing_settings').select('*').eq('id', true).maybeSingle(),
+    const [ingredientsRes, typesRes, recipesRes, settingsRes] = await Promise.all([
+      supabase.from('ingredients').select('*').eq('location_id', locationId),
+      supabase.from('masala_types').select('*').eq('location_id', locationId).order('sort_order'),
+      supabase.from('recipes').select('*').eq('location_id', locationId).order('sort_order'),
+      supabase.from('pricing_settings').select('*').eq('location_id', locationId).maybeSingle(),
     ]);
 
-    const error =
-      ingredientsRes.error || typesRes.error || recipesRes.error || linesRes.error || settingsRes.error;
+    const error = ingredientsRes.error || typesRes.error || recipesRes.error || settingsRes.error;
     if (error || !ingredientsRes.data?.length || !recipesRes.data?.length) {
       console.error('Failed to fetch live pricing, falling back to bundled config', error);
+      return defaultConfig;
+    }
+
+    const recipeIds = recipesRes.data.map((r) => r.id);
+    const linesRes = await supabase
+      .from('recipe_lines')
+      .select('*')
+      .in('recipe_id', recipeIds)
+      .order('recipe_id')
+      .order('row_order');
+    if (linesRes.error) {
+      console.error('Failed to fetch live pricing, falling back to bundled config', linesRes.error);
       return defaultConfig;
     }
 

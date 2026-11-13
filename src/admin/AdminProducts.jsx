@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
@@ -377,36 +377,43 @@ function ProductTable({ products, onChanged, onSaved }) {
   );
 }
 
+// Price now lives per (product, shop) in `stock_levels.price`, right next to
+// the per-shop stock count it already tracked -- so each cell edits two
+// independent fields (price, qty_on_hand) instead of one. See
+// docs/supabase-setup.md §9.
 function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
   const { t } = useLanguage();
   const [edits, setEdits] = useState({});
   const [savingKey, setSavingKey] = useState(null);
 
-  function cellKey(productId, locationId) {
-    return `${productId}:${locationId}`;
+  function cellKey(productId, locationId, field) {
+    return `${productId}:${locationId}:${field}`;
   }
   function stockFor(productId, locationId) {
     return stockLevels.find((s) => s.product_id === productId && s.location_id === locationId);
   }
-  function fieldValue(productId, locationId) {
-    const key = cellKey(productId, locationId);
+  function fieldValue(product, locationId, field, fallback) {
+    const key = cellKey(product.id, locationId, field);
     if (edits[key] !== undefined) return edits[key];
-    return stockFor(productId, locationId)?.qty_on_hand ?? 0;
+    return stockFor(product.id, locationId)?.[field] ?? fallback;
   }
-  function isDirty(productId, locationId) {
-    const key = cellKey(productId, locationId);
+  function isDirty(product, locationId, field, fallback) {
+    const key = cellKey(product.id, locationId, field);
     if (edits[key] === undefined) return false;
-    const current = stockFor(productId, locationId)?.qty_on_hand ?? 0;
+    const current = stockFor(product.id, locationId)?.[field] ?? fallback;
     return Number(edits[key]) !== Number(current);
   }
 
-  async function saveCell(productId, locationId) {
-    const key = cellKey(productId, locationId);
-    const qty = Number(edits[key]);
+  async function saveCell(product, locationId, field, fallback) {
+    const key = cellKey(product.id, locationId, field);
+    const value = Number(edits[key] ?? stockFor(product.id, locationId)?.[field] ?? fallback);
     setSavingKey(key);
     const { error } = await supabase
       .from('stock_levels')
-      .upsert({ product_id: productId, location_id: locationId, qty_on_hand: qty }, { onConflict: 'product_id,location_id' });
+      .upsert(
+        { product_id: product.id, location_id: locationId, [field]: value },
+        { onConflict: 'product_id,location_id' }
+      );
     setSavingKey(null);
     if (error) {
       console.error('Failed to save stock level', error);
@@ -434,7 +441,18 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
             <tr>
               <th>{t('tableNameEn')}</th>
               {locations.map((loc) => (
-                <th key={loc.id}>{loc.name}</th>
+                <th key={loc.id} colSpan={2}>
+                  {loc.name}
+                </th>
+              ))}
+            </tr>
+            <tr>
+              <th></th>
+              {locations.map((loc) => (
+                <Fragment key={loc.id}>
+                  <th>{t('priceLabel')}</th>
+                  <th>{t('quantity')}</th>
+                </Fragment>
               ))}
             </tr>
           </thead>
@@ -442,29 +460,50 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
             {products.map((p) => (
               <tr key={p.id} className="ledger-row">
                 <td>{p.name_en}</td>
-                {locations.map((loc) => {
-                  const key = cellKey(p.id, loc.id);
-                  return (
-                    <td key={loc.id}>
+                {locations.map((loc) => (
+                  <Fragment key={loc.id}>
+                    <td>
                       <input
                         type="number"
                         min="0"
-                        value={fieldValue(p.id, loc.id)}
-                        onChange={(e) => setEdits((prev) => ({ ...prev, [key]: e.target.value }))}
+                        value={fieldValue(p, loc.id, 'price', p.price)}
+                        onChange={(e) =>
+                          setEdits((prev) => ({ ...prev, [cellKey(p.id, loc.id, 'price')]: e.target.value }))
+                        }
                         className="pricing-cell-input pricing-cell-input-narrow"
                       />
-                      {isDirty(p.id, loc.id) && (
+                      {isDirty(p, loc.id, 'price', p.price) && (
                         <button
                           className="btn-secondary btn-small"
-                          onClick={() => saveCell(p.id, loc.id)}
-                          disabled={savingKey === key}
+                          onClick={() => saveCell(p, loc.id, 'price', p.price)}
+                          disabled={savingKey === cellKey(p.id, loc.id, 'price')}
                         >
                           {t('save')}
                         </button>
                       )}
                     </td>
-                  );
-                })}
+                    <td>
+                      <input
+                        type="number"
+                        min="0"
+                        value={fieldValue(p, loc.id, 'qty_on_hand', 0)}
+                        onChange={(e) =>
+                          setEdits((prev) => ({ ...prev, [cellKey(p.id, loc.id, 'qty_on_hand')]: e.target.value }))
+                        }
+                        className="pricing-cell-input pricing-cell-input-narrow"
+                      />
+                      {isDirty(p, loc.id, 'qty_on_hand', 0) && (
+                        <button
+                          className="btn-secondary btn-small"
+                          onClick={() => saveCell(p, loc.id, 'qty_on_hand', 0)}
+                          disabled={savingKey === cellKey(p.id, loc.id, 'qty_on_hand')}
+                        >
+                          {t('save')}
+                        </button>
+                      )}
+                    </td>
+                  </Fragment>
+                ))}
               </tr>
             ))}
           </tbody>

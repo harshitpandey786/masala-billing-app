@@ -14,7 +14,12 @@ export default function AdminLocations() {
   const [edits, setEdits] = useState({});
   const [savingId, setSavingId] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [newLocation, setNewLocation] = useState({ name: '', login_username: '', login_password: '' });
+  const [newLocation, setNewLocation] = useState({
+    name: '',
+    login_username: '',
+    login_password: '',
+    admin_password: '',
+  });
   const [addError, setAddError] = useState('');
 
   async function loadAll() {
@@ -80,12 +85,13 @@ export default function AdminLocations() {
       name: newLocation.name.trim(),
       login_username: newLocation.login_username.trim(),
       login_password: newLocation.login_password,
+      admin_password: newLocation.admin_password.trim() || null,
     });
     if (error) {
       setAddError(error.message);
       return;
     }
-    setNewLocation({ name: '', login_username: '', login_password: '' });
+    setNewLocation({ name: '', login_username: '', login_password: '', admin_password: '' });
     setShowAddForm(false);
     loadAll();
     flash();
@@ -128,6 +134,11 @@ export default function AdminLocations() {
                 value={newLocation.login_password}
                 onChange={(e) => setNewLocation({ ...newLocation, login_password: e.target.value })}
               />
+              <input
+                placeholder={t('shopAdminPasswordPlaceholder')}
+                value={newLocation.admin_password}
+                onChange={(e) => setNewLocation({ ...newLocation, admin_password: e.target.value })}
+              />
               <button className="btn-add btn-small" onClick={addLocation}>
                 {t('addItem')}
               </button>
@@ -142,6 +153,7 @@ export default function AdminLocations() {
                   <th>{t('shopNameLabel')}</th>
                   <th>{t('shopUsername')}</th>
                   <th>{t('password')}</th>
+                  <th>{t('shopAdminPasswordLabel')}</th>
                   <th></th>
                 </tr>
               </thead>
@@ -167,6 +179,14 @@ export default function AdminLocations() {
                         value={fieldFor(loc, 'login_password')}
                         onChange={(e) => setField(loc.id, 'login_password', e.target.value)}
                         className="pricing-cell-input"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        value={fieldFor(loc, 'admin_password')}
+                        onChange={(e) => setField(loc.id, 'admin_password', e.target.value)}
+                        className="pricing-cell-input"
+                        placeholder={t('shopAdminPasswordPlaceholder')}
                       />
                     </td>
                     <td>

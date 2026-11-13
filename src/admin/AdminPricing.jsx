@@ -2,34 +2,46 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
 
-// Owner-editable pricing: ingredient rates, masala types, and their recipes
-// (ingredient lists + quantities), all stored in Supabase so changes here
-// take effect on the next bill without a code deploy. Same security model as
-// the rest of /admin -- the password gates the UI, not the database (anon
-// key has write access to these tables, same tradeoff already documented
-// for /admin's other data).
-export default function AdminPricing() {
+// Owner/shop-editable pricing: ingredient rates, masala types, and their
+// recipes (ingredient lists + quantities), all stored in Supabase so changes
+// here take effect on the next bill without a code deploy. Pricing is fully
+// independent per shop (see docs/supabase-setup.md §9) -- every table is
+// scoped to `locationId`, so this component always edits exactly one shop's
+// numbers, whether it's rendered inside the owner's /admin (any shop, picked
+// from a selector) or a shop's own /shop-admin (always its own id). Same
+// security model as the rest of /admin -- the password gates the UI, not the
+// database (anon key has write access to these tables, same tradeoff already
+// documented for /admin's other data).
+export default function AdminPricing({ locationId }) {
   const { t } = useLanguage();
   const [ingredients, setIngredients] = useState([]);
   const [masalaTypes, setMasalaTypes] = useState([]);
   const [recipes, setRecipes] = useState([]);
   const [recipeLines, setRecipeLines] = useState([]);
   const [settings, setSettings] = useState(null);
-  const [status, setStatus] = useState(supabase ? 'loading' : 'not_configured');
+  const [status, setStatus] = useState(supabase && locationId ? 'loading' : 'not_configured');
   const [savedFlash, setSavedFlash] = useState('');
 
   async function loadAll() {
-    if (!supabase) return;
+    if (!supabase || !locationId) return;
     setStatus('loading');
-    const [i, m, r, l, s] = await Promise.all([
-      supabase.from('ingredients').select('*').order('code'),
-      supabase.from('masala_types').select('*').order('sort_order'),
-      supabase.from('recipes').select('*').order('sort_order'),
-      supabase.from('recipe_lines').select('*').order('recipe_id').order('row_order'),
-      supabase.from('pricing_settings').select('*').eq('id', true).maybeSingle(),
+    const [i, m, r, s] = await Promise.all([
+      supabase.from('ingredients').select('*').eq('location_id', locationId).order('code'),
+      supabase.from('masala_types').select('*').eq('location_id', locationId).order('sort_order'),
+      supabase.from('recipes').select('*').eq('location_id', locationId).order('sort_order'),
+      supabase.from('pricing_settings').select('*').eq('location_id', locationId).maybeSingle(),
     ]);
-    if (i.error || m.error || r.error || l.error || s.error) {
-      console.error('Failed to load pricing data', i.error || m.error || r.error || l.error || s.error);
+    if (i.error || m.error || r.error || s.error) {
+      console.error('Failed to load pricing data', i.error || m.error || r.error || s.error);
+      setStatus('error');
+      return;
+    }
+    const recipeIds = (r.data || []).map((row) => row.id);
+    const l = recipeIds.length
+      ? await supabase.from('recipe_lines').select('*').in('recipe_id', recipeIds).order('recipe_id').order('row_order')
+      : { data: [] };
+    if (l.error) {
+      console.error('Failed to load pricing data', l.error);
       setStatus('error');
       return;
     }
@@ -44,7 +56,7 @@ export default function AdminPricing() {
   useEffect(() => {
     loadAll();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [locationId]);
 
   function flash(label) {
     setSavedFlash(label);
@@ -64,15 +76,17 @@ export default function AdminPricing() {
         <>
           {savedFlash && <p className="pricing-saved-flash">{savedFlash}</p>}
 
-          <MakingChargeSetting settings={settings} onSaved={() => flash(t('saved'))} />
+          <MakingChargeSetting locationId={locationId} settings={settings} onSaved={() => flash(t('saved'))} />
 
           <IngredientRateCard
+            locationId={locationId}
             ingredients={ingredients}
             onChanged={loadAll}
             onSaved={() => flash(t('saved'))}
           />
 
           <RecipesSection
+            locationId={locationId}
             masalaTypes={masalaTypes}
             recipes={recipes}
             recipeLines={recipeLines}
@@ -86,7 +100,7 @@ export default function AdminPricing() {
   );
 }
 
-function MakingChargeSetting({ settings, onSaved }) {
+function MakingChargeSetting({ locationId, settings, onSaved }) {
   const { t } = useLanguage();
   const [value, setValue] = useState(settings?.making_charge_per_kg ?? 0);
   const [saving, setSaving] = useState(false);
@@ -97,7 +111,7 @@ function MakingChargeSetting({ settings, onSaved }) {
     const { error } = await supabase
       .from('pricing_settings')
       .update({ making_charge_per_kg: Number(value) })
-      .eq('id', true);
+      .eq('location_id', locationId);
     setSaving(false);
     if (error) {
       console.error('Failed to save making charge setting', error);
@@ -129,7 +143,7 @@ function MakingChargeSetting({ settings, onSaved }) {
   );
 }
 
-function IngredientRateCard({ ingredients, onChanged, onSaved }) {
+function IngredientRateCard({ locationId, ingredients, onChanged, onSaved }) {
   const { t } = useLanguage();
   const [edits, setEdits] = useState({});
   const [savingCode, setSavingCode] = useState(null);
@@ -170,7 +184,11 @@ function IngredientRateCard({ ingredients, onChanged, onSaved }) {
       payload.price_per_piece = e.price_per_piece === '' ? null : Number(e.price_per_piece);
     }
     if (e.is_addon !== undefined) payload.is_addon = !!e.is_addon;
-    const { error } = await supabase.from('ingredients').update(payload).eq('code', ing.code);
+    const { error } = await supabase
+      .from('ingredients')
+      .update(payload)
+      .eq('location_id', locationId)
+      .eq('code', ing.code);
     setSavingCode(null);
     if (error) {
       console.error('Failed to save ingredient', error);
@@ -197,6 +215,7 @@ function IngredientRateCard({ ingredients, onChanged, onSaved }) {
       return;
     }
     const { error } = await supabase.from('ingredients').insert({
+      location_id: locationId,
       code,
       name_en: newIng.name_en || null,
       name_mr: newIng.name_mr || null,
@@ -346,7 +365,7 @@ function IngredientRateCard({ ingredients, onChanged, onSaved }) {
   );
 }
 
-function RecipesSection({ masalaTypes, recipes, recipeLines, ingredients, onChanged, onSaved }) {
+function RecipesSection({ locationId, masalaTypes, recipes, recipeLines, ingredients, onChanged, onSaved }) {
   const { t } = useLanguage();
   const [showAddType, setShowAddType] = useState(false);
   const [newType, setNewType] = useState({ key: '', label_en: '', label_mr: '' });
@@ -361,6 +380,7 @@ function RecipesSection({ masalaTypes, recipes, recipeLines, ingredients, onChan
       return;
     }
     const { error } = await supabase.from('masala_types').insert({
+      location_id: locationId,
       key,
       label_en: newType.label_en.trim(),
       label_mr: newType.label_mr.trim() || null,
@@ -416,6 +436,7 @@ function RecipesSection({ masalaTypes, recipes, recipeLines, ingredients, onChan
 
       {showAddRecipe && (
         <AddRecipeForm
+          locationId={locationId}
           masalaTypes={masalaTypes}
           ingredients={ingredients}
           recipesCount={recipes.length}
@@ -567,7 +588,7 @@ function RecipeCard({ recipe, lines, ingredients, onChanged, onSaved }) {
   );
 }
 
-function AddRecipeForm({ masalaTypes, ingredients, recipesCount, onDone }) {
+function AddRecipeForm({ locationId, masalaTypes, ingredients, recipesCount, onDone }) {
   const { t } = useLanguage();
   const [masalaType, setMasalaType] = useState(masalaTypes[0]?.key || '');
   const [qtyLabel, setQtyLabel] = useState('');
@@ -600,6 +621,7 @@ function AddRecipeForm({ masalaTypes, ingredients, recipesCount, onDone }) {
     const { data: recipeRow, error: recipeErr } = await supabase
       .from('recipes')
       .insert({
+        location_id: locationId,
         masala_type: masalaType,
         qty_label: qty,
         qty_value: Number(qty),

@@ -349,3 +349,168 @@ compared as plain text from the browser with the anon key. That's an
 acceptable tradeoff for gating a shop till, same level as the single
 `VITE_ADMIN_PASSWORD` used for `/admin` -- not a substitute for real auth if
 the data ever needs stronger protection.
+
+## 9. Per-shop pricing, a shop-admin password, and per-shop product prices
+
+This is the three-tier access redesign: `/admin` becomes the **owner/master**
+dashboard (full access to every shop, never linked from the billing app), a
+new `/shop-admin` page gives each shop password-gated access to **only its
+own** masala pricing and **only its own** product prices, and the masala
+pricing tables (`ingredients`, `masala_types`, `recipes`, `recipe_lines`,
+`pricing_settings`), which were one shared list for the whole business, fork
+into one independent copy per shop.
+
+**Before running this:** these tables were created outside this doc (no
+earlier section here documents their schema), so the columns below are
+inferred from the app code (`AdminPricing.jsx`, `pricingData.js`) rather than
+copied from an original `create table`. Open **Table Editor** first and
+confirm `ingredients`/`masala_types`/`recipes`/`recipe_lines`/
+`pricing_settings` actually have these columns before running the migration;
+adjust the column list below if your project's schema differs. This also
+forks data, so it's worth taking a Supabase backup (**Database → Backups**)
+or exporting these 5 tables to CSV first.
+
+The migration **renames** the old shared tables to `..._pre_multishop`
+rather than dropping them, so nothing is destroyed even if a step fails
+partway — only drop those backup tables yourself, by hand, once you've
+confirmed every shop's pricing looks right in `/shop-admin` and `/admin`.
+
+```sql
+begin;
+
+-- Preserve the current shared tables untouched, under a new name.
+alter table public.ingredients rename to ingredients_pre_multishop;
+alter table public.masala_types rename to masala_types_pre_multishop;
+alter table public.recipes rename to recipes_pre_multishop;
+alter table public.recipe_lines rename to recipe_lines_pre_multishop;
+alter table public.pricing_settings rename to pricing_settings_pre_multishop;
+
+-- Recreate each one scoped to a shop (location_id), one row per shop per item.
+create table public.ingredients (
+  location_id uuid not null references public.locations(id) on delete cascade,
+  code text not null,
+  name_en text,
+  name_mr text,
+  price_per_kg numeric,
+  price_per_piece numeric,
+  is_addon boolean not null default false,
+  updated_at timestamptz not null default now(),
+  primary key (location_id, code)
+);
+
+create table public.masala_types (
+  location_id uuid not null references public.locations(id) on delete cascade,
+  key text not null,
+  label_en text not null,
+  label_mr text,
+  sort_order int not null default 0,
+  primary key (location_id, key)
+);
+
+create table public.recipes (
+  id uuid primary key default gen_random_uuid(),
+  location_id uuid not null references public.locations(id) on delete cascade,
+  masala_type text not null,
+  qty_label text not null,
+  qty_value numeric not null,
+  fixed_making_charge numeric,
+  sort_order int not null default 0,
+  foreign key (location_id, masala_type) references public.masala_types (location_id, key)
+);
+
+create table public.recipe_lines (
+  id uuid primary key default gen_random_uuid(),
+  recipe_id uuid not null references public.recipes(id) on delete cascade,
+  ingredient_code text not null,
+  unit text not null,
+  default_qty numeric not null,
+  is_core_chili boolean not null default false,
+  row_order int not null default 0
+);
+
+create table public.pricing_settings (
+  location_id uuid primary key references public.locations(id) on delete cascade,
+  making_charge_per_kg numeric not null default 0
+);
+
+-- Fork the old shared price list into an identical copy for every shop that
+-- exists today, so nobody's prices silently change on migration day.
+insert into public.ingredients (location_id, code, name_en, name_mr, price_per_kg, price_per_piece, is_addon)
+select loc.id, i.code, i.name_en, i.name_mr, i.price_per_kg, i.price_per_piece, i.is_addon
+from public.ingredients_pre_multishop i
+cross join public.locations loc;
+
+insert into public.masala_types (location_id, key, label_en, label_mr, sort_order)
+select loc.id, m.key, m.label_en, m.label_mr, m.sort_order
+from public.masala_types_pre_multishop m
+cross join public.locations loc;
+
+insert into public.recipes (location_id, masala_type, qty_label, qty_value, fixed_making_charge, sort_order)
+select loc.id, r.masala_type, r.qty_label, r.qty_value, r.fixed_making_charge, r.sort_order
+from public.recipes_pre_multishop r
+cross join public.locations loc;
+
+insert into public.recipe_lines (recipe_id, ingredient_code, unit, default_qty, is_core_chili, row_order)
+select new_r.id, rl.ingredient_code, rl.unit, rl.default_qty, rl.is_core_chili, rl.row_order
+from public.recipe_lines_pre_multishop rl
+join public.recipes_pre_multishop old_r on old_r.id = rl.recipe_id
+cross join public.locations loc
+join public.recipes new_r
+  on new_r.location_id = loc.id
+ and new_r.masala_type = old_r.masala_type
+ and new_r.qty_label = old_r.qty_label;
+
+insert into public.pricing_settings (location_id, making_charge_per_kg)
+select loc.id, coalesce((select making_charge_per_kg from public.pricing_settings_pre_multishop limit 1), 0)
+from public.locations loc;
+
+-- Same anon read/write pattern already used for products/stock_levels.
+alter table public.ingredients enable row level security;
+alter table public.masala_types enable row level security;
+alter table public.recipes enable row level security;
+alter table public.recipe_lines enable row level security;
+alter table public.pricing_settings enable row level security;
+
+create policy "Allow anonymous read/write" on public.ingredients for all to anon using (true) with check (true);
+create policy "Allow anonymous read/write" on public.masala_types for all to anon using (true) with check (true);
+create policy "Allow anonymous read/write" on public.recipes for all to anon using (true) with check (true);
+create policy "Allow anonymous read/write" on public.recipe_lines for all to anon using (true) with check (true);
+create policy "Allow anonymous read/write" on public.pricing_settings for all to anon using (true) with check (true);
+
+grant usage on schema public to anon;
+grant select, insert, update, delete on public.ingredients to anon;
+grant select, insert, update, delete on public.masala_types to anon;
+grant select, insert, update, delete on public.recipes to anon;
+grant select, insert, update, delete on public.recipe_lines to anon;
+grant select, insert, update, delete on public.pricing_settings to anon;
+
+-- A second, shop-specific password for /shop-admin (separate from the
+-- billing login above). Null until the owner sets one per shop in /admin.
+alter table public.locations add column if not exists admin_password text;
+
+-- Per-shop product pricing: price now lives per (product, shop) instead of
+-- one shared products.price. products.price is kept as a fallback default
+-- for a shop that hasn't set its own price for an item yet.
+alter table public.stock_levels add column if not exists price numeric;
+
+update public.stock_levels sl
+set price = p.price
+from public.products p
+where sl.product_id = p.id and sl.price is null;
+
+commit;
+```
+
+Then:
+- In `/admin` → **Shops**, set an admin password for each shop (this is what
+  unlocks that shop's own `/shop-admin`, separate from its billing
+  username/password).
+- In `/admin` → **Pricing** and **Products**, pick a shop from the new
+  selector to edit that shop's recipes/ingredient rates and per-shop product
+  prices/stock.
+- Each shop can now open `/shop-admin` on their own device, enter their
+  shop's admin password, and edit only their own pricing and product prices.
+
+Once every shop's numbers look right, you can drop the renamed backup tables
+by hand (`drop table public.ingredients_pre_multishop;` etc.) — they're not
+read by the app and only exist as a rollback safety net.

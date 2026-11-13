@@ -18,7 +18,7 @@ function channelLabel(t, key) {
   return key || t('offline');
 }
 
-export default function AdminAnalytics({ fromDate, toDate, demoMode }) {
+export default function AdminAnalytics({ fromDate, toDate, demoMode, locations = [] }) {
   const { t, lang } = useLanguage();
   const [rows, setRows] = useState([]);
   const [status, setStatus] = useState(demoMode || supabase ? 'loading' : 'not_configured');
@@ -44,7 +44,7 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode }) {
     async function run() {
       let query = supabase
         .from('bills')
-        .select('order_date,customer_name,phone,billing_mode,store,masala_type,quantity_kg,total')
+        .select('order_date,customer_name,phone,billing_mode,store,location_id,masala_type,quantity_kg,total')
         .order('order_date', { ascending: true })
         .limit(ANALYTICS_LIMIT);
 
@@ -69,6 +69,11 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode }) {
   }, [demoMode, fromDate, toDate]);
 
   const analytics = useMemo(() => computeAnalytics(rows), [rows]);
+
+  function shopLabel(locationId) {
+    if (locationId === 'unknown') return t('unknownShopLabel');
+    return locations.find((loc) => loc.id === locationId)?.name || t('unknownShopLabel');
+  }
 
   const dateFormatter = new Intl.DateTimeFormat(lang === 'mr' ? 'mr-IN' : 'en-IN', {
     day: '2-digit',
@@ -194,6 +199,29 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode }) {
                 ))}
               </ul>
             </div>
+          </div>
+
+          <div className="analytics-section">
+            <h3>{t('shopPerformanceTitle')}</h3>
+            <ul className="bar-list">
+              {analytics.shopBreakdown.map((s) => (
+                <li className="bar-list-row" key={s.locationId}>
+                  <div className="bar-list-head">
+                    <span>{shopLabel(s.locationId)}</span>
+                    <span>{inr(s.revenue)}</span>
+                  </div>
+                  <div className="bar-list-track">
+                    <div className="bar-list-fill bar-list-fill-turmeric" style={{ width: `${s.sharePct}%` }} />
+                  </div>
+                  <div className="bar-list-meta">
+                    <span>
+                      {s.bills} {t('totalBills').toLowerCase()}
+                    </span>
+                    <span>{s.sharePct.toFixed(0)}%</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
           </div>
 
           <div className="analytics-section">

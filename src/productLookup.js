@@ -2,9 +2,15 @@ import { supabase } from './supabaseClient.js';
 
 /**
  * Looks up a ready-made/loose product by its barcode, plus how much stock
- * this location has of it. Returns null if not found, not configured, or
- * the lookup fails -- the caller (OrderBuilder) just shows "unknown
- * barcode" rather than throwing, same resilience rule as the rest of the app.
+ * and what price this location has for it. Returns null if not found, not
+ * configured, or the lookup fails -- the caller (OrderBuilder) just shows
+ * "unknown barcode" rather than throwing, same resilience rule as the rest
+ * of the app.
+ *
+ * `price` on the returned product is this shop's own price if it has set
+ * one (per-shop pricing, see docs/supabase-setup.md §9), falling back to the
+ * shared `products.price` as a default for a shop that hasn't priced this
+ * item yet.
  */
 export async function lookupProductByBarcode(barcode, locationId) {
   if (!supabase || !barcode.trim()) return null;
@@ -18,17 +24,19 @@ export async function lookupProductByBarcode(barcode, locationId) {
     if (error || !product) return null;
 
     let qtyOnHand = null;
+    let price = product.price;
     if (locationId) {
       const { data: stock } = await supabase
         .from('stock_levels')
-        .select('qty_on_hand')
+        .select('qty_on_hand, price')
         .eq('product_id', product.id)
         .eq('location_id', locationId)
         .maybeSingle();
       qtyOnHand = stock ? Number(stock.qty_on_hand) : 0;
+      if (stock?.price != null) price = Number(stock.price);
     }
 
-    return { ...product, qtyOnHand };
+    return { ...product, qtyOnHand, price };
   } catch (err) {
     console.error('Barcode lookup failed', err);
     return null;
@@ -57,12 +65,19 @@ export async function searchProductsByName(term, locationId, limit = 8) {
 
     const { data: stockRows } = await supabase
       .from('stock_levels')
-      .select('product_id, qty_on_hand')
+      .select('product_id, qty_on_hand, price')
       .eq('location_id', locationId)
       .in('product_id', products.map((p) => p.id));
-    const stockByProduct = new Map((stockRows || []).map((s) => [s.product_id, Number(s.qty_on_hand)]));
+    const stockByProduct = new Map((stockRows || []).map((s) => [s.product_id, s]));
 
-    return products.map((p) => ({ ...p, qtyOnHand: stockByProduct.get(p.id) ?? 0 }));
+    return products.map((p) => {
+      const stock = stockByProduct.get(p.id);
+      return {
+        ...p,
+        qtyOnHand: stock ? Number(stock.qty_on_hand) : 0,
+        price: stock?.price != null ? Number(stock.price) : p.price,
+      };
+    });
   } catch (err) {
     console.error('Product search failed', err);
     return [];

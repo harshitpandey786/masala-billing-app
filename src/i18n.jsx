@@ -12,6 +12,7 @@ const STRINGS = {
     stepBill: 'Bill',
     stepShare: 'Share',
     adminLink: 'Admin',
+    shopAdminLink: 'Shop Admin',
     backToBilling: 'Back to billing',
 
     customerDetailsTitle: 'Customer Details',
@@ -206,6 +207,19 @@ const STRINGS = {
     shopNamePlaceholder: 'Shop name, e.g. Lalbaug',
     shopNameLabel: 'Shop Name',
     locationFieldsRequired: 'Enter a shop name, username, and password.',
+    shopAdminPasswordLabel: 'Shop Admin Password',
+    shopAdminPasswordPlaceholder: 'Password for this shop’s own admin page',
+
+    shopAdminTitle: 'Shop Admin',
+    shopAdminLoginHint: 'Enter this shop’s own admin password to edit its pricing.',
+    shopAdminPasswordNotSet: 'No admin password has been set for this shop yet — ask the owner to set one in /admin.',
+    shopAdminNeedsLoginHint: 'Log in to this shop’s billing first, then come back here.',
+    shopProductPricingTitle: 'This Shop’s Product Prices',
+    noProductsYetHint: 'No products yet — ask the owner to add some in /admin.',
+
+    editingShopLabel: 'Editing shop',
+    shopPerformanceTitle: 'Shop-wise Performance',
+    unknownShopLabel: 'Unknown shop',
   },
   mr: {
     appName: 'शिंदराज मसाले',
@@ -215,6 +229,7 @@ const STRINGS = {
     stepBill: 'बिल',
     stepShare: 'शेअर',
     adminLink: 'अॅडमिन',
+    shopAdminLink: 'दुकान अॅडमिन',
     backToBilling: 'बिलिंगकडे परत',
 
     customerDetailsTitle: 'ग्राहकाची माहिती',
@@ -409,6 +424,19 @@ const STRINGS = {
     shopNamePlaceholder: 'दुकानाचे नाव, उदा. लालबाग',
     shopNameLabel: 'दुकानाचे नाव',
     locationFieldsRequired: 'दुकानाचे नाव, युजरनेम आणि पासवर्ड टाका.',
+    shopAdminPasswordLabel: 'दुकान अॅडमिन पासवर्ड',
+    shopAdminPasswordPlaceholder: 'या दुकानाच्या स्वतःच्या अॅडमिन पानासाठी पासवर्ड',
+
+    shopAdminTitle: 'दुकान अॅडमिन',
+    shopAdminLoginHint: 'या दुकानाची किंमत संपादित करण्यासाठी त्याचा स्वतःचा अॅडमिन पासवर्ड टाका.',
+    shopAdminPasswordNotSet: 'या दुकानासाठी अजून अॅडमिन पासवर्ड सेट केलेला नाही — मालकाला /admin मध्ये सेट करायला सांगा.',
+    shopAdminNeedsLoginHint: 'आधी या दुकानाच्या बिलिंगमध्ये लॉगिन करा, मग इथे परत या.',
+    shopProductPricingTitle: 'या दुकानाच्या पदार्थांच्या किंमती',
+    noProductsYetHint: 'अजून कोणतेही पदार्थ नाहीत — मालकाला /admin मध्ये जोडायला सांगा.',
+
+    editingShopLabel: 'संपादित करत असलेले दुकान',
+    shopPerformanceTitle: 'दुकानानुसार कामगिरी',
+    unknownShopLabel: 'अज्ञात दुकान',
   },
 };
 

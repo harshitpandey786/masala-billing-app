@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import CustomerDetails from './steps/CustomerDetails.jsx';
 import OrderBuilder from './steps/OrderBuilder.jsx';
 import BillGenerator from './steps/BillGenerator.jsx';
@@ -54,6 +55,7 @@ function synthesizeProductBill(item) {
 
 export default function App() {
   const { t } = useLanguage();
+  const reduceMotion = useReducedMotion();
   const [location, setLocation] = useState(getStoredLocation);
   const [step, setStep] = useState('start');
   const [customer, setCustomer] = useState({
@@ -74,14 +76,15 @@ export default function App() {
   const [pricingConfig, setPricingConfig] = useState(staticPricingConfig);
 
   useEffect(() => {
+    if (!location) return;
     let cancelled = false;
-    fetchPricingConfig().then((cfg) => {
+    fetchPricingConfig(location.id).then((cfg) => {
       if (!cancelled) setPricingConfig(cfg);
     });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [location]);
 
   function handleStartOver() {
     setStep('start');
@@ -183,8 +186,8 @@ export default function App() {
             <a className="admin-link" href="/customers">
               {t('customersNavLink')}
             </a>
-            <a className="admin-link" href="/admin">
-              {t('adminLink')}
+            <a className="admin-link" href="/shop-admin">
+              {t('shopAdminLink')}
             </a>
             <button type="button" className="admin-link admin-link-button" onClick={handleSwitchShop}>
               {t('switchShop')}
@@ -211,6 +214,12 @@ export default function App() {
         )}
 
         <main className="app-main">
+          <motion.div
+            key={step === 'bill' ? `bill-${billIndex}` : step}
+            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+          >
           {step === 'start' && (
             <section className="card start-screen">
               <h2>{location.name}</h2>
@@ -264,6 +273,7 @@ export default function App() {
               location={location}
             />
           )}
+          </motion.div>
         </main>
       </div>
     </div>

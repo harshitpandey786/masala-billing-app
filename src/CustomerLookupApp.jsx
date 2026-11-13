@@ -27,8 +27,8 @@ export default function CustomerLookupApp() {
             <a className="admin-link" href="/">
               {t('backToBilling')}
             </a>
-            <a className="admin-link" href="/admin">
-              {t('adminLink')}
+            <a className="admin-link" href="/shop-admin">
+              {t('shopAdminLink')}
             </a>
           </div>
         </div>

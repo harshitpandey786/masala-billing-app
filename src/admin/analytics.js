@@ -68,6 +68,21 @@ export function computeAnalytics(rows) {
     .sort((a, b) => b.revenue - a.revenue)
     .map((c) => ({ ...c, sharePct: totalRevenue ? (c.revenue / totalRevenue) * 100 : 0 }));
 
+  // ---- revenue by shop (location_id), independent of the online/offline
+  // channel split above -- this is what each shop actually sold, online
+  // orders included, for the owner's shop-wise performance view.
+  const shopBuckets = new Map();
+  for (const row of rows) {
+    const key = row.location_id || 'unknown';
+    const bucket = shopBuckets.get(key) || { locationId: key, revenue: 0, bills: 0 };
+    bucket.revenue += Number(row.total) || 0;
+    bucket.bills += 1;
+    shopBuckets.set(key, bucket);
+  }
+  const shopBreakdown = [...shopBuckets.values()]
+    .sort((a, b) => b.revenue - a.revenue)
+    .map((s) => ({ ...s, sharePct: totalRevenue ? (s.revenue / totalRevenue) * 100 : 0 }));
+
   // ---- customers: totals, repeat rate, top spenders ----
   const customerBuckets = new Map();
   for (const row of rows) {
@@ -104,6 +119,7 @@ export function computeAnalytics(rows) {
     growthPct,
     topItems,
     channelBreakdown,
+    shopBreakdown,
     topCustomers,
   };
 }
