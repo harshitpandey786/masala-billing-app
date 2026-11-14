@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BarChartSquare02, Building07, LogOut01, Package, ShoppingCart01, Tag03, Users01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import AppShell from '../components/shell/AppShell.jsx';
@@ -6,6 +6,7 @@ import AdminLogin from './AdminLogin.jsx';
 import AdminDashboard from './AdminDashboard.jsx';
 import LanguageToggle from '../components/LanguageToggle.jsx';
 import { useLanguage } from '../i18n.jsx';
+import { shopUrl } from '../siteConfig.js';
 
 const SESSION_KEY = 'shindraj_admin_ok';
 
@@ -45,49 +46,47 @@ export default function AdminApp() {
     current: view === id,
   });
 
+  useEffect(() => {
+    document.title = `Shindraj Masale — ${t('ownerDashboardTitle')}`;
+  }, [t]);
+
+  // Before the password, show only the sign-in card: no sidebar, so the
+  // dashboard's sections aren't hinted at to someone who can't open them.
+  if (!authed) return <AdminLogin onUnlock={handleUnlock} />;
+
   const sections = [
-    ...(authed
-      ? [
-          {
-            label: t('adminNavOwner'),
-            items: [
-              viewItem('overview', t('analyticsTitle'), BarChartSquare02),
-              viewItem('pricing', t('pricingManagerTitle'), Tag03),
-              viewItem('products', t('productsManagerTitle'), Package),
-              viewItem('shops', t('locationsManagerTitle'), Building07),
-            ],
-          },
-        ]
-      : []),
+    {
+      label: t('adminNavOwner'),
+      items: [
+        viewItem('overview', t('analyticsTitle'), BarChartSquare02),
+        viewItem('pricing', t('pricingManagerTitle'), Tag03),
+        viewItem('products', t('productsManagerTitle'), Package),
+        viewItem('shops', t('locationsManagerTitle'), Building07),
+      ],
+    },
     {
       label: t('adminNavLinks'),
       items: [
-        { label: t('backToBilling'), href: '/', icon: ShoppingCart01 },
-        { label: t('customersNavLink'), href: '/customers', icon: Users01 },
+        { label: t('backToBilling'), href: shopUrl('/'), icon: ShoppingCart01 },
+        { label: t('customersNavLink'), href: shopUrl('/customers'), icon: Users01 },
       ],
     },
   ];
 
   return (
     <AppShell
-      subtitle={t('adminTitle')}
+      subtitle={t('ownerDashboardTitle')}
       sections={sections}
       footer={
         <>
           <LanguageToggle />
-          {authed && (
-            <Button size="sm" color="secondary" iconLeading={LogOut01} onClick={handleLogOut}>
-              {t('logOut')}
-            </Button>
-          )}
+          <Button size="sm" color="secondary" iconLeading={LogOut01} onClick={handleLogOut}>
+            {t('logOut')}
+          </Button>
         </>
       }
     >
-      {authed ? (
-        <AdminDashboard view={view} onLogOut={handleLogOut} />
-      ) : (
-        <AdminLogin onUnlock={handleUnlock} />
-      )}
+      <AdminDashboard view={view} onLogOut={handleLogOut} />
     </AppShell>
   );
 }
