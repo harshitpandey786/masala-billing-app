@@ -10,7 +10,7 @@ export default function AuthBackdrop({ className, children }) {
   return (
     <div className={cx('relative flex min-h-dvh flex-col overflow-hidden', className)}>
       <div
-        className="absolute inset-0 scale-110 bg-cover bg-center blur-xl"
+        className="absolute inset-0 scale-110 bg-cover bg-center blur-sm"
         style={{ backgroundImage: "url('/products/5745.jpg')" }}
       />
       <div
