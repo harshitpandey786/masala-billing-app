@@ -2,7 +2,6 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import AdminApp from './admin/AdminApp.jsx';
-import ShopAdminApp from './shopAdmin/ShopAdminApp.jsx';
 import CustomerLookupApp from './CustomerLookupApp.jsx';
 import { LanguageProvider } from './i18n.jsx';
 import { ADMIN_ON_SHOP_SITE, isAdminHost } from './siteConfig.js';
@@ -15,15 +14,12 @@ const page = isAdminHost()
   ? 'admin'
   : path.startsWith('/admin') && ADMIN_ON_SHOP_SITE
     ? 'admin'
-    : path.startsWith('/shop-admin')
-      ? 'shopAdmin'
-      : path.startsWith('/customers')
-        ? 'customers'
-        : 'billing';
+    : path.startsWith('/customers')
+      ? 'customers'
+      : 'billing'; // includes old /shop-admin links: App opens its Shop Admin section
 
 const PAGES = {
   admin: AdminApp,
-  shopAdmin: ShopAdminApp,
   customers: CustomerLookupApp,
   billing: App,
 };

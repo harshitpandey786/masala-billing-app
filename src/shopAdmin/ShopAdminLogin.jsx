@@ -48,12 +48,7 @@ export default function ShopAdminLogin({ location, onUnlock }) {
 
   return (
     <section className="w-full max-w-md rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-lg font-semibold text-primary">{t('shopAdminTitle')}</h2>
-        <p className="text-sm text-tertiary">{location.name}</p>
-      </div>
-
-      <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <p className="text-sm text-tertiary">{t('shopAdminLoginHint')}</p>
         <Input
           label={t('password')}

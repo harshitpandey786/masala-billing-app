@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingCart01, Tag03, Users01 } from '@untitledui/icons';
+import { Lock01, ShoppingCart01, Users01 } from '@untitledui/icons';
 import AppShell from './components/shell/AppShell.jsx';
 import PageHeader from './components/shell/PageHeader.jsx';
 import CustomerList from './admin/CustomerList.jsx';
@@ -22,7 +22,7 @@ export default function CustomerLookupApp() {
       items: [
         { label: t('backToBilling'), href: '/', icon: ShoppingCart01 },
         { label: t('customersNavLink'), href: '/customers', icon: Users01, current: true },
-        { label: t('shopAdminLink'), href: '/shop-admin', icon: Tag03 },
+        { label: t('shopAdminLink'), href: '/shop-admin', icon: Lock01 },
       ],
     },
   ];

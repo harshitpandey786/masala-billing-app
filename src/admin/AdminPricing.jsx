@@ -36,7 +36,7 @@ function AddPanel({ children, error }) {
 // independent per shop (see docs/supabase-setup.md §9) -- every table is
 // scoped to `locationId`, so this component always edits exactly one shop's
 // numbers, whether it's rendered inside the owner's /admin (any shop, picked
-// from a selector) or a shop's own /shop-admin (always its own id). Same
+// from a selector) or a shop's own Shop Admin section (always its own id). Same
 // security model as the rest of /admin -- the password gates the UI, not the
 // database (anon key has write access to these tables, same tradeoff already
 // documented for /admin's other data).

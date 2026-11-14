@@ -20,7 +20,7 @@ import AdminLocations from './AdminLocations.jsx';
 // Pricing and product prices are fully independent per shop (see
 // docs/supabase-setup.md §9), so there's no "edit all shops at once" view --
 // the owner picks one shop from the shop selector and edits that shop's
-// numbers, the same component a shop's own /shop-admin uses for itself.
+// numbers, the same component a shop's own Shop Admin section uses for itself.
 //
 // `view` comes from the sidebar in AdminApp. Filter/shop state lives here so
 // it survives switching between views.

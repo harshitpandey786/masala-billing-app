@@ -211,6 +211,7 @@ const STRINGS = {
     shopAdminPasswordPlaceholder: 'Password for this shop’s own admin page',
 
     shopAdminTitle: 'Shop Admin',
+    lockShopAdmin: 'Lock',
     shopAdminLoginHint: 'Enter this shop’s own admin password to edit its pricing.',
     shopAdminPasswordNotSet: 'No admin password has been set for this shop yet — ask the owner to set one in /admin.',
     shopAdminNeedsLoginHint: 'Log in to this shop’s billing first, then come back here.',
@@ -451,6 +452,7 @@ const STRINGS = {
     shopAdminPasswordPlaceholder: 'या दुकानाच्या स्वतःच्या अॅडमिन पानासाठी पासवर्ड',
 
     shopAdminTitle: 'दुकान अॅडमिन',
+    lockShopAdmin: 'लॉक करा',
     shopAdminLoginHint: 'या दुकानाची किंमत संपादित करण्यासाठी त्याचा स्वतःचा अॅडमिन पासवर्ड टाका.',
     shopAdminPasswordNotSet: 'या दुकानासाठी अजून अॅडमिन पासवर्ड सेट केलेला नाही — मालकाला /admin मध्ये सेट करायला सांगा.',
     shopAdminNeedsLoginHint: 'आधी या दुकानाच्या बिलिंगमध्ये लॉगिन करा, मग इथे परत या.',

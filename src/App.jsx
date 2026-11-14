@@ -10,7 +10,8 @@ import { decrementStock } from './productLookup.js';
 import { fetchPricingConfig } from './pricingData.js';
 import { getStoredLocation, clearStoredLocation } from './locationSession.js';
 import { useLanguage } from './i18n.jsx';
-import { Building07, Check, Plus, ReceiptCheck, ShoppingCart01, Tag03, Users01 } from '@untitledui/icons';
+import { Building07, Check, Lock01, Plus, ReceiptCheck, ShoppingCart01, Users01 } from '@untitledui/icons';
+import ShopAdminPanel from './shopAdmin/ShopAdminPanel.jsx';
 import { Button } from '@/components/base/buttons/button';
 import { cx } from '@/utils/cx';
 import LanguageToggle from './components/LanguageToggle.jsx';
@@ -27,6 +28,12 @@ const STEP_LABEL_KEYS = {
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+// /shop-admin used to be a page of its own. Old bookmarks (and the Customers
+// page's sidebar link) still land here and open the Shop Admin section, then
+// the address is tidied back to the shop's main link.
+const openedViaShopAdminUrl = () => window.location.pathname.startsWith('/shop-admin');
+const initialView = () => (openedViaShopAdminUrl() ? 'shopAdmin' : 'billing');
 
 // A ready-made/loose product is already fully priced the moment it's added
 // to the cart (fixed price × qty, no ingredient breakdown to edit), so it
@@ -55,6 +62,13 @@ export default function App() {
   const { t } = useLanguage();
   const reduceMotion = useReducedMotion();
   const [location, setLocation] = useState(getStoredLocation);
+  // 'billing' or 'shopAdmin'. Switching sections keeps any bill in progress,
+  // since all billing state lives here rather than in the step components.
+  const [view, setView] = useState(initialView);
+
+  useEffect(() => {
+    if (openedViaShopAdminUrl()) window.history.replaceState(null, '', '/');
+  }, []);
   const [step, setStep] = useState('start');
   const [customer, setCustomer] = useState({
     name: '',
@@ -73,8 +87,10 @@ export default function App() {
   // whatever shipped in the last deploy, same as before this feature existed.
   const [pricingConfig, setPricingConfig] = useState(staticPricingConfig);
 
+  // Re-fetch on the way back from Shop Admin too, so a price just changed
+  // there is used on the very next bill.
   useEffect(() => {
-    if (!location) return;
+    if (!location || view !== 'billing') return;
     let cancelled = false;
     fetchPricingConfig(location.id).then((cfg) => {
       if (!cancelled) setPricingConfig(cfg);
@@ -82,7 +98,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [location]);
+  }, [location, view]);
 
   function handleStartOver() {
     setStep('start');
@@ -153,13 +169,25 @@ export default function App() {
     {
       label: t('navCounter'),
       items: [
-        { label: t('generateNewBill'), icon: ShoppingCart01, current: true },
+        {
+          label: t('generateNewBill'),
+          icon: ShoppingCart01,
+          current: view === 'billing',
+          onClick: () => setView('billing'),
+        },
         { label: t('customersNavLink'), icon: Users01, href: '/customers' },
       ],
     },
     {
       label: t('navShop'),
-      items: [{ label: t('shopAdminLink'), icon: Tag03, href: '/shop-admin' }],
+      items: [
+        {
+          label: t('shopAdminLink'),
+          icon: Lock01,
+          current: view === 'shopAdmin',
+          onClick: () => setView('shopAdmin'),
+        },
+      ],
     },
   ];
 
@@ -180,7 +208,9 @@ export default function App() {
 
   return (
     <AppShell sections={sections} subtitle={t('tagline')} footer={footer}>
-      {step !== 'start' && (
+      {view === 'shopAdmin' && <ShopAdminPanel key={location.id} location={location} />}
+
+      {view === 'billing' && step !== 'start' && (
         <nav aria-label={t('stepCustomer')} className="px-4 pt-6 lg:px-8">
           <ol className="flex flex-wrap items-center gap-x-2 gap-y-2">
             {STEPS.map((s, i) => {
@@ -209,74 +239,76 @@ export default function App() {
         </nav>
       )}
 
-      <motion.div
-        key={step === 'bill' ? `bill-${billIndex}` : step}
-        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-        className="pb-12"
-      >
-        {step === 'start' && (
-          <>
-            <PageHeader title={location.name} description={t('startScreenHint')} />
-            <div className="px-4 pt-8 lg:px-8">
-              <div className="flex max-w-xl flex-col items-start gap-4 rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
-                <span className="flex size-12 items-center justify-center rounded-lg bg-brand-secondary text-fg-brand-primary">
-                  <ReceiptCheck className="size-6" />
-                </span>
-                <div className="flex flex-col gap-1">
-                  <p className="text-lg font-semibold text-primary">{t('generateNewBill')}</p>
-                  <p className="text-sm text-tertiary">{t('startScreenDetail')}</p>
+      {view === 'billing' && (
+        <motion.div
+          key={step === 'bill' ? `bill-${billIndex}` : step}
+          initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+          className="pb-12"
+        >
+          {step === 'start' && (
+            <>
+              <PageHeader title={location.name} description={t('startScreenHint')} />
+              <div className="px-4 pt-8 lg:px-8">
+                <div className="flex max-w-xl flex-col items-start gap-4 rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
+                  <span className="flex size-12 items-center justify-center rounded-lg bg-brand-secondary text-fg-brand-primary">
+                    <ReceiptCheck className="size-6" />
+                  </span>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-lg font-semibold text-primary">{t('generateNewBill')}</p>
+                    <p className="text-sm text-tertiary">{t('startScreenDetail')}</p>
+                  </div>
+                  <Button size="lg" iconLeading={Plus} onClick={() => setStep('customer')}>
+                    {t('generateNewBill')}
+                  </Button>
                 </div>
-                <Button size="lg" iconLeading={Plus} onClick={() => setStep('customer')}>
-                  {t('generateNewBill')}
-                </Button>
               </div>
-            </div>
-          </>
-        )}
+            </>
+          )}
 
-        {step === 'customer' && (
-          <CustomerDetails customer={customer} onChange={setCustomer} onNext={() => setStep('order')} />
-        )}
+          {step === 'customer' && (
+            <CustomerDetails customer={customer} onChange={setCustomer} onNext={() => setStep('order')} />
+          )}
 
-        {step === 'order' && (
-          <OrderBuilder
-            orderItems={orderItems}
-            onChange={setOrderItems}
-            onBack={() => setStep('customer')}
-            onNext={() => advanceBilling([], 0)}
-            pricingConfig={pricingConfig}
-            locationId={location.id}
-            customer={customer}
-          />
-        )}
+          {step === 'order' && (
+            <OrderBuilder
+              orderItems={orderItems}
+              onChange={setOrderItems}
+              onBack={() => setStep('customer')}
+              onNext={() => advanceBilling([], 0)}
+              pricingConfig={pricingConfig}
+              locationId={location.id}
+              customer={customer}
+            />
+          )}
 
-        {step === 'bill' && orderItems[billIndex] && (
-          <BillGenerator
-            key={orderItems[billIndex].id}
-            orderItem={orderItems[billIndex]}
-            itemNumber={billIndex + 1}
-            itemCount={orderItems.length}
-            onConfirm={handleConfirmBill}
-            pricingConfig={pricingConfig}
-          />
-        )}
+          {step === 'bill' && orderItems[billIndex] && (
+            <BillGenerator
+              key={orderItems[billIndex].id}
+              orderItem={orderItems[billIndex]}
+              itemNumber={billIndex + 1}
+              itemCount={orderItems.length}
+              onConfirm={handleConfirmBill}
+              pricingConfig={pricingConfig}
+            />
+          )}
 
-        {step === 'bill' && !orderItems[billIndex] && (
-          <PageHeader title={t('stepBill')} description={t('finalizingBill')} />
-        )}
+          {step === 'bill' && !orderItems[billIndex] && (
+            <PageHeader title={t('stepBill')} description={t('finalizingBill')} />
+          )}
 
-        {step === 'share' && (
-          <ShareOutput
-            customer={customer}
-            bills={bills}
-            onStartOver={handleStartOver}
-            pricingConfig={pricingConfig}
-            location={location}
-          />
-        )}
-      </motion.div>
+          {step === 'share' && (
+            <ShareOutput
+              customer={customer}
+              bills={bills}
+              onStartOver={handleStartOver}
+              pricingConfig={pricingConfig}
+              location={location}
+            />
+          )}
+        </motion.div>
+      )}
     </AppShell>
   );
 }

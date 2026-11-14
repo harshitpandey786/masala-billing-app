@@ -30,7 +30,9 @@ export default function AppShell({ sections = [], subtitle, footer, children }) 
                   <NavItemBase
                     type="link"
                     icon={item.icon}
-                    href={item.href}
+                    // Section switchers have no page of their own; '#' still makes
+                    // them a focusable link for keyboard users.
+                    href={item.href ?? (item.onClick ? '#' : undefined)}
                     badge={item.badge}
                     current={item.current}
                     onClick={

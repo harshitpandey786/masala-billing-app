@@ -354,7 +354,7 @@ the data ever needs stronger protection.
 
 This is the three-tier access redesign: `/admin` becomes the **owner/master**
 dashboard (full access to every shop, never linked from the billing app), a
-new `/shop-admin` page gives each shop password-gated access to **only its
+**Shop Admin** section inside each shop's billing app gives that shop password-gated access to **only its
 own** masala pricing and **only its own** product prices, and the masala
 pricing tables (`ingredients`, `masala_types`, `recipes`, `recipe_lines`,
 `pricing_settings`), which were one shared list for the whole business, fork
@@ -373,7 +373,7 @@ or exporting these 5 tables to CSV first.
 The migration **renames** the old shared tables to `..._pre_multishop`
 rather than dropping them, so nothing is destroyed even if a step fails
 partway — only drop those backup tables yourself, by hand, once you've
-confirmed every shop's pricing looks right in `/shop-admin` and `/admin`.
+confirmed every shop's pricing looks right in each shop's Shop Admin section and in `/admin`.
 
 ```sql
 begin;
@@ -503,13 +503,16 @@ commit;
 
 Then:
 - In `/admin` → **Shops**, set an admin password for each shop (this is what
-  unlocks that shop's own `/shop-admin`, separate from its billing
+  unlocks that shop's own Shop Admin section, separate from its billing
   username/password).
 - In `/admin` → **Pricing** and **Products**, pick a shop from the new
   selector to edit that shop's recipes/ingredient rates and per-shop product
   prices/stock.
-- Each shop can now open `/shop-admin` on their own device, enter their
-  shop's admin password, and edit only their own pricing and product prices.
+- In each shop's billing app, **Shop Admin** in the sidebar asks for that
+  shop's admin password, then edits only that shop's pricing and product
+  prices. It locks again as soon as you leave it, so the counter's other staff
+  can't change prices. (The old `/shop-admin` address now just opens this
+  section.)
 
 Once every shop's numbers look right, you can drop the renamed backup tables
 by hand (`drop table public.ingredients_pre_multishop;` etc.) — they're not
