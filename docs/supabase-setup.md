@@ -517,3 +517,28 @@ Then:
 Once every shop's numbers look right, you can drop the renamed backup tables
 by hand (`drop table public.ingredients_pre_multishop;` etc.) — they're not
 read by the app and only exist as a rollback safety net.
+
+## 10. Let /admin actually edit shops
+
+`AdminLocations.jsx` (`/admin` → **Shops**) has always called `.insert()` and
+`.update()` on `public.locations` -- adding a shop, changing its billing
+username/password, and setting its admin password all go through there. But
+§8 only ever granted `anon` **select** on that table, so every one of those
+writes has been silently rejected by Postgres (RLS denies it, the request
+errors, and the UI -- which didn't surface that error -- just looked like
+nothing happened). This is almost certainly why an admin-password edit
+"didn't take."
+
+Run once in the **SQL Editor**:
+
+```sql
+create policy "Allow anonymous insert" on public.locations for insert to anon with check (true);
+create policy "Allow anonymous update" on public.locations for update to anon using (true) with check (true);
+
+grant insert, update on public.locations to anon;
+```
+
+Delete is deliberately left out -- nothing in `/admin` deletes a shop, so
+`anon` has no reason to be able to. After running this, editing a shop's
+admin password (or adding a new shop) in `/admin` → **Shops** should save
+immediately.

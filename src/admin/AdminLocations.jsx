@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { CheckCircle, Plus, XClose } from '@untitledui/icons';
+import { Fragment, useEffect, useState } from 'react';
+import { AlertCircle, CheckCircle, Plus, XClose } from '@untitledui/icons';
 import { Badge } from '@/components/base/badges/badges';
 import { Button } from '@/components/base/buttons/button';
 import { Input } from '@/components/base/input/input';
@@ -28,6 +28,7 @@ export default function AdminLocations() {
     admin_password: '',
   });
   const [addError, setAddError] = useState('');
+  const [saveErrors, setSaveErrors] = useState({});
 
   async function loadAll() {
     if (!supabase) return;
@@ -67,10 +68,12 @@ export default function AdminLocations() {
     const e = edits[loc.id];
     if (!e) return;
     setSavingId(loc.id);
+    setSaveErrors((prev) => ({ ...prev, [loc.id]: '' }));
     const { error } = await supabase.from('locations').update(e).eq('id', loc.id);
     setSavingId(null);
     if (error) {
       console.error('Failed to save location', error);
+      setSaveErrors((prev) => ({ ...prev, [loc.id]: error.message }));
       return;
     }
     setEdits((prev) => {
@@ -201,19 +204,31 @@ export default function AdminLocations() {
             </thead>
             <tbody>
               {locations.map((loc) => (
-                <tr key={loc.id} className="border-b border-secondary last:border-b-0">
-                  <td className="px-5 py-3">{cellInput(loc, 'name', t('shopNameLabel'))}</td>
-                  <td className="px-5 py-3">{cellInput(loc, 'login_username', t('shopUsername'))}</td>
-                  <td className="px-5 py-3">{cellInput(loc, 'login_password', t('password'))}</td>
-                  <td className="px-5 py-3">{cellInput(loc, 'admin_password', t('shopAdminPasswordPlaceholder'))}</td>
-                  <td className="px-5 py-3 text-right">
-                    {isDirty(loc) && (
-                      <Button size="sm" color="secondary" onClick={() => saveRow(loc)} isDisabled={savingId === loc.id}>
-                        {t('save')}
-                      </Button>
-                    )}
-                  </td>
-                </tr>
+                <Fragment key={loc.id}>
+                  <tr className="border-b border-secondary last:border-b-0">
+                    <td className="px-5 py-3">{cellInput(loc, 'name', t('shopNameLabel'))}</td>
+                    <td className="px-5 py-3">{cellInput(loc, 'login_username', t('shopUsername'))}</td>
+                    <td className="px-5 py-3">{cellInput(loc, 'login_password', t('password'))}</td>
+                    <td className="px-5 py-3">{cellInput(loc, 'admin_password', t('shopAdminPasswordPlaceholder'))}</td>
+                    <td className="px-5 py-3 text-right">
+                      {isDirty(loc) && (
+                        <Button size="sm" color="secondary" onClick={() => saveRow(loc)} isDisabled={savingId === loc.id}>
+                          {t('save')}
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                  {saveErrors[loc.id] && (
+                    <tr className="border-b border-secondary bg-error-primary last:border-b-0">
+                      <td colSpan={5} className="px-5 py-2">
+                        <p className="flex items-center gap-2 text-sm text-error-primary">
+                          <AlertCircle className="size-4 shrink-0" />
+                          {saveErrors[loc.id]}
+                        </p>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               ))}
             </tbody>
           </table>
