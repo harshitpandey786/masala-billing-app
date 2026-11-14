@@ -1,9 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft } from '@untitledui/icons';
+import { Avatar } from '@/components/base/avatar/avatar';
+import { Button } from '@/components/base/buttons/button';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage, masalaTypeLabel, channelLabel } from '../i18n.jsx';
 import { DEMO_ROWS } from './demoData.js';
 import { computeAnalytics } from './analytics.js';
 import BillLedgerTable from './BillLedgerTable.jsx';
+
+function initialsOf(name) {
+  return (name || '?')
+    .trim()
+    .split(/\s+/)
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function Stat({ label, value }) {
+  return (
+    <div className="flex flex-col gap-1.5 rounded-xl bg-primary p-4 shadow-xs ring-1 ring-secondary ring-inset">
+      <p className="text-sm font-medium text-tertiary">{label}</p>
+      <p className="truncate text-lg font-semibold text-primary tabular-nums">{value}</p>
+    </div>
+  );
+}
 
 // A single customer's full order history -- deliberately ignores the
 // Customer Lookup date filter, since "this customer's whole history" is the
@@ -104,73 +126,62 @@ export default function CustomerDetail({ phone, demoMode, onBack }) {
   const inr = (n) => `₹${Math.round(n).toLocaleString('en-IN')}`;
 
   return (
-    <section className="card admin-dashboard customer-detail">
-      <button type="button" className="btn-secondary btn-small customer-detail-back" onClick={onBack}>
-        ← {t('backToCustomers')}
-      </button>
+    <section className="flex flex-col gap-6">
+      <div>
+        <Button size="sm" color="link-gray" iconLeading={ArrowLeft} onClick={onBack}>
+          {t('backToCustomers')}
+        </Button>
+      </div>
 
-      {status === 'loading' && <p className="hint">{t('loadingResults')}</p>}
-      {status === 'error' && <p className="form-error">{t('loadError')}</p>}
-      {status === 'not_configured' && <p className="hint">{t('notConfigured')}</p>}
+      {status === 'loading' && <p className="text-sm text-tertiary">{t('loadingResults')}</p>}
+      {status === 'error' && <p className="text-sm text-error-primary">{t('loadError')}</p>}
+      {status === 'not_configured' && <p className="text-sm text-tertiary">{t('notConfigured')}</p>}
 
       {status === 'ready' && profile && (
         <>
-          <div className="customer-detail-header">
-            <h2>{profile.name}</h2>
-            <p className="hint">
-              {profile.phone}
-              {profile.area ? ` · ${profile.area}` : ''}
-            </p>
-          </div>
-
-          <div className="stat-tiles admin-search-stats">
-            <div className="stat-tile">
-              <span className="stat-value">{inr(profile.totalSpent)}</span>
-              <span className="stat-label">{t('totalSpent')}</span>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-value">{profile.totalBills}</span>
-              <span className="stat-label">{t('totalBills')}</span>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-value">{inr(profile.avgOrderValue)}</span>
-              <span className="stat-label">{t('avgOrderValue')}</span>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-value">
-                {profile.favoriteItem ? masalaTypeLabel(t, profile.favoriteItem.type) : '—'}
-              </span>
-              <span className="stat-label">{t('favoriteItem')}</span>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-value">
-                {profile.firstOrderDate ? dateFormatter.format(new Date(profile.firstOrderDate)) : '—'}
-              </span>
-              <span className="stat-label">{t('firstOrderLabel')}</span>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-value">
-                {profile.lastOrderDate ? dateFormatter.format(new Date(profile.lastOrderDate)) : '—'}
-              </span>
-              <span className="stat-label">{t('lastOrderLabel')}</span>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-value">
-                {profile.orderFrequencyDays != null
-                  ? `~${Math.round(profile.orderFrequencyDays)} ${t('daysUnit')}`
-                  : '—'}
-              </span>
-              <span className="stat-label">{t('orderFrequencyLabel')}</span>
-            </div>
-            <div className="stat-tile">
-              <span className="stat-value">
-                {profile.preferredChannel ? channelLabel(t, profile.preferredChannel.key) : '—'}
-              </span>
-              <span className="stat-label">{t('preferredChannelLabel')}</span>
+          <div className="flex items-center gap-4">
+            <Avatar size="xl" initials={initialsOf(profile.name)} />
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <h2 className="truncate text-display-xs font-semibold text-primary">{profile.name}</h2>
+              <p className="text-md text-tertiary">
+                {profile.phone}
+                {profile.area ? ` · ${profile.area}` : ''}
+              </p>
             </div>
           </div>
 
-          <BillLedgerTable rows={bills} />
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            <Stat label={t('totalSpent')} value={inr(profile.totalSpent)} />
+            <Stat label={t('totalBills')} value={profile.totalBills} />
+            <Stat label={t('avgOrderValue')} value={inr(profile.avgOrderValue)} />
+            <Stat
+              label={t('favoriteItem')}
+              value={profile.favoriteItem ? masalaTypeLabel(t, profile.favoriteItem.type) : '—'}
+            />
+            <Stat
+              label={t('firstOrderLabel')}
+              value={profile.firstOrderDate ? dateFormatter.format(new Date(profile.firstOrderDate)) : '—'}
+            />
+            <Stat
+              label={t('lastOrderLabel')}
+              value={profile.lastOrderDate ? dateFormatter.format(new Date(profile.lastOrderDate)) : '—'}
+            />
+            <Stat
+              label={t('orderFrequencyLabel')}
+              value={profile.orderFrequencyDays != null ? `~${Math.round(profile.orderFrequencyDays)} ${t('daysUnit')}` : '—'}
+            />
+            <Stat
+              label={t('preferredChannelLabel')}
+              value={profile.preferredChannel ? channelLabel(t, profile.preferredChannel.key) : '—'}
+            />
+          </div>
+
+          <div className="overflow-hidden rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+            <div className="border-b border-secondary px-4 py-5 md:px-6">
+              <h3 className="text-md font-semibold text-primary">{t('tableOrders')}</h3>
+            </div>
+            <BillLedgerTable rows={bills} />
+          </div>
         </>
       )}
     </section>

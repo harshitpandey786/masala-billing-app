@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
+import { AlertCircle, File06, Image01, MessageChatCircle, RefreshCw01 } from '@untitledui/icons';
+import { Button } from '@/components/base/buttons/button';
+import { TextArea } from '@/components/base/textarea/textarea';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
+import PageHeader from '../components/shell/PageHeader.jsx';
 import { updateBillNotes } from '../orderLogger.js';
 import pricingConfig from '../../data/pricing-config.json' with { type: 'json' };
 
@@ -151,154 +155,173 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
   }
 
   return (
-    <section className="card">
-      <h2>{isMultiItem ? t('combinedOrderSummary') : t('billSummary')}</h2>
-      <div className="section-divider" />
+    <>
+      <PageHeader
+        title={isMultiItem ? t('combinedOrderSummary') : t('billSummary')}
+        description={`${customer.name} · ${customer.phone} · ${t('grandTotal')} ₹${grandTotal}`}
+        actions={
+          <Button color="secondary" size="md" iconLeading={RefreshCw01} onClick={onStartOver}>
+            {t('startNewOrder')}
+          </Button>
+        }
+      />
 
-      <label className="bill-notes-field">
-        {t('billNotesLabel')}
-        <textarea
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          placeholder={t('billNotesPlaceholder')}
-          rows={2}
-        />
-        <span className="hint">{t('billNotesHint')}</span>
-      </label>
+      <div className="grid grid-cols-1 items-start gap-6 px-4 pt-8 lg:px-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="flex flex-col gap-4 rounded-xl bg-secondary p-4 ring-1 ring-secondary ring-inset sm:p-6">
+          <div className="mx-auto w-full max-w-2xl overflow-hidden rounded-xl shadow-sm ring-1 ring-secondary">
+            <div ref={printRef} className="printable-summary">
+              <div className="bill-letterhead">
+                <img src="/logo-mark.png" alt="Shindraj Masale logo" className="bill-letterhead-logo" />
+                <div>
+                  <h2 className="bill-letterhead-title">{t('appName')}</h2>
+                  <p className="bill-letterhead-tagline">{t('tagline')}</p>
+                </div>
+              </div>
 
-      <div ref={printRef} className="printable-summary">
-        <div className="bill-letterhead">
-          <img src="/logo-mark.png" alt="Shindraj Masale logo" className="bill-letterhead-logo" />
-          <div>
-            <h2 className="bill-letterhead-title">{t('appName')}</h2>
-            <p className="bill-letterhead-tagline">{t('tagline')}</p>
+              <div className="customer-recap">
+                <p>
+                  <strong>{customer.name}</strong> — {customer.phone}
+                </p>
+                <p>
+                  {customer.area} · {customer.date} ·{' '}
+                  {customer.billingMode === 'online' ? t('online') : t('offline')}
+                  {location?.name ? ` · ${location.name}` : ''}
+                </p>
+                <p>
+                  {t('billMadeByLabel')}: {customer.pocName}
+                </p>
+              </div>
+
+              {notes && (
+                <p className="bill-notes-recap">
+                  <strong>{t('billNotesLabel')}:</strong> {notes}
+                </p>
+              )}
+
+              {bills.map((bill, i) => (
+                <div key={bill.orderItemId} className="bill-summary-block">
+                  <h3>
+                    {i + 1}.{' '}
+                    {bill.kind === 'product'
+                      ? `${bill.type} — ${bill.qtyLabel}`
+                      : `${masalaTypeLabel(t, bill.type, pricingConfig?.masala_types, lang)} ${bill.qtyLabel} kg`}
+                    {bill.billNo ? ` · ${t('billNoLabel')} ${bill.billNo}` : ''}
+                  </h3>
+                  <table className="bill-table">
+                    <thead>
+                      <tr>
+                        <th>{t('particulars')}</th>
+                        <th>{t('quantity')}</th>
+                        <th>{t('amount')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {bill.lineItems.map((line) => (
+                        <tr key={line.code}>
+                          <td>{line.code}</td>
+                          <td>
+                            {line.qty} {line.unit === 'piece' ? 'pcs' : line.unit === 'kg' ? 'kg' : 'g'}
+                          </td>
+                          <td>₹{line.amount}</td>
+                        </tr>
+                      ))}
+                      {bill.kind !== 'product' && (
+                        <>
+                          <tr className="subtotal-row">
+                            <td colSpan={2}>{t('ingredientsSubtotal')}</td>
+                            <td>₹{bill.ingredientsSubtotal}</td>
+                          </tr>
+                          <tr className="making-charge-row">
+                            <td colSpan={2}>{t('makingCharge')}</td>
+                            <td>₹{bill.makingCharge}</td>
+                          </tr>
+                        </>
+                      )}
+                      <tr className="total-row">
+                        <td colSpan={2}>{t('total')}</td>
+                        <td>₹{bill.total}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              ))}
+
+              {isMultiItem && (
+                <div className="grand-total">
+                  <span>{t('grandTotal')}</span>
+                  <span>₹{grandTotal}</span>
+                </div>
+              )}
+
+              {(businessInfo.address || businessInfo.follow_us) && (
+                <div className="bill-footer">
+                  {businessInfo.address && <p>{businessInfo.address}</p>}
+                  {businessInfo.follow_us && (
+                    <p>
+                      {t('followUsAt')}: {businessInfo.follow_us}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        </section>
 
-        <div className="customer-recap">
-          <p>
-            <strong>{customer.name}</strong> — {customer.phone}
-          </p>
-          <p>
-            {customer.area} · {customer.date} ·{' '}
-            {customer.billingMode === 'online' ? t('online') : t('offline')}
-            {location?.name ? ` · ${location.name}` : ''}
-          </p>
-          <p>
-            {t('billMadeByLabel')}: {customer.pocName}
-          </p>
-        </div>
-
-        {notes && (
-          <p className="bill-notes-recap">
-            <strong>{t('billNotesLabel')}:</strong> {notes}
-          </p>
-        )}
-
-        {bills.map((bill, i) => (
-          <div key={bill.orderItemId} className="bill-summary-block">
-            <h3>
-              {i + 1}.{' '}
-              {bill.kind === 'product'
-                ? `${bill.type} — ${bill.qtyLabel}`
-                : `${masalaTypeLabel(t, bill.type, pricingConfig?.masala_types, lang)} ${bill.qtyLabel} kg`}
-              {bill.billNo ? ` · ${t('billNoLabel')} ${bill.billNo}` : ''}
-            </h3>
-            <table className="bill-table">
-              <thead>
-                <tr>
-                  <th>{t('particulars')}</th>
-                  <th>{t('quantity')}</th>
-                  <th>{t('amount')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {bill.lineItems.map((line) => (
-                  <tr key={line.code}>
-                    <td>{line.code}</td>
-                    <td>
-                      {line.qty} {line.unit === 'piece' ? 'pcs' : line.unit === 'kg' ? 'kg' : 'g'}
-                    </td>
-                    <td>₹{line.amount}</td>
-                  </tr>
-                ))}
-                {bill.kind !== 'product' && (
-                  <>
-                    <tr className="subtotal-row">
-                      <td colSpan={2}>{t('ingredientsSubtotal')}</td>
-                      <td>₹{bill.ingredientsSubtotal}</td>
-                    </tr>
-                    <tr className="making-charge-row">
-                      <td colSpan={2}>{t('makingCharge')}</td>
-                      <td>₹{bill.makingCharge}</td>
-                    </tr>
-                  </>
+        <aside className="flex flex-col rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset xl:sticky xl:top-6">
+          <div className="flex flex-col gap-2 border-b border-secondary px-5 py-5">
+            <Button
+              size="lg"
+              iconLeading={MessageChatCircle}
+              onClick={handleShare}
+              isDisabled={status !== 'ready'}
+              isLoading={status === 'generating'}
+              className="w-full"
+            >
+              {t('shareToWhatsapp')}
+            </Button>
+            <div className="grid grid-cols-2 gap-2">
+              <Button color="secondary" size="md" iconLeading={Image01} onClick={handleDownload} isDisabled={status !== 'ready'}>
+                {t('downloadImage')}
+              </Button>
+              <Button color="secondary" size="md" iconLeading={File06} onClick={handleDownloadPdf} isLoading={pdfStatus === 'generating'}>
+                {pdfStatus === 'generating' ? t('preparingPdf') : t('downloadPdf')}
+              </Button>
+            </div>
+            {status === 'generating' && <p className="text-sm text-tertiary">{t('preparingImage')}</p>}
+            {(status === 'error' || pdfStatus === 'error') && (
+              <div className="flex items-center justify-between gap-3">
+                <p className="flex items-center gap-1.5 text-sm text-error-primary">
+                  <AlertCircle className="size-4 shrink-0" />
+                  {t('couldNotGenerateImage')}
+                </p>
+                {status === 'error' && (
+                  <Button color="link-color" size="sm" onClick={generateImage}>
+                    {t('retry')}
+                  </Button>
                 )}
-                <tr className="total-row">
-                  <td colSpan={2}>{t('total')}</td>
-                  <td>₹{bill.total}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        ))}
-
-        {isMultiItem && (
-          <div className="grand-total">
-            <span>{t('grandTotal')}</span>
-            <span>₹{grandTotal}</span>
-          </div>
-        )}
-
-        {(businessInfo.address || businessInfo.follow_us) && (
-          <div className="bill-footer">
-            {businessInfo.address && <p>{businessInfo.address}</p>}
-            {businessInfo.follow_us && (
-              <p>
-                {t('followUsAt')}: {businessInfo.follow_us}
-              </p>
+              </div>
             )}
           </div>
-        )}
+
+          <div className="flex flex-col gap-1.5 border-b border-secondary px-5 py-5">
+            <TextArea
+              label={t('billNotesLabel')}
+              value={notes}
+              onChange={setNotes}
+              placeholder={t('billNotesPlaceholder')}
+              rows={3}
+              hint={t('billNotesHint')}
+            />
+          </div>
+
+          {status === 'ready' && imageUrl && (
+            <div className="flex flex-col gap-2 px-5 py-5">
+              <p className="text-sm font-medium text-secondary">{t('sharedImagePreview')}</p>
+              <img src={imageUrl} alt="Generated bill preview" className="w-full rounded-lg ring-1 ring-secondary" />
+            </div>
+          )}
+        </aside>
       </div>
-
-      {status === 'generating' && <p className="hint">{t('preparingImage')}</p>}
-
-      {status === 'ready' && imageUrl && (
-        <div className="image-preview">
-          <img src={imageUrl} alt="Generated bill preview" />
-        </div>
-      )}
-
-      {status === 'error' && (
-        <div className="image-error">
-          <p className="form-error">{t('couldNotGenerateImage')}</p>
-          <button className="btn-secondary" onClick={generateImage}>
-            {t('retry')}
-          </button>
-        </div>
-      )}
-
-      {pdfStatus === 'error' && <p className="form-error">{t('couldNotGenerateImage')}</p>}
-
-      <div className="actions">
-        <button className="btn-secondary" onClick={onStartOver}>
-          {t('startNewOrder')}
-        </button>
-        <button className="btn-secondary" onClick={handleDownload} disabled={status !== 'ready'}>
-          {t('downloadImage')}
-        </button>
-        <button
-          className="btn-secondary"
-          onClick={handleDownloadPdf}
-          disabled={pdfStatus === 'generating'}
-        >
-          {pdfStatus === 'generating' ? t('preparingPdf') : t('downloadPdf')}
-        </button>
-        <button className="btn-primary btn-accent" onClick={handleShare} disabled={status !== 'ready'}>
-          {t('shareToWhatsapp')}
-        </button>
-      </div>
-    </section>
+    </>
   );
 }

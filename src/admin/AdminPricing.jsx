@@ -1,6 +1,34 @@
 import { useEffect, useState } from 'react';
+import { CheckCircle, ChevronDown, ChevronRight, Plus, Trash01, X } from '@untitledui/icons';
+import { BadgeWithIcon } from '@/components/base/badges/badges';
+import { Button } from '@/components/base/buttons/button';
+import { ButtonUtility } from '@/components/base/buttons/button-utility';
+import { Checkbox } from '@/components/base/checkbox/checkbox';
+import { Input } from '@/components/base/input/input';
+import { NativeSelect } from '@/components/base/select/select-native';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
+
+const th = 'border-b border-secondary bg-secondary px-4 py-3 text-left text-xs font-semibold whitespace-nowrap text-tertiary';
+const td = 'border-b border-secondary px-4 py-3 align-middle text-sm text-tertiary';
+
+function SubHeader({ title, actions }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h3 className="text-md font-semibold text-primary">{title}</h3>
+      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+    </div>
+  );
+}
+
+function AddPanel({ children, error }) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg bg-secondary p-4 ring-1 ring-secondary ring-inset">
+      <div className="flex flex-wrap items-end gap-3">{children}</div>
+      {error && <p className="text-sm text-error-primary">{error}</p>}
+    </div>
+  );
+}
 
 // Owner/shop-editable pricing: ingredient rates, masala types, and their
 // recipes (ingredient lists + quantities), all stored in Supabase so changes
@@ -66,36 +94,43 @@ export default function AdminPricing({ locationId }) {
   if (status === 'not_configured') return null;
 
   return (
-    <section className="card admin-dashboard pricing-manager">
-      <h2>{t('pricingManagerTitle')}</h2>
+    <section className="rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex items-center justify-between gap-4 border-b border-secondary px-4 py-5 md:px-6">
+        <h2 className="text-lg font-semibold text-primary">{t('pricingManagerTitle')}</h2>
+        {savedFlash && (
+          <BadgeWithIcon type="pill-color" color="success" size="md" iconLeading={CheckCircle}>
+            {savedFlash}
+          </BadgeWithIcon>
+        )}
+      </div>
 
-      {status === 'loading' && <p className="hint">{t('loadingResults')}</p>}
-      {status === 'error' && <p className="form-error">{t('loadError')}</p>}
+      <div className="flex flex-col gap-8 px-4 py-5 md:px-6 md:py-6">
+        {status === 'loading' && <p className="text-sm text-tertiary">{t('loadingResults')}</p>}
+        {status === 'error' && <p className="text-sm text-error-primary">{t('loadError')}</p>}
 
-      {status === 'ready' && (
-        <>
-          {savedFlash && <p className="pricing-saved-flash">{savedFlash}</p>}
+        {status === 'ready' && (
+          <>
+            <MakingChargeSetting locationId={locationId} settings={settings} onSaved={() => flash(t('saved'))} />
 
-          <MakingChargeSetting locationId={locationId} settings={settings} onSaved={() => flash(t('saved'))} />
+            <IngredientRateCard
+              locationId={locationId}
+              ingredients={ingredients}
+              onChanged={loadAll}
+              onSaved={() => flash(t('saved'))}
+            />
 
-          <IngredientRateCard
-            locationId={locationId}
-            ingredients={ingredients}
-            onChanged={loadAll}
-            onSaved={() => flash(t('saved'))}
-          />
-
-          <RecipesSection
-            locationId={locationId}
-            masalaTypes={masalaTypes}
-            recipes={recipes}
-            recipeLines={recipeLines}
-            ingredients={ingredients}
-            onChanged={loadAll}
-            onSaved={() => flash(t('saved'))}
-          />
-        </>
-      )}
+            <RecipesSection
+              locationId={locationId}
+              masalaTypes={masalaTypes}
+              recipes={recipes}
+              recipeLines={recipeLines}
+              ingredients={ingredients}
+              onChanged={loadAll}
+              onSaved={() => flash(t('saved'))}
+            />
+          </>
+        )}
+      </div>
     </section>
   );
 }
@@ -121,24 +156,25 @@ function MakingChargeSetting({ locationId, settings, onSaved }) {
   }
 
   return (
-    <div className="pricing-section">
-      <h3>{t('makingChargePerKgLabel')}</h3>
-      <div className="pricing-inline-field">
-        <span>₹</span>
-        <input
+    <div className="flex flex-col gap-3">
+      <SubHeader title={t('makingChargePerKgLabel')} />
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium text-tertiary">₹</span>
+        <Input
+          aria-label={t('makingChargePerKgLabel')}
           type="number"
-          min="0"
-          value={value}
-          onChange={(e) => setValue(e.target.value)}
-          style={{ width: 90 }}
+          size="sm"
+          value={String(value ?? '')}
+          onChange={setValue}
+          className="w-28"
         />
         {dirty && (
-          <button className="btn-secondary btn-small" onClick={save} disabled={saving}>
+          <Button size="sm" color="secondary" onClick={save} isLoading={saving}>
             {t('save')}
-          </button>
+          </Button>
         )}
       </div>
-      <p className="hint">{t('makingChargePerKgHint')}</p>
+      <p className="text-sm text-tertiary">{t('makingChargePerKgHint')}</p>
     </div>
   );
 }
@@ -234,126 +270,143 @@ function IngredientRateCard({ locationId, ingredients, onChanged, onSaved }) {
   }
 
   return (
-    <div className="pricing-section">
-      <div className="pricing-section-header">
-        <h3>{t('ingredientRateCardTitle')}</h3>
-        <button className="btn-secondary btn-small" onClick={() => setShowAddForm((v) => !v)}>
-          {showAddForm ? t('cancel') : t('addIngredient')}
-        </button>
-      </div>
+    <div className="flex flex-col gap-3">
+      <SubHeader
+        title={t('ingredientRateCardTitle')}
+        actions={
+          <Button
+            size="sm"
+            color="secondary"
+            iconLeading={showAddForm ? X : Plus}
+            onClick={() => setShowAddForm((v) => !v)}
+          >
+            {showAddForm ? t('cancel') : t('addIngredient')}
+          </Button>
+        }
+      />
 
       {showAddForm && (
-        <div className="pricing-add-form">
-          <input
-            placeholder={t('tableCode')}
+        <AddPanel error={addError}>
+          <Input
+            size="sm"
+            label={t('tableCode')}
             value={newIng.code}
-            onChange={(e) => setNewIng({ ...newIng, code: e.target.value.toUpperCase() })}
+            onChange={(v) => setNewIng({ ...newIng, code: v.toUpperCase() })}
+            className="w-28"
           />
-          <input
-            placeholder={t('tableNameEn')}
+          <Input
+            size="sm"
+            label={t('tableNameEn')}
             value={newIng.name_en}
-            onChange={(e) => setNewIng({ ...newIng, name_en: e.target.value })}
+            onChange={(v) => setNewIng({ ...newIng, name_en: v })}
+            className="w-44"
           />
-          <input
-            placeholder={t('tableNameMr')}
+          <Input
+            size="sm"
+            label={t('tableNameMr')}
             value={newIng.name_mr}
-            onChange={(e) => setNewIng({ ...newIng, name_mr: e.target.value })}
+            onChange={(v) => setNewIng({ ...newIng, name_mr: v })}
+            className="w-44"
           />
-          <select
+          <NativeSelect
+            size="sm"
+            aria-label={t('tablePricePerKg')}
             value={newIng.unitType}
             onChange={(e) => setNewIng({ ...newIng, unitType: e.target.value })}
-          >
-            <option value="kg">{t('tablePricePerKg')}</option>
-            <option value="piece">{t('tablePricePerPiece')}</option>
-          </select>
-          <input
-            type="number"
-            min="0"
-            placeholder="₹"
-            value={newIng.price}
-            onChange={(e) => setNewIng({ ...newIng, price: e.target.value })}
-            style={{ width: 80 }}
+            className="w-40"
+            options={[
+              { value: 'kg', label: t('tablePricePerKg') },
+              { value: 'piece', label: t('tablePricePerPiece') },
+            ]}
           />
-          <label className="pricing-checkbox-label">
-            <input
-              type="checkbox"
-              checked={newIng.is_addon}
-              onChange={(e) => setNewIng({ ...newIng, is_addon: e.target.checked })}
-            />
-            {t('tableAddon')}
-          </label>
-          <button className="btn-add btn-small" onClick={addIngredient}>
+          <Input
+            size="sm"
+            type="number"
+            placeholder="₹"
+            aria-label="₹"
+            value={newIng.price}
+            onChange={(v) => setNewIng({ ...newIng, price: v })}
+            className="w-24"
+          />
+          <Checkbox
+            label={t('tableAddon')}
+            isSelected={newIng.is_addon}
+            onChange={(checked) => setNewIng({ ...newIng, is_addon: checked })}
+            className="pb-2.5"
+          />
+          <Button size="sm" iconLeading={Plus} onClick={addIngredient}>
             {t('addItem')}
-          </button>
-          {addError && <p className="form-error">{addError}</p>}
-        </div>
+          </Button>
+        </AddPanel>
       )}
 
-      <div className="table-scroll">
-        <table className="bill-table ledger-table">
+      <div className="overflow-x-auto rounded-lg ring-1 ring-secondary ring-inset">
+        <table className="w-full">
           <thead>
             <tr>
-              <th>{t('tableCode')}</th>
-              <th>{t('tableNameEn')}</th>
-              <th>{t('tableNameMr')}</th>
-              <th>{t('tablePricePerKg')}</th>
-              <th>{t('tablePricePerPiece')}</th>
-              <th>{t('tableAddon')}</th>
-              <th></th>
+              <th className={th}>{t('tableCode')}</th>
+              <th className={th}>{t('tableNameEn')}</th>
+              <th className={th}>{t('tableNameMr')}</th>
+              <th className={th}>{t('tablePricePerKg')}</th>
+              <th className={th}>{t('tablePricePerPiece')}</th>
+              <th className={th}>{t('tableAddon')}</th>
+              <th className={th}></th>
             </tr>
           </thead>
           <tbody>
             {ingredients.map((ing) => (
-              <tr key={ing.code} className="ledger-row">
-                <td>{ing.code}</td>
-                <td>
-                  <input
-                    value={fieldFor(ing, 'name_en')}
-                    onChange={(e) => setField(ing.code, 'name_en', e.target.value)}
-                    className="pricing-cell-input"
+              <tr key={ing.code} className="hover:bg-secondary">
+                <td className={`${td} font-medium text-primary`}>{ing.code}</td>
+                <td className={td}>
+                  <Input
+                    size="sm"
+                    aria-label={t('tableNameEn')}
+                    value={String(fieldFor(ing, 'name_en'))}
+                    onChange={(v) => setField(ing.code, 'name_en', v)}
+                    className="min-w-36"
                   />
                 </td>
-                <td>
-                  <input
-                    value={fieldFor(ing, 'name_mr')}
-                    onChange={(e) => setField(ing.code, 'name_mr', e.target.value)}
-                    className="pricing-cell-input"
+                <td className={td}>
+                  <Input
+                    size="sm"
+                    aria-label={t('tableNameMr')}
+                    value={String(fieldFor(ing, 'name_mr'))}
+                    onChange={(v) => setField(ing.code, 'name_mr', v)}
+                    className="min-w-36"
                   />
                 </td>
-                <td>
-                  <input
+                <td className={td}>
+                  <Input
+                    size="sm"
                     type="number"
-                    min="0"
-                    value={fieldFor(ing, 'price_per_kg')}
-                    onChange={(e) => setField(ing.code, 'price_per_kg', e.target.value)}
-                    className="pricing-cell-input pricing-cell-input-narrow"
+                    aria-label={t('tablePricePerKg')}
+                    value={String(fieldFor(ing, 'price_per_kg'))}
+                    onChange={(v) => setField(ing.code, 'price_per_kg', v)}
+                    className="w-24"
                   />
                 </td>
-                <td>
-                  <input
+                <td className={td}>
+                  <Input
+                    size="sm"
                     type="number"
-                    min="0"
-                    value={fieldFor(ing, 'price_per_piece')}
-                    onChange={(e) => setField(ing.code, 'price_per_piece', e.target.value)}
-                    className="pricing-cell-input pricing-cell-input-narrow"
+                    aria-label={t('tablePricePerPiece')}
+                    value={String(fieldFor(ing, 'price_per_piece'))}
+                    onChange={(v) => setField(ing.code, 'price_per_piece', v)}
+                    className="w-24"
                   />
                 </td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={!!fieldFor(ing, 'is_addon')}
-                    onChange={(e) => setField(ing.code, 'is_addon', e.target.checked)}
+                <td className={td}>
+                  <Checkbox
+                    aria-label={t('tableAddon')}
+                    isSelected={!!fieldFor(ing, 'is_addon')}
+                    onChange={(checked) => setField(ing.code, 'is_addon', checked)}
                   />
                 </td>
-                <td>
+                <td className={`${td} text-right`}>
                   {isDirty(ing) && (
-                    <button
-                      className="btn-secondary btn-small"
-                      onClick={() => saveRow(ing)}
-                      disabled={savingCode === ing.code}
-                    >
+                    <Button size="sm" color="secondary" onClick={() => saveRow(ing)} isLoading={savingCode === ing.code}>
                       {t('save')}
-                    </button>
+                    </Button>
                   )}
                 </td>
               </tr>
@@ -397,41 +450,58 @@ function RecipesSection({ locationId, masalaTypes, recipes, recipeLines, ingredi
   }
 
   return (
-    <div className="pricing-section">
-      <div className="pricing-section-header">
-        <h3>{t('masalaTypesRecipesTitle')}</h3>
-        <div className="pricing-section-header-actions">
-          <button className="btn-secondary btn-small" onClick={() => setShowAddType((v) => !v)}>
-            {showAddType ? t('cancel') : t('addMasalaType')}
-          </button>
-          <button className="btn-secondary btn-small" onClick={() => setShowAddRecipe((v) => !v)}>
-            {showAddRecipe ? t('cancel') : t('addRecipe')}
-          </button>
-        </div>
-      </div>
+    <div className="flex flex-col gap-3">
+      <SubHeader
+        title={t('masalaTypesRecipesTitle')}
+        actions={
+          <>
+            <Button
+              size="sm"
+              color="secondary"
+              iconLeading={showAddType ? X : Plus}
+              onClick={() => setShowAddType((v) => !v)}
+            >
+              {showAddType ? t('cancel') : t('addMasalaType')}
+            </Button>
+            <Button
+              size="sm"
+              color="secondary"
+              iconLeading={showAddRecipe ? X : Plus}
+              onClick={() => setShowAddRecipe((v) => !v)}
+            >
+              {showAddRecipe ? t('cancel') : t('addRecipe')}
+            </Button>
+          </>
+        }
+      />
 
       {showAddType && (
-        <div className="pricing-add-form">
-          <input
-            placeholder={t('keyLabel')}
+        <AddPanel error={typeError}>
+          <Input
+            size="sm"
+            label={t('keyLabel')}
             value={newType.key}
-            onChange={(e) => setNewType({ ...newType, key: e.target.value })}
+            onChange={(v) => setNewType({ ...newType, key: v })}
+            className="w-36"
           />
-          <input
-            placeholder={t('tableNameEn')}
+          <Input
+            size="sm"
+            label={t('tableNameEn')}
             value={newType.label_en}
-            onChange={(e) => setNewType({ ...newType, label_en: e.target.value })}
+            onChange={(v) => setNewType({ ...newType, label_en: v })}
+            className="w-44"
           />
-          <input
-            placeholder={t('tableNameMr')}
+          <Input
+            size="sm"
+            label={t('tableNameMr')}
             value={newType.label_mr}
-            onChange={(e) => setNewType({ ...newType, label_mr: e.target.value })}
+            onChange={(v) => setNewType({ ...newType, label_mr: v })}
+            className="w-44"
           />
-          <button className="btn-add btn-small" onClick={addMasalaType}>
+          <Button size="sm" iconLeading={Plus} onClick={addMasalaType}>
             {t('addItem')}
-          </button>
-          {typeError && <p className="form-error">{typeError}</p>}
-        </div>
+          </Button>
+        </AddPanel>
       )}
 
       {showAddRecipe && (
@@ -448,31 +518,35 @@ function RecipesSection({ locationId, masalaTypes, recipes, recipeLines, ingredi
         />
       )}
 
-      {masalaTypes.map((mt) => (
-        <div key={mt.key} className="pricing-type-group">
-          <h4>
-            {mt.label_en}
-            {mt.label_mr ? ` · ${mt.label_mr}` : ''}
-          </h4>
-          {recipes
-            .filter((r) => r.masala_type === mt.key)
-            .map((r) => (
-              <RecipeCard
-                key={r.id}
-                recipe={r}
-                lines={recipeLines.filter((l) => l.recipe_id === r.id)}
-                ingredients={ingredients}
-                onChanged={onChanged}
-                onSaved={onSaved}
-              />
-            ))}
-        </div>
-      ))}
+      <div className="flex flex-col gap-5">
+        {masalaTypes.map((mt) => (
+          <div key={mt.key} className="flex flex-col gap-2">
+            <p className="text-sm font-semibold text-secondary">
+              {mt.label_en}
+              {mt.label_mr ? <span className="font-normal text-tertiary"> · {mt.label_mr}</span> : null}
+            </p>
+            <div className="flex flex-col overflow-hidden rounded-lg ring-1 ring-secondary ring-inset [&>*+*]:border-t [&>*+*]:border-secondary">
+              {recipes
+                .filter((r) => r.masala_type === mt.key)
+                .map((r) => (
+                  <RecipeCard
+                    key={r.id}
+                    recipe={r}
+                    lines={recipeLines.filter((l) => l.recipe_id === r.id)}
+                    ingredients={ingredients}
+                    onChanged={onChanged}
+                    onSaved={onSaved}
+                  />
+                ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
 
-function RecipeCard({ recipe, lines, ingredients, onChanged, onSaved }) {
+function RecipeCard({ recipe, lines, onChanged, onSaved }) {
   const { t } = useLanguage();
   const [open, setOpen] = useState(false);
   const [charge, setCharge] = useState(recipe.fixed_making_charge ?? '');
@@ -514,68 +588,78 @@ function RecipeCard({ recipe, lines, ingredients, onChanged, onSaved }) {
     onSaved();
   }
 
+  const Chevron = open ? ChevronDown : ChevronRight;
+
   return (
-    <div className="pricing-recipe-card">
-      <button type="button" className="pricing-recipe-toggle" onClick={() => setOpen((v) => !v)}>
-        {open ? '▾' : '▸'} {recipe.qty_label} kg
-        <span className="hint"> · {lines.length} {t('ingredientsCountSuffix')}</span>
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full cursor-pointer items-center gap-2 px-4 py-3 text-left transition duration-100 ease-linear hover:bg-secondary"
+      >
+        <Chevron className="size-4 shrink-0 text-fg-quaternary" />
+        <span className="text-sm font-medium text-primary">{recipe.qty_label} kg</span>
+        <span className="text-sm text-tertiary">
+          · {lines.length} {t('ingredientsCountSuffix')}
+        </span>
       </button>
 
       {open && (
-        <div className="pricing-recipe-body">
-          <div className="pricing-inline-field">
-            <label>{t('fixedMakingChargeLabel')}</label>
-            <span>₹</span>
-            <input
+        <div className="flex flex-col gap-4 border-t border-secondary bg-secondary px-4 py-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-sm font-medium text-secondary">{t('fixedMakingChargeLabel')}</span>
+            <span className="text-sm text-tertiary">₹</span>
+            <Input
+              size="sm"
               type="number"
-              min="0"
-              value={charge}
-              onChange={(e) => setCharge(e.target.value)}
-              style={{ width: 80 }}
+              aria-label={t('fixedMakingChargeLabel')}
               placeholder={t('pricingUsesDefault')}
+              value={String(charge ?? '')}
+              onChange={setCharge}
+              className="w-40"
             />
             {Number(charge || 0) !== Number(recipe.fixed_making_charge || 0) && (
-              <button className="btn-secondary btn-small" onClick={saveCharge} disabled={savingCharge}>
+              <Button size="sm" color="secondary" onClick={saveCharge} isLoading={savingCharge}>
                 {t('save')}
-              </button>
+              </Button>
             )}
           </div>
 
-          <div className="table-scroll">
-            <table className="bill-table ledger-table">
+          <div className="overflow-x-auto rounded-lg bg-primary ring-1 ring-secondary ring-inset">
+            <table className="w-full">
               <thead>
                 <tr>
-                  <th>{t('tableCode')}</th>
-                  <th>{t('quantity')}</th>
+                  <th className={th}>{t('tableCode')}</th>
+                  <th className={th}>{t('quantity')}</th>
                 </tr>
               </thead>
               <tbody>
                 {lines.map((line) => (
-                  <tr key={line.id} className="ledger-row">
-                    <td>
+                  <tr key={line.id}>
+                    <td className={`${td} font-medium text-primary`}>
                       {line.ingredient_code}
-                      {line.is_core_chili ? ` (${t('coreChili')})` : ''}
+                      {line.is_core_chili ? (
+                        <span className="font-normal text-tertiary"> ({t('coreChili')})</span>
+                      ) : null}
                     </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        value={lineEdits[line.id] !== undefined ? lineEdits[line.id] : line.default_qty}
-                        onChange={(e) =>
-                          setLineEdits((prev) => ({ ...prev, [line.id]: e.target.value }))
-                        }
-                        className="pricing-cell-input pricing-cell-input-narrow"
-                      />{' '}
-                      {line.unit === 'piece' ? 'pcs' : 'g'}
-                      {lineEdits[line.id] !== undefined &&
-                        Number(lineEdits[line.id]) !== Number(line.default_qty) && (
-                          <button
-                            className="btn-secondary btn-small"
-                            onClick={() => saveLineQty(line)}
-                          >
+                    <td className={td}>
+                      <div className="flex items-center gap-2">
+                        <Input
+                          size="sm"
+                          type="number"
+                          aria-label={t('quantity')}
+                          value={String(lineEdits[line.id] !== undefined ? lineEdits[line.id] : line.default_qty)}
+                          onChange={(v) => setLineEdits((prev) => ({ ...prev, [line.id]: v }))}
+                          className="w-24"
+                        />
+                        <span className="text-sm text-tertiary">{line.unit === 'piece' ? 'pcs' : 'g'}</span>
+                        {lineEdits[line.id] !== undefined && Number(lineEdits[line.id]) !== Number(line.default_qty) && (
+                          <Button size="sm" color="secondary" onClick={() => saveLineQty(line)}>
                             {t('save')}
-                          </button>
+                          </Button>
                         )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -650,77 +734,83 @@ function AddRecipeForm({ locationId, masalaTypes, ingredients, recipesCount, onD
     onDone();
   }
 
+  const ingredientOptions = ingredients.map((ing) => ({ value: ing.code, label: ing.code }));
+
   return (
-    <div className="pricing-add-form pricing-add-recipe-form">
-      <div className="pricing-inline-field">
-        <select value={masalaType} onChange={(e) => setMasalaType(e.target.value)}>
-          {masalaTypes.map((mt) => (
-            <option key={mt.key} value={mt.key}>
-              {mt.label_en}
-            </option>
-          ))}
-        </select>
-        <input
-          placeholder={t('qtyLabelField')}
-          value={qtyLabel}
-          onChange={(e) => setQtyLabel(e.target.value)}
-          style={{ width: 80 }}
+    <div className="flex flex-col gap-4 rounded-lg bg-secondary p-4 ring-1 ring-secondary ring-inset">
+      <div className="flex flex-wrap items-end gap-3">
+        <NativeSelect
+          size="sm"
+          aria-label={t('masalaType')}
+          value={masalaType}
+          onChange={(e) => setMasalaType(e.target.value)}
+          className="w-44"
+          options={masalaTypes.map((mt) => ({ value: mt.key, label: mt.label_en }))}
         />
-        <span>{t('fixedMakingChargeLabel')}</span>
-        <input
+        <Input
+          size="sm"
+          label={t('qtyLabelField')}
+          value={qtyLabel}
+          onChange={setQtyLabel}
+          className="w-28"
+        />
+        <Input
+          size="sm"
           type="number"
-          min="0"
+          label={t('fixedMakingChargeLabel')}
           placeholder={t('pricingUsesDefault')}
           value={fixedCharge}
-          onChange={(e) => setFixedCharge(e.target.value)}
-          style={{ width: 90 }}
+          onChange={setFixedCharge}
+          className="w-48"
         />
       </div>
 
-      {rows.map((row, i) => (
-        <div className="pricing-inline-field" key={i}>
-          <select value={row.code} onChange={(e) => updateRow(i, { code: e.target.value })}>
-            {ingredients.map((ing) => (
-              <option key={ing.code} value={ing.code}>
-                {ing.code}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            min="0"
-            placeholder={t('quantity')}
-            value={row.qty}
-            onChange={(e) => updateRow(i, { qty: e.target.value })}
-            style={{ width: 70 }}
-          />
-          <select value={row.unit} onChange={(e) => updateRow(i, { unit: e.target.value })}>
-            <option value="g">g</option>
-            <option value="piece">pcs</option>
-          </select>
-          <label className="pricing-checkbox-label">
-            <input
-              type="checkbox"
-              checked={row.core}
-              onChange={(e) => updateRow(i, { core: e.target.checked })}
+      <div className="flex flex-col gap-2">
+        {rows.map((row, i) => (
+          <div className="flex flex-wrap items-center gap-3" key={i}>
+            <NativeSelect
+              size="sm"
+              aria-label={t('tableCode')}
+              value={row.code}
+              onChange={(e) => updateRow(i, { code: e.target.value })}
+              className="w-32"
+              options={ingredientOptions}
             />
-            {t('coreChili')}
-          </label>
-          <button className="btn-remove" onClick={() => removeRow(i)}>
-            ✕
-          </button>
-        </div>
-      ))}
-
-      <div className="pricing-inline-field">
-        <button className="btn-secondary btn-small" onClick={addRow}>
-          {t('addLine')}
-        </button>
-        <button className="btn-add btn-small" onClick={submit}>
-          {t('addRecipe')}
-        </button>
+            <Input
+              size="sm"
+              type="number"
+              aria-label={t('quantity')}
+              placeholder={t('quantity')}
+              value={row.qty}
+              onChange={(v) => updateRow(i, { qty: v })}
+              className="w-28"
+            />
+            <NativeSelect
+              size="sm"
+              aria-label={t('unitLabel')}
+              value={row.unit}
+              onChange={(e) => updateRow(i, { unit: e.target.value })}
+              className="w-24"
+              options={[
+                { value: 'g', label: 'g' },
+                { value: 'piece', label: 'pcs' },
+              ]}
+            />
+            <Checkbox label={t('coreChili')} isSelected={row.core} onChange={(checked) => updateRow(i, { core: checked })} />
+            <ButtonUtility size="xs" color="tertiary" tooltip={t('remove')} icon={Trash01} onClick={() => removeRow(i)} />
+          </div>
+        ))}
       </div>
-      {error && <p className="form-error">{error}</p>}
+
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" color="secondary" iconLeading={Plus} onClick={addRow}>
+          {t('addLine')}
+        </Button>
+        <Button size="sm" onClick={submit}>
+          {t('addRecipe')}
+        </Button>
+      </div>
+      {error && <p className="text-sm text-error-primary">{error}</p>}
     </div>
   );
 }

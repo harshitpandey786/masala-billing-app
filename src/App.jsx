@@ -10,8 +10,12 @@ import { decrementStock } from './productLookup.js';
 import { fetchPricingConfig } from './pricingData.js';
 import { getStoredLocation, clearStoredLocation } from './locationSession.js';
 import { useLanguage } from './i18n.jsx';
+import { Building07, Check, Plus, ReceiptCheck, ShoppingCart01, Tag03, Users01 } from '@untitledui/icons';
+import { Button } from '@/components/base/buttons/button';
+import { cx } from '@/utils/cx';
 import LanguageToggle from './components/LanguageToggle.jsx';
-import { CustomerIcon, OrderIcon, BillIcon, ShareIcon } from './components/StepIcons.jsx';
+import AppShell from './components/shell/AppShell.jsx';
+import PageHeader from './components/shell/PageHeader.jsx';
 import staticPricingConfig from '../data/pricing-config.json' with { type: 'json' };
 
 const STEPS = ['customer', 'order', 'bill', 'share'];
@@ -20,12 +24,6 @@ const STEP_LABEL_KEYS = {
   order: 'stepOrder',
   bill: 'stepBill',
   share: 'stepShare',
-};
-const STEP_ICONS = {
-  customer: CustomerIcon,
-  order: OrderIcon,
-  bill: BillIcon,
-  share: ShareIcon,
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -146,136 +144,139 @@ export default function App() {
   }
 
   if (!location) {
-    return (
-      <div className="app-shell">
-        <header className="app-header">
-          <div className="app-header-inner">
-            <img src="/logo-mark.png" alt="Shindraj Masale logo" className="app-logo" />
-            <div className="app-header-text">
-              <h1>{t('appName')}</h1>
-              <p className="tagline">{t('tagline')}</p>
-            </div>
-            <div className="app-header-tools">
-              <LanguageToggle />
-            </div>
-          </div>
-        </header>
-        <div className="app-layout app-layout-single">
-          <main className="app-main">
-            <LocationLogin onLoggedIn={setLocation} />
-          </main>
-        </div>
-      </div>
-    );
+    return <LocationLogin onLoggedIn={setLocation} />;
   }
 
   const stepIndex = STEPS.indexOf(step);
 
-  return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div className="app-header-inner">
-          <img src="/logo-mark.png" alt="Shindraj Masale logo" className="app-logo" />
-          <div className="app-header-text">
-            <h1>{t('appName')}</h1>
-            <p className="tagline">{t('tagline')}</p>
-          </div>
-          <div className="app-header-tools">
-            <LanguageToggle />
-            <span className="current-location-badge">{location.name}</span>
-            <a className="admin-link" href="/customers">
-              {t('customersNavLink')}
-            </a>
-            <a className="admin-link" href="/shop-admin">
-              {t('shopAdminLink')}
-            </a>
-            <button type="button" className="admin-link admin-link-button" onClick={handleSwitchShop}>
-              {t('switchShop')}
-            </button>
-          </div>
-        </div>
-      </header>
+  const sections = [
+    {
+      label: t('navCounter'),
+      items: [
+        { label: t('generateNewBill'), icon: ShoppingCart01, current: true },
+        { label: t('customersNavLink'), icon: Users01, href: '/customers' },
+      ],
+    },
+    {
+      label: t('navShop'),
+      items: [{ label: t('shopAdminLink'), icon: Tag03, href: '/shop-admin' }],
+    },
+  ];
 
-      <div className="app-layout">
-        {step !== 'start' && (
-          <nav className="step-rail" aria-label={t('stepCustomer')}>
-            <ol>
-              {STEPS.map((s, i) => {
-                const Icon = STEP_ICONS[s];
-                return (
-                  <li key={s} className={s === step ? 'active' : stepIndex > i ? 'done' : ''}>
-                    <Icon />
-                    <span className="step-rail-label">{t(STEP_LABEL_KEYS[s])}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          </nav>
+  const footer = (
+    <>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Building07 className="size-5 shrink-0 text-fg-quaternary" />
+          <p className="truncate text-sm font-semibold text-primary">{location.name}</p>
+        </div>
+        <Button size="sm" color="link-gray" onClick={handleSwitchShop}>
+          {t('switchShop')}
+        </Button>
+      </div>
+      <LanguageToggle />
+    </>
+  );
+
+  return (
+    <AppShell sections={sections} subtitle={t('tagline')} footer={footer}>
+      {step !== 'start' && (
+        <nav aria-label={t('stepCustomer')} className="px-4 pt-6 lg:px-8">
+          <ol className="flex flex-wrap items-center gap-x-2 gap-y-2">
+            {STEPS.map((s, i) => {
+              const done = stepIndex > i;
+              const active = s === step;
+              return (
+                <li key={s} className="flex items-center gap-2">
+                  <span
+                    className={cx(
+                      'flex size-6 items-center justify-center rounded-full text-xs font-semibold',
+                      active && 'bg-brand-solid text-white',
+                      done && 'bg-brand-secondary text-brand-secondary',
+                      !active && !done && 'bg-secondary text-quaternary ring-1 ring-secondary ring-inset'
+                    )}
+                  >
+                    {done ? <Check className="size-3.5" /> : i + 1}
+                  </span>
+                  <span className={cx('text-sm font-semibold', active ? 'text-primary' : 'text-tertiary')}>
+                    {t(STEP_LABEL_KEYS[s])}
+                  </span>
+                  {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-border-secondary sm:w-10" />}
+                </li>
+              );
+            })}
+          </ol>
+        </nav>
+      )}
+
+      <motion.div
+        key={step === 'bill' ? `bill-${billIndex}` : step}
+        initial={reduceMotion ? false : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
+        className="pb-12"
+      >
+        {step === 'start' && (
+          <>
+            <PageHeader title={location.name} description={t('startScreenHint')} />
+            <div className="px-4 pt-8 lg:px-8">
+              <div className="flex max-w-xl flex-col items-start gap-4 rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
+                <span className="flex size-12 items-center justify-center rounded-lg bg-brand-secondary text-fg-brand-primary">
+                  <ReceiptCheck className="size-6" />
+                </span>
+                <div className="flex flex-col gap-1">
+                  <p className="text-lg font-semibold text-primary">{t('generateNewBill')}</p>
+                  <p className="text-sm text-tertiary">{t('startScreenDetail')}</p>
+                </div>
+                <Button size="lg" iconLeading={Plus} onClick={() => setStep('customer')}>
+                  {t('generateNewBill')}
+                </Button>
+              </div>
+            </div>
+          </>
         )}
 
-        <main className="app-main">
-          <motion.div
-            key={step === 'bill' ? `bill-${billIndex}` : step}
-            initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
-          >
-          {step === 'start' && (
-            <section className="card start-screen">
-              <h2>{location.name}</h2>
-              <p className="hint">{t('startScreenHint')}</p>
-              <div className="actions">
-                <button className="btn-primary btn-accent" onClick={() => setStep('customer')}>
-                  {t('generateNewBill')}
-                </button>
-              </div>
-            </section>
-          )}
+        {step === 'customer' && (
+          <CustomerDetails customer={customer} onChange={setCustomer} onNext={() => setStep('order')} />
+        )}
 
-          {step === 'customer' && (
-            <CustomerDetails
-              customer={customer}
-              onChange={setCustomer}
-              onNext={() => setStep('order')}
-            />
-          )}
+        {step === 'order' && (
+          <OrderBuilder
+            orderItems={orderItems}
+            onChange={setOrderItems}
+            onBack={() => setStep('customer')}
+            onNext={() => advanceBilling([], 0)}
+            pricingConfig={pricingConfig}
+            locationId={location.id}
+            customer={customer}
+          />
+        )}
 
-          {step === 'order' && (
-            <OrderBuilder
-              orderItems={orderItems}
-              onChange={setOrderItems}
-              onBack={() => setStep('customer')}
-              onNext={() => advanceBilling([], 0)}
-              pricingConfig={pricingConfig}
-              locationId={location.id}
-            />
-          )}
+        {step === 'bill' && orderItems[billIndex] && (
+          <BillGenerator
+            key={orderItems[billIndex].id}
+            orderItem={orderItems[billIndex]}
+            itemNumber={billIndex + 1}
+            itemCount={orderItems.length}
+            onConfirm={handleConfirmBill}
+            pricingConfig={pricingConfig}
+          />
+        )}
 
-          {step === 'bill' && orderItems[billIndex] && (
-            <BillGenerator
-              key={orderItems[billIndex].id}
-              orderItem={orderItems[billIndex]}
-              itemNumber={billIndex + 1}
-              itemCount={orderItems.length}
-              onConfirm={handleConfirmBill}
-              pricingConfig={pricingConfig}
-            />
-          )}
+        {step === 'bill' && !orderItems[billIndex] && (
+          <PageHeader title={t('stepBill')} description={t('finalizingBill')} />
+        )}
 
-          {step === 'bill' && !orderItems[billIndex] && <p className="hint">{t('finalizingBill')}</p>}
-
-          {step === 'share' && (
-            <ShareOutput
-              customer={customer}
-              bills={bills}
-              onStartOver={handleStartOver}
-              pricingConfig={pricingConfig}
-              location={location}
-            />
-          )}
-          </motion.div>
-        </main>
-      </div>
-    </div>
+        {step === 'share' && (
+          <ShareOutput
+            customer={customer}
+            bills={bills}
+            onStartOver={handleStartOver}
+            pricingConfig={pricingConfig}
+            location={location}
+          />
+        )}
+      </motion.div>
+    </AppShell>
   );
 }

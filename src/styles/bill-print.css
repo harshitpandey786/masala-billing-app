@@ -1,0 +1,165 @@
+/* The shareable bill. html2canvas rasterizes this block into the image/PDF
+   that goes out on WhatsApp, so it is deliberately self-contained: every rule
+   is scoped to .printable-summary, colors are plain hex (html2canvas cannot
+   parse oklch/color-mix), and sizes are explicit so neither Tailwind's reset
+   nor the app's design tokens can change how a receipt prints. Unlayered on
+   purpose so it outranks Tailwind's layers inside this one block. */
+
+.printable-summary {
+  --bill-ink: #221d18;
+  --bill-ink-soft: #716b63;
+  --bill-line: #e7e3dc;
+  --bill-line-strong: #d6d0c5;
+  --bill-chili: #b5362a;
+  --bill-chili-dark: #8a2219;
+  --bill-turmeric-tint: #fbf0dc;
+
+  background: #fff;
+  color: var(--bill-ink);
+  padding: 16px;
+  border-radius: 10px;
+  font-family: 'Inter Variable', 'Noto Sans Devanagari Variable', -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
+}
+
+.printable-summary p {
+  margin: 0;
+}
+
+.printable-summary h3 {
+  color: var(--bill-ink);
+  margin: 24px 0 8px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.printable-summary .bill-letterhead {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--bill-chili);
+  text-align: left;
+}
+
+.printable-summary .bill-letterhead-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 10px;
+  border: 1px solid var(--bill-line);
+  flex-shrink: 0;
+}
+
+.printable-summary .bill-letterhead-title {
+  margin: 0;
+  color: var(--bill-chili-dark);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.printable-summary .bill-letterhead-tagline {
+  margin: 2px 0 0;
+  color: var(--bill-ink-soft);
+  font-size: 14px;
+}
+
+.printable-summary .customer-recap {
+  margin-bottom: 16px;
+}
+
+.printable-summary .customer-recap p {
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+}
+
+.printable-summary .bill-notes-recap {
+  margin: 0 0 16px;
+  padding: 10px 13px;
+  background: var(--bill-turmeric-tint);
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.printable-summary .bill-summary-block {
+  margin-bottom: 24px;
+}
+
+.printable-summary .bill-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.printable-summary .bill-table th {
+  background: transparent;
+  color: var(--bill-ink-soft);
+  text-align: left;
+  padding: 10px;
+  font-weight: 600;
+  font-size: 13.5px;
+  border-bottom: 1px solid var(--bill-line-strong);
+}
+
+.printable-summary .bill-table td {
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--bill-line);
+  overflow-wrap: anywhere;
+}
+
+.printable-summary .subtotal-row td {
+  font-weight: 600;
+  border-top: 1px solid var(--bill-line-strong);
+}
+
+.printable-summary .making-charge-row td {
+  font-weight: 600;
+}
+
+.printable-summary .total-row td {
+  font-weight: 700;
+  color: #fff;
+  background: var(--bill-chili-dark);
+  font-size: 17px;
+  border-top: none;
+  border-bottom: none;
+}
+
+.printable-summary .total-row td:first-child {
+  border-bottom-left-radius: 10px;
+}
+
+.printable-summary .total-row td:last-child {
+  border-bottom-right-radius: 10px;
+}
+
+.printable-summary .grand-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--bill-chili-dark);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-top: 20px;
+}
+
+.printable-summary .bill-footer {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--bill-line);
+  text-align: center;
+  color: var(--bill-ink-soft);
+  font-size: 14px;
+}
+
+.printable-summary .bill-footer p {
+  margin: 3px 0;
+}

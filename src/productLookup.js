@@ -85,6 +85,42 @@ export async function searchProductsByName(term, locationId, limit = 8) {
 }
 
 /**
+ * Every active product with this shop's price and stock, for the counter's
+ * product grid. Read-only; same per-shop price fallback as the lookups above.
+ */
+export async function listProducts(locationId, limit = 120) {
+  if (!supabase) return [];
+  try {
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .eq('is_active', true)
+      .order('name_en')
+      .limit(limit);
+    if (error || !products) return [];
+    if (!locationId || products.length === 0) {
+      return products.map((p) => ({ ...p, qtyOnHand: null }));
+    }
+    const { data: stockRows } = await supabase
+      .from('stock_levels')
+      .select('product_id, qty_on_hand, price')
+      .eq('location_id', locationId);
+    const stockByProduct = new Map((stockRows || []).map((s) => [s.product_id, s]));
+    return products.map((p) => {
+      const stock = stockByProduct.get(p.id);
+      return {
+        ...p,
+        qtyOnHand: stock ? Number(stock.qty_on_hand) : 0,
+        price: stock?.price != null ? Number(stock.price) : p.price,
+      };
+    });
+  } catch (err) {
+    console.error('Product list failed', err);
+    return [];
+  }
+}
+
+/**
  * Best-effort stock decrement after a bill with product lines has logged
  * successfully. Fire-and-forget -- a failure here never undoes or blocks a
  * completed sale, it just means the owner has to notice and correct the

@@ -1,4 +1,8 @@
 import { useEffect, useState } from 'react';
+import { CheckCircle, Plus, XClose } from '@untitledui/icons';
+import { Badge } from '@/components/base/badges/badges';
+import { Button } from '@/components/base/buttons/button';
+import { Input } from '@/components/base/input/input';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
 
@@ -6,6 +10,9 @@ import { useLanguage } from '../i18n.jsx';
 // shared username/password per physical shop, done once per shop rather
 // than per staff member (confirmed with the client). Same inline-edit
 // pattern as the rest of /admin.
+//
+// A plain <table> rather than Untitled's react-aria Table: every cell holds a
+// text input, and a grid's keyboard navigation/typeahead would fight typing.
 export default function AdminLocations() {
   const { t } = useLanguage();
   const [locations, setLocations] = useState([]);
@@ -99,114 +106,119 @@ export default function AdminLocations() {
 
   if (status === 'not_configured') return null;
 
+  const cellInput = (loc, field, placeholder) => (
+    <Input
+      size="sm"
+      aria-label={placeholder}
+      placeholder={placeholder}
+      value={String(fieldFor(loc, field))}
+      onChange={(v) => setField(loc.id, field, v)}
+      className="min-w-36"
+    />
+  );
+
   return (
-    <section className="card admin-dashboard pricing-manager">
-      <h2>{t('locationsManagerTitle')}</h2>
-
-      {status === 'loading' && <p className="hint">{t('loadingResults')}</p>}
-      {status === 'error' && <p className="form-error">{t('loadError')}</p>}
-
-      {status === 'ready' && (
-        <div className="pricing-section">
-          {savedFlash && <p className="pricing-saved-flash">{savedFlash}</p>}
-
-          <div className="pricing-section-header">
-            <h3>{t('shopsTableTitle')}</h3>
-            <button className="btn-secondary btn-small" onClick={() => setShowAddForm((v) => !v)}>
-              {showAddForm ? t('cancel') : t('addShop')}
-            </button>
-          </div>
-
-          {showAddForm && (
-            <div className="pricing-add-form">
-              <input
-                placeholder={t('shopNamePlaceholder')}
-                value={newLocation.name}
-                onChange={(e) => setNewLocation({ ...newLocation, name: e.target.value })}
-              />
-              <input
-                placeholder={t('shopUsername')}
-                value={newLocation.login_username}
-                onChange={(e) => setNewLocation({ ...newLocation, login_username: e.target.value })}
-              />
-              <input
-                placeholder={t('password')}
-                value={newLocation.login_password}
-                onChange={(e) => setNewLocation({ ...newLocation, login_password: e.target.value })}
-              />
-              <input
-                placeholder={t('shopAdminPasswordPlaceholder')}
-                value={newLocation.admin_password}
-                onChange={(e) => setNewLocation({ ...newLocation, admin_password: e.target.value })}
-              />
-              <button className="btn-add btn-small" onClick={addLocation}>
-                {t('addItem')}
-              </button>
-              {addError && <p className="form-error">{addError}</p>}
-            </div>
+    <div className="flex flex-col overflow-hidden rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary px-5 py-4">
+        <div className="flex items-center gap-2">
+          <p className="text-lg font-semibold text-primary">{t('shopsTableTitle')}</p>
+          {status === 'ready' && (
+            <Badge size="sm" color="gray" type="modern">
+              {locations.length}
+            </Badge>
           )}
+          {savedFlash && (
+            <span className="flex items-center gap-1 text-sm font-medium text-success-primary">
+              <CheckCircle className="size-4" />
+              {savedFlash}
+            </span>
+          )}
+        </div>
+        <Button
+          size="sm"
+          color={showAddForm ? 'secondary' : 'primary'}
+          iconLeading={showAddForm ? XClose : Plus}
+          onClick={() => setShowAddForm((v) => !v)}
+        >
+          {showAddForm ? t('cancel') : t('addShop')}
+        </Button>
+      </div>
 
-          <div className="table-scroll">
-            <table className="bill-table ledger-table">
-              <thead>
-                <tr>
-                  <th>{t('shopNameLabel')}</th>
-                  <th>{t('shopUsername')}</th>
-                  <th>{t('password')}</th>
-                  <th>{t('shopAdminPasswordLabel')}</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {locations.map((loc) => (
-                  <tr key={loc.id} className="ledger-row">
-                    <td>
-                      <input
-                        value={fieldFor(loc, 'name')}
-                        onChange={(e) => setField(loc.id, 'name', e.target.value)}
-                        className="pricing-cell-input"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        value={fieldFor(loc, 'login_username')}
-                        onChange={(e) => setField(loc.id, 'login_username', e.target.value)}
-                        className="pricing-cell-input"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        value={fieldFor(loc, 'login_password')}
-                        onChange={(e) => setField(loc.id, 'login_password', e.target.value)}
-                        className="pricing-cell-input"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        value={fieldFor(loc, 'admin_password')}
-                        onChange={(e) => setField(loc.id, 'admin_password', e.target.value)}
-                        className="pricing-cell-input"
-                        placeholder={t('shopAdminPasswordPlaceholder')}
-                      />
-                    </td>
-                    <td>
-                      {isDirty(loc) && (
-                        <button
-                          className="btn-secondary btn-small"
-                          onClick={() => saveRow(loc)}
-                          disabled={savingId === loc.id}
-                        >
-                          {t('save')}
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {status === 'loading' && <p className="px-5 py-6 text-sm text-tertiary">{t('loadingResults')}</p>}
+      {status === 'error' && <p className="px-5 py-6 text-sm text-error-primary">{t('loadError')}</p>}
+
+      {status === 'ready' && showAddForm && (
+        <div className="flex flex-col gap-3 border-b border-secondary bg-secondary px-5 py-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <Input
+              size="sm"
+              label={t('shopNameLabel')}
+              placeholder={t('shopNamePlaceholder')}
+              value={newLocation.name}
+              onChange={(v) => setNewLocation({ ...newLocation, name: v })}
+            />
+            <Input
+              size="sm"
+              label={t('shopUsername')}
+              value={newLocation.login_username}
+              onChange={(v) => setNewLocation({ ...newLocation, login_username: v })}
+            />
+            <Input
+              size="sm"
+              label={t('password')}
+              value={newLocation.login_password}
+              onChange={(v) => setNewLocation({ ...newLocation, login_password: v })}
+            />
+            <Input
+              size="sm"
+              label={t('shopAdminPasswordLabel')}
+              placeholder={t('shopAdminPasswordPlaceholder')}
+              value={newLocation.admin_password}
+              onChange={(v) => setNewLocation({ ...newLocation, admin_password: v })}
+            />
+          </div>
+          <div className="flex items-center gap-3">
+            <Button size="sm" iconLeading={Plus} onClick={addLocation}>
+              {t('addItem')}
+            </Button>
+            {addError && <p className="text-sm text-error-primary">{addError}</p>}
           </div>
         </div>
       )}
-    </section>
+
+      {status === 'ready' && (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-secondary">
+              <tr className="border-b border-secondary">
+                {[t('shopNameLabel'), t('shopUsername'), t('password'), t('shopAdminPasswordLabel')].map((h) => (
+                  <th key={h} className="px-5 py-3 text-xs font-semibold whitespace-nowrap text-quaternary">
+                    {h}
+                  </th>
+                ))}
+                <th className="px-5 py-3" />
+              </tr>
+            </thead>
+            <tbody>
+              {locations.map((loc) => (
+                <tr key={loc.id} className="border-b border-secondary last:border-b-0">
+                  <td className="px-5 py-3">{cellInput(loc, 'name', t('shopNameLabel'))}</td>
+                  <td className="px-5 py-3">{cellInput(loc, 'login_username', t('shopUsername'))}</td>
+                  <td className="px-5 py-3">{cellInput(loc, 'login_password', t('password'))}</td>
+                  <td className="px-5 py-3">{cellInput(loc, 'admin_password', t('shopAdminPasswordPlaceholder'))}</td>
+                  <td className="px-5 py-3 text-right">
+                    {isDirty(loc) && (
+                      <Button size="sm" color="secondary" onClick={() => saveRow(loc)} isDisabled={savingId === loc.id}>
+                        {t('save')}
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
   );
 }

@@ -1,8 +1,24 @@
 import { useEffect, useState } from 'react';
+import { AnimatePresence, motion } from 'motion/react';
+import { AlertCircle, ArrowRight, Phone } from '@untitledui/icons';
+import { Avatar } from '@/components/base/avatar/avatar';
+import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
+import { Button } from '@/components/base/buttons/button';
+import { Input } from '@/components/base/input/input';
+import { Select } from '@/components/base/select/select';
 import { searchCustomers } from '../customerSearch.js';
 import { useLanguage } from '../i18n.jsx';
+import PageHeader from '../components/shell/PageHeader.jsx';
 
 const POC_OPTIONS = ['Sachin', 'Bhaskar', 'Sanket', 'Shreyash', 'Suvarna', 'Rampal', 'Sonu'];
+
+const initials = (name) =>
+  (name || '?')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
 export default function CustomerDetails({ customer, onChange, onNext }) {
   const { t } = useLanguage();
@@ -56,92 +72,124 @@ export default function CustomerDetails({ customer, onChange, onNext }) {
     if (isValid) onNext();
   }
 
+  const missing = (value) => touched && !String(value || '').trim();
+
   return (
-    <section className="card">
-      <h2>{t('customerDetailsTitle')}</h2>
-      <div className="section-divider" />
+    <>
+      <PageHeader title={t('customerDetailsTitle')} description={t('customerDetailsHint')} />
 
-      <div className="form-grid">
-        <label>
-          {t('customerName')}
-          <input
-            type="text"
-            value={customer.name}
-            onChange={(e) => update('name', e.target.value)}
-            placeholder={t('customerNamePlaceholder')}
-          />
-        </label>
+      <div className="px-4 pt-8 lg:px-8">
+        <div className="max-w-3xl rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+          <div className="grid grid-cols-1 gap-5 p-5 sm:grid-cols-2 lg:p-6">
+            <div className="relative">
+              <Input
+                label={t('phoneNumber')}
+                type="tel"
+                icon={Phone}
+                value={customer.phone}
+                onChange={(v) => update('phone', v)}
+                onFocus={() => setMatchesOpen(matches.length > 0)}
+                onBlur={() => setTimeout(() => setMatchesOpen(false), 150)}
+                placeholder={t('phonePlaceholder')}
+                isInvalid={missing(customer.phone)}
+                autoFocus
+              />
+              <AnimatePresence>
+                {matchesOpen && (
+                  <motion.ul
+                    className="absolute inset-x-0 top-full z-20 mt-1.5 max-h-72 overflow-auto rounded-lg bg-primary py-1 shadow-lg ring-1 ring-secondary"
+                    initial={{ opacity: 0, scale: 0.96 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.96 }}
+                    transition={{ duration: 0.16, ease: [0.23, 1, 0.32, 1] }}
+                    style={{ transformOrigin: 'top' }}
+                  >
+                    <li className="px-3 pt-1.5 pb-1 text-xs font-semibold text-quaternary">{t('returningCustomers')}</li>
+                    {matches.map((m) => (
+                      <li key={m.phone} className="px-1.5">
+                        <button
+                          type="button"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => selectMatch(m)}
+                          className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition duration-100 ease-linear hover:bg-primary_hover"
+                        >
+                          <Avatar size="sm" initials={initials(m.name)} />
+                          <span className="flex min-w-0 flex-col">
+                            <span className="truncate text-sm font-medium text-primary">{m.name}</span>
+                            <span className="truncate text-sm text-tertiary">
+                              {m.phone}
+                              {m.area ? ` · ${m.area}` : ''}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                  </motion.ul>
+                )}
+              </AnimatePresence>
+            </div>
 
-        <label className="customer-phone-field">
-          {t('phoneNumber')}
-          <input
-            type="tel"
-            value={customer.phone}
-            onChange={(e) => update('phone', e.target.value)}
-            onFocus={() => setMatchesOpen(matches.length > 0)}
-            onBlur={() => setTimeout(() => setMatchesOpen(false), 150)}
-            placeholder={t('phonePlaceholder')}
-          />
-          {matchesOpen && (
-            <ul className="customer-match-list">
-              {matches.map((m) => (
-                <li key={m.phone}>
-                  <button type="button" className="product-match-button" onClick={() => selectMatch(m)}>
-                    {m.name} — {m.phone}
-                    {m.area ? ` · ${m.area}` : ''}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </label>
+            <Input
+              label={t('customerName')}
+              value={customer.name}
+              onChange={(v) => update('name', v)}
+              placeholder={t('customerNamePlaceholder')}
+              isInvalid={missing(customer.name)}
+            />
 
-        <label>
-          {t('areaPlace')}
-          <input
-            type="text"
-            value={customer.area}
-            onChange={(e) => update('area', e.target.value)}
-            placeholder={t('areaPlaceholder')}
-          />
-        </label>
+            <Input
+              label={t('areaPlace')}
+              value={customer.area}
+              onChange={(v) => update('area', v)}
+              placeholder={t('areaPlaceholder')}
+              isInvalid={missing(customer.area)}
+            />
 
-        <label>
-          {t('billMadeBy')}
-          <select value={customer.pocName} onChange={(e) => update('pocName', e.target.value)}>
-            <option value="">{t('selectPoc')}</option>
-            {POC_OPTIONS.map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
-        </label>
+            <Select
+              label={t('billMadeBy')}
+              placeholder={t('selectPoc')}
+              items={POC_OPTIONS.map((name) => ({ id: name, label: name }))}
+              selectedKey={customer.pocName || null}
+              onSelectionChange={(key) => update('pocName', key ? String(key) : '')}
+              isInvalid={touched && !customer.pocName}
+            >
+              {(item) => <Select.Item id={item.id}>{item.label}</Select.Item>}
+            </Select>
 
-        <label>
-          {t('date')}
-          <input type="date" value={customer.date} onChange={(e) => update('date', e.target.value)} />
-        </label>
+            <Input label={t('date')} type="date" value={customer.date} onChange={(v) => update('date', v)} />
 
-        <label>
-          {t('billingMode')}
-          <select
-            value={customer.billingMode}
-            onChange={(e) => update('billingMode', e.target.value)}
-          >
-            <option value="online">{t('online')}</option>
-            <option value="offline">{t('offline')}</option>
-          </select>
-        </label>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-secondary">{t('billingMode')}</span>
+              <ButtonGroup
+                size="md"
+                selectedKeys={[customer.billingMode]}
+                onSelectionChange={(keys) => {
+                  const next = [...keys][0];
+                  if (next) update('billingMode', String(next));
+                }}
+                className="w-full [&>*]:flex-1 [&>*]:justify-center"
+              >
+                <ButtonGroupItem id="online">{t('online')}</ButtonGroupItem>
+                <ButtonGroupItem id="offline">{t('offline')}</ButtonGroupItem>
+              </ButtonGroup>
+            </div>
+          </div>
+
+          <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-secondary px-5 py-4 sm:flex-row sm:items-center lg:px-6">
+            {touched && !isValid ? (
+              <p className="flex items-center gap-2 text-sm text-error-primary">
+                <AlertCircle className="size-4 shrink-0" />
+                {t('fillAllFields')}
+              </p>
+            ) : (
+              <span />
+            )}
+            <Button size="lg" iconTrailing={ArrowRight} onClick={handleNext}>
+              {t('next')}
+            </Button>
+          </div>
+        </div>
       </div>
-
-      {touched && !isValid && <p className="form-error">{t('fillAllFields')}.</p>}
-
-      <div className="actions">
-        <button className="btn-primary" onClick={handleNext}>
-          {t('next')}
-        </button>
-      </div>
-    </section>
+    </>
   );
 }

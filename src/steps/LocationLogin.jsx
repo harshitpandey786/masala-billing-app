@@ -1,7 +1,11 @@
 import { useState } from 'react';
+import { AlertCircle } from '@untitledui/icons';
+import { Button } from '@/components/base/buttons/button';
+import { Input } from '@/components/base/input/input';
 import { supabase } from '../supabaseClient.js';
 import { storeLocation } from '../locationSession.js';
 import { useLanguage } from '../i18n.jsx';
+import LanguageToggle from '../components/LanguageToggle.jsx';
 
 // Gates the billing flow behind a per-shop login, modeled on AdminLogin.jsx.
 // Same security tradeoff as that password: this checks the locations table
@@ -40,36 +44,54 @@ export default function LocationLogin({ onLoggedIn }) {
   }
 
   return (
-    <section className="card admin-login-card">
-      <h2>{t('locationLoginTitle')}</h2>
-      <div className="section-divider" />
+    <div className="flex min-h-dvh flex-col bg-secondary">
+      <div className="flex justify-end p-4">
+        <LanguageToggle />
+      </div>
+      <div className="flex flex-1 items-start justify-center px-4 pt-8 pb-16 sm:pt-16">
+        <div className="flex w-full max-w-sm flex-col gap-8">
+          <div className="flex flex-col items-center gap-5 text-center">
+            <img src="/logo-mark.png" alt="Shindraj Masale logo" className="size-14 object-contain" />
+            <div className="flex flex-col gap-2">
+              <h1 className="text-display-xs font-semibold text-primary">{t('locationLoginTitle')}</h1>
+              <p className="text-md text-tertiary">{t('locationLoginHint')}</p>
+            </div>
+          </div>
 
-      {!supabase && <p className="form-error">{t('notConfigured')}</p>}
+          <form
+            onSubmit={handleSubmit}
+            className="flex flex-col gap-5 rounded-xl bg-primary p-6 shadow-sm ring-1 ring-secondary ring-inset"
+          >
+            {!supabase && (
+              <p className="flex items-center gap-2 text-sm text-error-primary">
+                <AlertCircle className="size-4 shrink-0" />
+                {t('notConfigured')}
+              </p>
+            )}
+            <Input
+              label={t('shopUsername')}
+              value={username}
+              onChange={setUsername}
+              autoFocus
+              autoComplete="username"
+            />
+            <Input
+              label={t('password')}
+              type="password"
+              value={password}
+              onChange={setPassword}
+              autoComplete="current-password"
+              isInvalid={status === 'error'}
+              hint={status === 'error' ? t('wrongPassword') : undefined}
+            />
+            <Button type="submit" size="lg" isLoading={status === 'checking'} className="w-full">
+              {t('unlock')}
+            </Button>
+          </form>
 
-      <form onSubmit={handleSubmit} className="form-grid admin-login-form">
-        <p className="hint">{t('locationLoginHint')}</p>
-        <label>
-          {t('shopUsername')}
-          <input
-            type="text"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            autoFocus
-          />
-        </label>
-        <label>
-          {t('password')}
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
-        </label>
-
-        {status === 'error' && <p className="form-error">{t('wrongPassword')}</p>}
-
-        <div className="actions">
-          <button type="submit" className="btn-primary" disabled={status === 'checking'}>
-            {status === 'checking' ? t('savingBill') : t('unlock')}
-          </button>
+          <p className="text-center text-sm text-tertiary">{t('tagline')}</p>
         </div>
-      </form>
-    </section>
+      </div>
+    </div>
   );
 }

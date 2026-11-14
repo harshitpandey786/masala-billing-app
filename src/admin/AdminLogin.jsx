@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { Lock01 } from '@untitledui/icons';
+import { Button } from '@/components/base/buttons/button';
+import { Input } from '@/components/base/input/input';
 import { useLanguage } from '../i18n.jsx';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
@@ -19,37 +22,36 @@ export default function AdminLogin({ onUnlock }) {
   }
 
   return (
-    <section className="card admin-login-card">
-      <h2>{t('adminTitle')}</h2>
-      <div className="section-divider" />
+    <div className="flex justify-center px-4 py-16 lg:px-8">
+      <div className="flex w-full max-w-sm flex-col gap-6 rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-semibold text-primary">{t('adminTitle')}</h1>
+          <p className="text-sm text-tertiary">{t('enterPassword')}</p>
+        </div>
 
-      {!ADMIN_PASSWORD && (
-        <p className="form-error">
-          VITE_ADMIN_PASSWORD is not set — see docs/supabase-setup.md to configure the owner
-          password before this page will unlock.
-        </p>
-      )}
+        {!ADMIN_PASSWORD && (
+          <p className="text-sm text-error-primary">
+            VITE_ADMIN_PASSWORD is not set — see docs/supabase-setup.md to configure the owner
+            password before this page will unlock.
+          </p>
+        )}
 
-      <form onSubmit={handleSubmit} className="form-grid admin-login-form">
-        <p className="hint">{t('enterPassword')}</p>
-        <label>
-          {t('password')}
-          <input
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Input
             type="password"
+            label={t('password')}
+            icon={Lock01}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={setValue}
+            isInvalid={error}
+            hint={error ? t('wrongPassword') : undefined}
             autoFocus
           />
-        </label>
-
-        {error && <p className="form-error">{t('wrongPassword')}</p>}
-
-        <div className="actions">
-          <button type="submit" className="btn-primary">
+          <Button type="submit" size="lg" className="w-full">
             {t('unlock')}
-          </button>
-        </div>
-      </form>
-    </section>
+          </Button>
+        </form>
+      </div>
+    </div>
   );
 }

@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { ShoppingCart01, Tag03, Users01 } from '@untitledui/icons';
+import AppShell from './components/shell/AppShell.jsx';
+import PageHeader from './components/shell/PageHeader.jsx';
 import CustomerList from './admin/CustomerList.jsx';
 import CustomerDetail from './admin/CustomerDetail.jsx';
 import LanguageToggle from './components/LanguageToggle.jsx';
@@ -13,38 +16,30 @@ export default function CustomerLookupApp() {
   const { t } = useLanguage();
   const [selectedPhone, setSelectedPhone] = useState(null);
 
-  return (
-    <div className="app-shell">
-      <header className="app-header">
-        <div className="app-header-inner">
-          <img src="/logo-mark.png" alt="Shindraj Masale logo" className="app-logo" />
-          <div className="app-header-text">
-            <h1>{t('customerLookupTitle')}</h1>
-            <p className="tagline">{t('adminSubtitle')}</p>
-          </div>
-          <div className="app-header-tools">
-            <LanguageToggle />
-            <a className="admin-link" href="/">
-              {t('backToBilling')}
-            </a>
-            <a className="admin-link" href="/shop-admin">
-              {t('shopAdminLink')}
-            </a>
-          </div>
-        </div>
-      </header>
+  const sections = [
+    {
+      label: t('appName'),
+      items: [
+        { label: t('backToBilling'), href: '/', icon: ShoppingCart01 },
+        { label: t('customersNavLink'), href: '/customers', icon: Users01, current: true },
+        { label: t('shopAdminLink'), href: '/shop-admin', icon: Tag03 },
+      ],
+    },
+  ];
 
-      <div className="app-layout app-layout-single">
-        <main className="app-main">
-          {selectedPhone ? (
+  return (
+    <AppShell sections={sections} subtitle={t('customerLookupTitle')} footer={<LanguageToggle />}>
+      {!selectedPhone && <PageHeader title={t('customerLookupTitle')} description={t('adminSubtitle')} />}
+
+      <div className="px-4 pt-6 pb-12 lg:px-8">
+        {selectedPhone ? (
+          <div className="pt-2">
             <CustomerDetail phone={selectedPhone} demoMode={false} onBack={() => setSelectedPhone(null)} />
-          ) : (
-            <section className="card admin-dashboard">
-              <CustomerList demoMode={false} showStats={false} onSelectCustomer={setSelectedPhone} />
-            </section>
-          )}
-        </main>
+          </div>
+        ) : (
+          <CustomerList demoMode={false} showStats={false} onSelectCustomer={setSelectedPhone} />
+        )}
       </div>
-    </div>
+    </AppShell>
   );
 }

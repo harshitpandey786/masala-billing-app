@@ -1,7 +1,16 @@
 import { Fragment, useEffect, useState } from 'react';
 import JsBarcode from 'jsbarcode';
+import { CheckCircle, Plus, Printer, X } from '@untitledui/icons';
+import { BadgeWithIcon } from '@/components/base/badges/badges';
+import { Button } from '@/components/base/buttons/button';
+import { Checkbox } from '@/components/base/checkbox/checkbox';
+import { Input } from '@/components/base/input/input';
+import { NativeSelect } from '@/components/base/select/select-native';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
+
+const th = 'border-b border-secondary bg-secondary px-4 py-3 text-left text-xs font-semibold whitespace-nowrap text-tertiary';
+const td = 'border-b border-secondary px-4 py-3 align-middle text-sm text-tertiary';
 
 function generateBarcode() {
   return `MB-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
@@ -51,6 +60,15 @@ function printBarcodeLabels(product, count) {
   win.document.close();
 }
 
+function SubHeader({ title, actions }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <h3 className="text-md font-semibold text-primary">{title}</h3>
+      {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
+    </div>
+  );
+}
+
 // Owner-editable product catalog (ready-made + loose items), each with a
 // unique barcode scanned at the till (see productLookup.js /
 // OrderBuilder.jsx), plus per-shop stock levels. Same load/edit/save pattern
@@ -94,27 +112,34 @@ export default function AdminProducts() {
   if (status === 'not_configured') return null;
 
   return (
-    <section className="card admin-dashboard pricing-manager">
-      <h2>{t('productsManagerTitle')}</h2>
+    <section className="rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex items-center justify-between gap-4 border-b border-secondary px-4 py-5 md:px-6">
+        <h2 className="text-lg font-semibold text-primary">{t('productsManagerTitle')}</h2>
+        {savedFlash && (
+          <BadgeWithIcon type="pill-color" color="success" size="md" iconLeading={CheckCircle}>
+            {savedFlash}
+          </BadgeWithIcon>
+        )}
+      </div>
 
-      {status === 'loading' && <p className="hint">{t('loadingResults')}</p>}
-      {status === 'error' && <p className="form-error">{t('loadError')}</p>}
+      <div className="flex flex-col gap-8 px-4 py-5 md:px-6 md:py-6">
+        {status === 'loading' && <p className="text-sm text-tertiary">{t('loadingResults')}</p>}
+        {status === 'error' && <p className="text-sm text-error-primary">{t('loadError')}</p>}
 
-      {status === 'ready' && (
-        <>
-          {savedFlash && <p className="pricing-saved-flash">{savedFlash}</p>}
+        {status === 'ready' && (
+          <>
+            <ProductTable products={products} onChanged={loadAll} onSaved={() => flash(t('saved'))} />
 
-          <ProductTable products={products} onChanged={loadAll} onSaved={() => flash(t('saved'))} />
-
-          <StockGrid
-            products={products}
-            locations={locations}
-            stockLevels={stockLevels}
-            onChanged={loadAll}
-            onSaved={() => flash(t('saved'))}
-          />
-        </>
-      )}
+            <StockGrid
+              products={products}
+              locations={locations}
+              stockLevels={stockLevels}
+              onChanged={loadAll}
+              onSaved={() => flash(t('saved'))}
+            />
+          </>
+        )}
+      </div>
     </section>
   );
 }
@@ -135,6 +160,16 @@ function ProductTable({ products, onChanged, onSaved }) {
   });
   const [addError, setAddError] = useState('');
   const [printQty, setPrintQty] = useState({});
+
+  const categoryOptions = [
+    { value: 'ready_made', label: t('readyMadeLabel') },
+    { value: 'loose', label: t('looseLabel') },
+  ];
+  const unitOptions = [
+    { value: 'piece', label: t('unitPiece') },
+    { value: 'kg', label: t('unitKg') },
+    { value: 'g', label: t('unitGram') },
+  ];
 
   function fieldFor(p, field) {
     return edits[p.id]?.[field] !== undefined ? edits[p.id][field] : p[field] ?? '';
@@ -218,154 +253,185 @@ function ProductTable({ products, onChanged, onSaved }) {
   }
 
   return (
-    <div className="pricing-section">
-      <div className="pricing-section-header">
-        <h3>{t('productsTableTitle')}</h3>
-        <button className="btn-secondary btn-small" onClick={() => setShowAddForm((v) => !v)}>
-          {showAddForm ? t('cancel') : t('addProduct')}
-        </button>
-      </div>
+    <div className="flex flex-col gap-3">
+      <SubHeader
+        title={t('productsTableTitle')}
+        actions={
+          <Button
+            size="sm"
+            color="secondary"
+            iconLeading={showAddForm ? X : Plus}
+            onClick={() => setShowAddForm((v) => !v)}
+          >
+            {showAddForm ? t('cancel') : t('addProduct')}
+          </Button>
+        }
+      />
 
       {showAddForm && (
-        <div className="pricing-add-form">
-          <input
-            placeholder={t('tableNameEn')}
-            value={newProduct.name_en}
-            onChange={(e) => setNewProduct({ ...newProduct, name_en: e.target.value })}
-          />
-          <input
-            placeholder={t('tableNameMr')}
-            value={newProduct.name_mr}
-            onChange={(e) => setNewProduct({ ...newProduct, name_mr: e.target.value })}
-          />
-          <select
-            value={newProduct.category}
-            onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-          >
-            <option value="ready_made">{t('readyMadeLabel')}</option>
-            <option value="loose">{t('looseLabel')}</option>
-          </select>
-          <select value={newProduct.unit} onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}>
-            <option value="piece">{t('unitPiece')}</option>
-            <option value="kg">{t('unitKg')}</option>
-            <option value="g">{t('unitGram')}</option>
-          </select>
-          <input
-            type="number"
-            min="0"
-            placeholder="₹"
-            value={newProduct.price}
-            onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-            style={{ width: 80 }}
-          />
-          <input
-            placeholder={t('barcodeOptionalPlaceholder')}
-            value={newProduct.barcode}
-            onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
-          />
-          <label className="label-qty-field">
-            {t('batchQtyLabel')}
-            <input
+        <div className="flex flex-col gap-3 rounded-lg bg-secondary p-4 ring-1 ring-secondary ring-inset">
+          <div className="flex flex-wrap items-end gap-3">
+            <Input
+              size="sm"
+              label={t('tableNameEn')}
+              value={newProduct.name_en}
+              onChange={(v) => setNewProduct({ ...newProduct, name_en: v })}
+              className="w-48"
+            />
+            <Input
+              size="sm"
+              label={t('tableNameMr')}
+              value={newProduct.name_mr}
+              onChange={(v) => setNewProduct({ ...newProduct, name_mr: v })}
+              className="w-48"
+            />
+            <NativeSelect
+              size="sm"
+              label={t('categoryLabel')}
+              value={newProduct.category}
+              onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
+              className="w-40"
+              options={categoryOptions}
+            />
+            <NativeSelect
+              size="sm"
+              label={t('unitLabel')}
+              value={newProduct.unit}
+              onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
+              className="w-32"
+              options={unitOptions}
+            />
+            <Input
+              size="sm"
               type="number"
-              min="0"
+              label={t('priceLabel')}
+              placeholder="₹"
+              value={newProduct.price}
+              onChange={(v) => setNewProduct({ ...newProduct, price: v })}
+              className="w-28"
+            />
+            <Input
+              size="sm"
+              label={t('barcodeLabel')}
+              placeholder={t('barcodeOptionalPlaceholder')}
+              value={newProduct.barcode}
+              onChange={(v) => setNewProduct({ ...newProduct, barcode: v })}
+              className="w-52"
+            />
+            <Input
+              size="sm"
+              type="number"
+              label={t('batchQtyLabel')}
               placeholder={t('batchQtyPlaceholder')}
               value={newProduct.batchQty}
-              onChange={(e) => setNewProduct({ ...newProduct, batchQty: e.target.value })}
+              onChange={(v) => setNewProduct({ ...newProduct, batchQty: v })}
+              className="w-44"
             />
-          </label>
-          <button className="btn-add btn-small" onClick={addProduct}>
-            {t('addItem')}
-          </button>
-          {addError && <p className="form-error">{addError}</p>}
+            <Button size="sm" iconLeading={Plus} onClick={addProduct}>
+              {t('addItem')}
+            </Button>
+          </div>
+          {addError && <p className="text-sm text-error-primary">{addError}</p>}
         </div>
       )}
 
-      <div className="table-scroll">
-        <table className="bill-table ledger-table">
+      <div className="overflow-x-auto rounded-lg ring-1 ring-secondary ring-inset">
+        <table className="w-full">
           <thead>
             <tr>
-              <th>{t('tableNameEn')}</th>
-              <th>{t('tableNameMr')}</th>
-              <th>{t('categoryLabel')}</th>
-              <th>{t('unitLabel')}</th>
-              <th>{t('priceLabel')}</th>
-              <th>{t('barcodeLabel')}</th>
-              <th>{t('activeLabel')}</th>
-              <th></th>
+              <th className={th}>{t('tableNameEn')}</th>
+              <th className={th}>{t('tableNameMr')}</th>
+              <th className={th}>{t('categoryLabel')}</th>
+              <th className={th}>{t('unitLabel')}</th>
+              <th className={th}>{t('priceLabel')}</th>
+              <th className={th}>{t('barcodeLabel')}</th>
+              <th className={th}>{t('activeLabel')}</th>
+              <th className={th}></th>
             </tr>
           </thead>
           <tbody>
             {products.map((p) => (
-              <tr key={p.id} className="ledger-row">
-                <td>
-                  <input
-                    value={fieldFor(p, 'name_en')}
-                    onChange={(e) => setField(p.id, 'name_en', e.target.value)}
-                    className="pricing-cell-input"
+              <tr key={p.id} className="hover:bg-secondary">
+                <td className={td}>
+                  <Input
+                    size="sm"
+                    aria-label={t('tableNameEn')}
+                    value={String(fieldFor(p, 'name_en'))}
+                    onChange={(v) => setField(p.id, 'name_en', v)}
+                    className="min-w-40"
                   />
                 </td>
-                <td>
-                  <input
-                    value={fieldFor(p, 'name_mr')}
-                    onChange={(e) => setField(p.id, 'name_mr', e.target.value)}
-                    className="pricing-cell-input"
+                <td className={td}>
+                  <Input
+                    size="sm"
+                    aria-label={t('tableNameMr')}
+                    value={String(fieldFor(p, 'name_mr'))}
+                    onChange={(v) => setField(p.id, 'name_mr', v)}
+                    className="min-w-40"
                   />
                 </td>
-                <td>
-                  <select value={fieldFor(p, 'category')} onChange={(e) => setField(p.id, 'category', e.target.value)}>
-                    <option value="ready_made">{t('readyMadeLabel')}</option>
-                    <option value="loose">{t('looseLabel')}</option>
-                  </select>
+                <td className={td}>
+                  <NativeSelect
+                    size="sm"
+                    aria-label={t('categoryLabel')}
+                    value={fieldFor(p, 'category')}
+                    onChange={(e) => setField(p.id, 'category', e.target.value)}
+                    className="w-36"
+                    options={categoryOptions}
+                  />
                 </td>
-                <td>
-                  <select value={fieldFor(p, 'unit')} onChange={(e) => setField(p.id, 'unit', e.target.value)}>
-                    <option value="piece">{t('unitPiece')}</option>
-                    <option value="kg">{t('unitKg')}</option>
-                    <option value="g">{t('unitGram')}</option>
-                  </select>
+                <td className={td}>
+                  <NativeSelect
+                    size="sm"
+                    aria-label={t('unitLabel')}
+                    value={fieldFor(p, 'unit')}
+                    onChange={(e) => setField(p.id, 'unit', e.target.value)}
+                    className="w-28"
+                    options={unitOptions}
+                  />
                 </td>
-                <td>
-                  <input
+                <td className={td}>
+                  <Input
+                    size="sm"
                     type="number"
-                    min="0"
-                    value={fieldFor(p, 'price')}
-                    onChange={(e) => setField(p.id, 'price', e.target.value)}
-                    className="pricing-cell-input pricing-cell-input-narrow"
+                    aria-label={t('priceLabel')}
+                    value={String(fieldFor(p, 'price'))}
+                    onChange={(v) => setField(p.id, 'price', v)}
+                    className="w-24"
                   />
                 </td>
-                <td className="hint">{p.barcode}</td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={!!fieldFor(p, 'is_active')}
-                    onChange={(e) => setField(p.id, 'is_active', e.target.checked)}
+                <td className={`${td} font-mono text-xs whitespace-nowrap`}>{p.barcode}</td>
+                <td className={td}>
+                  <Checkbox
+                    aria-label={t('activeLabel')}
+                    isSelected={!!fieldFor(p, 'is_active')}
+                    onChange={(checked) => setField(p.id, 'is_active', checked)}
                   />
                 </td>
-                <td>
-                  <div className="pricing-inline-field">
+                <td className={td}>
+                  <div className="flex items-center justify-end gap-2">
                     {isDirty(p) && (
-                      <button
-                        className="btn-secondary btn-small"
-                        onClick={() => saveRow(p)}
-                        disabled={savingId === p.id}
-                      >
+                      <Button size="sm" color="secondary" onClick={() => saveRow(p)} isLoading={savingId === p.id}>
                         {t('save')}
-                      </button>
+                      </Button>
                     )}
-                    <label className="label-qty-field">
-                      <input
-                        type="number"
-                        min="1"
-                        value={printQty[p.id] ?? 1}
-                        onChange={(e) => setPrintQty((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                      />
-                    </label>
-                    <button
-                      className="btn-secondary btn-small"
+                    <Input
+                      size="sm"
+                      type="number"
+                      aria-label={t('batchQtyLabel')}
+                      value={String(printQty[p.id] ?? 1)}
+                      onChange={(v) => setPrintQty((prev) => ({ ...prev, [p.id]: v }))}
+                      className="w-20"
+                    />
+                    <Button
+                      size="sm"
+                      color="secondary"
+                      iconLeading={Printer}
                       onClick={() => printBarcodeLabels(p, Math.max(1, Number(printQty[p.id] ?? 1)))}
+                      className="whitespace-nowrap"
                     >
                       {t('printLabel')}
-                    </button>
+                    </Button>
                   </div>
                 </td>
               </tr>
@@ -429,78 +495,70 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
   }
 
   if (locations.length === 0) {
-    return <p className="hint">{t('noLocationsYetHint')}</p>;
+    return <p className="text-sm text-tertiary">{t('noLocationsYetHint')}</p>;
+  }
+
+  function Cell({ product, locationId, field, fallback, label }) {
+    const key = cellKey(product.id, locationId, field);
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          size="sm"
+          type="number"
+          aria-label={label}
+          value={String(fieldValue(product, locationId, field, fallback))}
+          onChange={(v) => setEdits((prev) => ({ ...prev, [key]: v }))}
+          className="w-24"
+        />
+        {isDirty(product, locationId, field, fallback) && (
+          <Button
+            size="sm"
+            color="secondary"
+            onClick={() => saveCell(product, locationId, field, fallback)}
+            isLoading={savingKey === key}
+          >
+            {t('save')}
+          </Button>
+        )}
+      </div>
+    );
   }
 
   return (
-    <div className="pricing-section">
-      <h3>{t('stockGridTitle')}</h3>
-      <div className="table-scroll">
-        <table className="bill-table ledger-table">
+    <div className="flex flex-col gap-3">
+      <SubHeader title={t('stockGridTitle')} />
+      <div className="overflow-x-auto rounded-lg ring-1 ring-secondary ring-inset">
+        <table className="w-full">
           <thead>
             <tr>
-              <th>{t('tableNameEn')}</th>
+              <th className={th}>{t('tableNameEn')}</th>
               {locations.map((loc) => (
-                <th key={loc.id} colSpan={2}>
+                <th key={loc.id} colSpan={2} className={`${th} border-l text-secondary`}>
                   {loc.name}
                 </th>
               ))}
             </tr>
             <tr>
-              <th></th>
+              <th className={th}></th>
               {locations.map((loc) => (
                 <Fragment key={loc.id}>
-                  <th>{t('priceLabel')}</th>
-                  <th>{t('quantity')}</th>
+                  <th className={`${th} border-l`}>{t('priceLabel')}</th>
+                  <th className={th}>{t('quantity')}</th>
                 </Fragment>
               ))}
             </tr>
           </thead>
           <tbody>
             {products.map((p) => (
-              <tr key={p.id} className="ledger-row">
-                <td>{p.name_en}</td>
+              <tr key={p.id} className="hover:bg-secondary">
+                <td className={`${td} font-medium whitespace-nowrap text-primary`}>{p.name_en}</td>
                 {locations.map((loc) => (
                   <Fragment key={loc.id}>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        value={fieldValue(p, loc.id, 'price', p.price)}
-                        onChange={(e) =>
-                          setEdits((prev) => ({ ...prev, [cellKey(p.id, loc.id, 'price')]: e.target.value }))
-                        }
-                        className="pricing-cell-input pricing-cell-input-narrow"
-                      />
-                      {isDirty(p, loc.id, 'price', p.price) && (
-                        <button
-                          className="btn-secondary btn-small"
-                          onClick={() => saveCell(p, loc.id, 'price', p.price)}
-                          disabled={savingKey === cellKey(p.id, loc.id, 'price')}
-                        >
-                          {t('save')}
-                        </button>
-                      )}
+                    <td className={`${td} border-l`}>
+                      {Cell({ product: p, locationId: loc.id, field: 'price', fallback: p.price, label: t('priceLabel') })}
                     </td>
-                    <td>
-                      <input
-                        type="number"
-                        min="0"
-                        value={fieldValue(p, loc.id, 'qty_on_hand', 0)}
-                        onChange={(e) =>
-                          setEdits((prev) => ({ ...prev, [cellKey(p.id, loc.id, 'qty_on_hand')]: e.target.value }))
-                        }
-                        className="pricing-cell-input pricing-cell-input-narrow"
-                      />
-                      {isDirty(p, loc.id, 'qty_on_hand', 0) && (
-                        <button
-                          className="btn-secondary btn-small"
-                          onClick={() => saveCell(p, loc.id, 'qty_on_hand', 0)}
-                          disabled={savingKey === cellKey(p.id, loc.id, 'qty_on_hand')}
-                        >
-                          {t('save')}
-                        </button>
-                      )}
+                    <td className={td}>
+                      {Cell({ product: p, locationId: loc.id, field: 'qty_on_hand', fallback: 0, label: t('quantity') })}
                     </td>
                   </Fragment>
                 ))}

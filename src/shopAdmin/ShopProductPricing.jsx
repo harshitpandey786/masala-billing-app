@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
+import { CheckCircle } from '@untitledui/icons';
+import { BadgeWithIcon } from '@/components/base/badges/badges';
+import { Button } from '@/components/base/buttons/button';
+import { Input } from '@/components/base/input/input';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
+
+const th = 'border-b border-secondary bg-secondary px-4 py-3 text-left text-xs font-semibold whitespace-nowrap text-tertiary md:px-6';
+const td = 'border-b border-secondary px-4 py-3 align-middle text-sm text-tertiary md:px-6';
 
 // This shop's own price + stock for every active ready-made/loose product.
 // The product catalog itself (name, barcode, unit) is shared across shops
@@ -81,75 +88,65 @@ export default function ShopProductPricing({ locationId }) {
 
   if (status === 'not_configured') return null;
 
+  function cell(product, field, fallback, label) {
+    const key = `${product.id}:${field}`;
+    return (
+      <div className="flex items-center gap-2">
+        <Input
+          size="sm"
+          type="number"
+          aria-label={label}
+          value={String(fieldFor(product, field, fallback))}
+          onChange={(v) => setField(product.id, field, v)}
+          className="w-24"
+        />
+        {isDirty(product, field, fallback) && (
+          <Button size="sm" color="secondary" onClick={() => saveField(product, field, fallback)} isLoading={savingKey === key}>
+            {t('save')}
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <section className="card admin-dashboard pricing-manager">
-      <h2>{t('shopProductPricingTitle')}</h2>
+    <section className="overflow-hidden rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex items-center justify-between gap-4 border-b border-secondary px-4 py-5 md:px-6">
+        <h2 className="text-lg font-semibold text-primary">{t('shopProductPricingTitle')}</h2>
+        {savedFlash && (
+          <BadgeWithIcon type="pill-color" color="success" size="md" iconLeading={CheckCircle}>
+            {savedFlash}
+          </BadgeWithIcon>
+        )}
+      </div>
 
-      {status === 'loading' && <p className="hint">{t('loadingResults')}</p>}
-      {status === 'error' && <p className="form-error">{t('loadError')}</p>}
+      {status === 'loading' && <p className="px-4 py-6 text-sm text-tertiary md:px-6">{t('loadingResults')}</p>}
+      {status === 'error' && <p className="px-4 py-6 text-sm text-error-primary md:px-6">{t('loadError')}</p>}
 
-      {status === 'ready' && (
-        <div className="pricing-section">
-          {savedFlash && <p className="pricing-saved-flash">{savedFlash}</p>}
+      {status === 'ready' && products.length === 0 && (
+        <p className="px-4 py-6 text-sm text-tertiary md:px-6">{t('noProductsYetHint')}</p>
+      )}
 
-          {products.length === 0 && <p className="hint">{t('noProductsYetHint')}</p>}
-
-          {products.length > 0 && (
-            <div className="table-scroll">
-              <table className="bill-table ledger-table">
-                <thead>
-                  <tr>
-                    <th>{t('tableNameEn')}</th>
-                    <th>{t('priceLabel')}</th>
-                    <th>{t('stockHereLabel')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.map((p) => (
-                    <tr key={p.id} className="ledger-row">
-                      <td>{p.name_en}</td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          value={fieldFor(p, 'price', p.price)}
-                          onChange={(e) => setField(p.id, 'price', e.target.value)}
-                          className="pricing-cell-input pricing-cell-input-narrow"
-                        />
-                        {isDirty(p, 'price', p.price) && (
-                          <button
-                            className="btn-secondary btn-small"
-                            onClick={() => saveField(p, 'price', p.price)}
-                            disabled={savingKey === `${p.id}:price`}
-                          >
-                            {t('save')}
-                          </button>
-                        )}
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          min="0"
-                          value={fieldFor(p, 'qty_on_hand', 0)}
-                          onChange={(e) => setField(p.id, 'qty_on_hand', e.target.value)}
-                          className="pricing-cell-input pricing-cell-input-narrow"
-                        />
-                        {isDirty(p, 'qty_on_hand', 0) && (
-                          <button
-                            className="btn-secondary btn-small"
-                            onClick={() => saveField(p, 'qty_on_hand', 0)}
-                            disabled={savingKey === `${p.id}:qty_on_hand`}
-                          >
-                            {t('save')}
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+      {status === 'ready' && products.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className={th}>{t('tableNameEn')}</th>
+                <th className={th}>{t('priceLabel')}</th>
+                <th className={th}>{t('stockHereLabel')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {products.map((p) => (
+                <tr key={p.id} className="hover:bg-secondary">
+                  <td className={`${td} font-medium text-primary`}>{p.name_en}</td>
+                  <td className={td}>{cell(p, 'price', p.price, t('priceLabel'))}</td>
+                  <td className={td}>{cell(p, 'qty_on_hand', 0, t('stockHereLabel'))}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
     </section>

@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { Button } from '@/components/base/buttons/button';
+import { Input } from '@/components/base/input/input';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
 
@@ -45,31 +47,29 @@ export default function ShopAdminLogin({ location, onUnlock }) {
   }
 
   return (
-    <section className="card admin-login-card">
-      <h2>{t('shopAdminTitle')}</h2>
-      <p className="hint">{location.name}</p>
-      <div className="section-divider" />
+    <section className="w-full max-w-md rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-lg font-semibold text-primary">{t('shopAdminTitle')}</h2>
+        <p className="text-sm text-tertiary">{location.name}</p>
+      </div>
 
-      <form onSubmit={handleSubmit} className="form-grid admin-login-form">
-        <p className="hint">{t('shopAdminLoginHint')}</p>
-        <label>
-          {t('password')}
-          <input
-            type="password"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            autoFocus
-          />
-        </label>
+      <form onSubmit={handleSubmit} className="mt-5 flex flex-col gap-4">
+        <p className="text-sm text-tertiary">{t('shopAdminLoginHint')}</p>
+        <Input
+          label={t('password')}
+          type="password"
+          value={value}
+          onChange={setValue}
+          autoFocus
+          isInvalid={status === 'error' || status === 'not_set'}
+          hint={
+            status === 'error' ? t('wrongPassword') : status === 'not_set' ? t('shopAdminPasswordNotSet') : undefined
+          }
+        />
 
-        {status === 'error' && <p className="form-error">{t('wrongPassword')}</p>}
-        {status === 'not_set' && <p className="form-error">{t('shopAdminPasswordNotSet')}</p>}
-
-        <div className="actions">
-          <button type="submit" className="btn-primary" disabled={status === 'checking'}>
-            {status === 'checking' ? t('savingBill') : t('unlock')}
-          </button>
-        </div>
+        <Button type="submit" size="md" isLoading={status === 'checking'} className="w-full">
+          {status === 'checking' ? t('savingBill') : t('unlock')}
+        </Button>
       </form>
     </section>
   );

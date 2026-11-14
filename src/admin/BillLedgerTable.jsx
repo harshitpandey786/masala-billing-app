@@ -1,5 +1,10 @@
 import { Fragment, useState } from 'react';
+import { ChevronDown, ChevronRight } from '@untitledui/icons';
+import { Button } from '@/components/base/buttons/button';
 import { useLanguage, masalaTypeLabel, channelLabel } from '../i18n.jsx';
+
+const th = 'border-b border-secondary bg-secondary px-4 py-3 text-left text-xs font-semibold whitespace-nowrap text-tertiary md:px-6';
+const td = 'border-b border-secondary px-4 py-4 align-middle text-sm text-tertiary md:px-6';
 
 // One customer's bills, each expandable to its ingredient line items. Used
 // inside the customer detail view -- no customer/phone column needed there,
@@ -15,15 +20,15 @@ export default function BillLedgerTable({ rows }) {
   });
 
   return (
-    <div className="table-scroll">
-      <table className="bill-table ledger-table">
+    <div className="overflow-x-auto">
+      <table className="w-full">
         <thead>
           <tr>
-            <th>{t('tableDate')}</th>
-            <th>{t('tableType')}</th>
-            <th>{t('tableQty')}</th>
-            <th>{t('tableTotal')}</th>
-            <th></th>
+            <th className={th}>{t('tableDate')}</th>
+            <th className={th}>{t('tableType')}</th>
+            <th className={th}>{t('tableQty')}</th>
+            <th className={th}>{t('tableTotal')}</th>
+            <th className={th}></th>
           </tr>
         </thead>
         <tbody>
@@ -31,56 +36,79 @@ export default function BillLedgerTable({ rows }) {
             const isOpen = expandedId === row.id;
             return (
               <Fragment key={row.id}>
-                <tr className="ledger-row">
-                  <td>{dateFormatter.format(new Date(row.order_date))}</td>
-                  <td>
-                    {masalaTypeLabel(t, (row.masala_type || '').toLowerCase())}
+                <tr className="hover:bg-secondary">
+                  <td className={`${td} whitespace-nowrap`}>{dateFormatter.format(new Date(row.order_date))}</td>
+                  <td className={td}>
+                    <span className="font-medium text-primary">
+                      {masalaTypeLabel(t, (row.masala_type || '').toLowerCase())}
+                    </span>
                     {' · '}
                     {channelLabel(t, row.billing_mode === 'offline' ? row.store || 'offline-other' : 'online')}
                   </td>
-                  <td>{row.quantity_kg} kg</td>
-                  <td>₹{Number(row.total).toLocaleString('en-IN')}</td>
-                  <td>
-                    <button
-                      type="button"
-                      className="btn-secondary btn-small"
+                  <td className={`${td} whitespace-nowrap`}>{row.quantity_kg} kg</td>
+                  <td className={`${td} font-medium whitespace-nowrap text-primary tabular-nums`}>
+                    ₹{Number(row.total).toLocaleString('en-IN')}
+                  </td>
+                  <td className={`${td} text-right`}>
+                    <Button
+                      size="sm"
+                      color="link-gray"
+                      iconTrailing={isOpen ? ChevronDown : ChevronRight}
                       onClick={() => setExpandedId(isOpen ? null : row.id)}
                     >
                       {isOpen ? t('hideDetails') : t('viewDetails')}
-                    </button>
+                    </Button>
                   </td>
                 </tr>
                 {isOpen && (
-                  <tr className="ledger-detail-row">
-                    <td colSpan={5}>
-                      <table className="bill-table ledger-detail-table">
-                        <thead>
-                          <tr>
-                            <th>{t('particulars')}</th>
-                            <th>{t('quantity')}</th>
-                            <th>{t('amount')}</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {(row.line_items || []).map((line, i) => (
-                            <tr key={`${row.id}-${line.code}-${i}`}>
-                              <td>{line.code}</td>
-                              <td>
-                                {line.qty} {line.unit === 'piece' ? 'pcs' : 'g'}
-                              </td>
-                              <td>₹{line.amount}</td>
+                  <tr>
+                    <td colSpan={5} className="border-b border-secondary bg-secondary px-4 py-4 md:px-6">
+                      <div className="overflow-hidden rounded-lg bg-primary ring-1 ring-secondary ring-inset">
+                        <table className="w-full text-sm">
+                          <thead>
+                            <tr>
+                              <th className="border-b border-secondary px-4 py-2.5 text-left text-xs font-semibold text-tertiary">
+                                {t('particulars')}
+                              </th>
+                              <th className="border-b border-secondary px-4 py-2.5 text-left text-xs font-semibold text-tertiary">
+                                {t('quantity')}
+                              </th>
+                              <th className="border-b border-secondary px-4 py-2.5 text-right text-xs font-semibold text-tertiary">
+                                {t('amount')}
+                              </th>
                             </tr>
-                          ))}
-                          <tr className="subtotal-row">
-                            <td colSpan={2}>{t('ingredientsSubtotal')}</td>
-                            <td>₹{row.ingredients_subtotal}</td>
-                          </tr>
-                          <tr className="making-charge-row">
-                            <td colSpan={2}>{t('makingCharge')}</td>
-                            <td>₹{row.making_charge}</td>
-                          </tr>
-                        </tbody>
-                      </table>
+                          </thead>
+                          <tbody>
+                            {(row.line_items || []).map((line, i) => (
+                              <tr key={`${row.id}-${line.code}-${i}`}>
+                                <td className="border-b border-secondary px-4 py-2 text-primary">{line.code}</td>
+                                <td className="border-b border-secondary px-4 py-2 text-tertiary">
+                                  {line.qty} {line.unit === 'piece' ? 'pcs' : 'g'}
+                                </td>
+                                <td className="border-b border-secondary px-4 py-2 text-right text-tertiary tabular-nums">
+                                  ₹{line.amount}
+                                </td>
+                              </tr>
+                            ))}
+                            <tr>
+                              <td colSpan={2} className="border-b border-secondary px-4 py-2 font-medium text-secondary">
+                                {t('ingredientsSubtotal')}
+                              </td>
+                              <td className="border-b border-secondary px-4 py-2 text-right font-medium text-secondary tabular-nums">
+                                ₹{row.ingredients_subtotal}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td colSpan={2} className="px-4 py-2 font-medium text-secondary">
+                                {t('makingCharge')}
+                              </td>
+                              <td className="px-4 py-2 text-right font-medium text-secondary tabular-nums">
+                                ₹{row.making_charge}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
                     </td>
                   </tr>
                 )}
