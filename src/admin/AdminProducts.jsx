@@ -18,6 +18,26 @@ function generateBarcode() {
   return `MB-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
+// Ready-made packaged goods (vs. loose items sold by weight) are treated as
+// always available rather than something the shop tracks down to the unit --
+// new ones start at this "effectively unlimited" stock per shop instead of
+// the usual 0, so they don't show as out of stock before anyone has touched
+// the Stock by Shop grid.
+const READY_MADE_IN_STOCK_QTY = 999;
+
+async function seedReadyMadeStock(productIds, locations) {
+  if (productIds.length === 0 || locations.length === 0) return;
+  const rows = [];
+  for (const productId of productIds) {
+    for (const loc of locations) {
+      rows.push({ product_id: productId, location_id: loc.id, qty_on_hand: READY_MADE_IN_STOCK_QTY });
+    }
+  }
+  for (let i = 0; i < rows.length; i += 200) {
+    await supabase.from('stock_levels').upsert(rows.slice(i, i + 200), { onConflict: 'product_id,location_id' });
+  }
+}
+
 // Prints `count` copies of the same product's barcode label on one page, laid
 // out in a grid so they can be cut apart and stuck on each unit of a batch --
 // e.g. "making 40 packets of Malvani ready-made today" prints 40 labels in
@@ -130,7 +150,7 @@ export default function AdminProducts() {
 
         {status === 'ready' && (
           <>
-            <ProductTable products={products} onChanged={loadAll} onSaved={() => flash(t('saved'))} />
+            <ProductTable products={products} locations={locations} onChanged={loadAll} onSaved={() => flash(t('saved'))} />
 
             <StockGrid
               products={products}
@@ -146,7 +166,7 @@ export default function AdminProducts() {
   );
 }
 
-function ProductTable({ products, onChanged, onSaved }) {
+function ProductTable({ products, locations, onChanged, onSaved }) {
   const { t } = useLanguage();
   const [edits, setEdits] = useState({});
   const [savingId, setSavingId] = useState(null);
@@ -241,6 +261,7 @@ function ProductTable({ products, onChanged, onSaved }) {
       setAddError(error.message);
       return;
     }
+    if (data.category === 'ready_made') await seedReadyMadeStock([data.id], locations);
     const batchQty = Number(newProduct.batchQty);
     if (batchQty > 0) printBarcodeLabels(data, batchQty);
     setNewProduct({
@@ -280,9 +301,10 @@ function ProductTable({ products, onChanged, onSaved }) {
       unit: c.unit,
       price: c.price,
     }));
+    const insertedIds = [];
     const chunkSize = 50;
     for (let i = 0; i < rows.length; i += chunkSize) {
-      const { error } = await supabase.from('products').insert(rows.slice(i, i + chunkSize));
+      const { data, error } = await supabase.from('products').insert(rows.slice(i, i + chunkSize)).select('id');
       if (error) {
         console.error('Failed to import catalog', error);
         setImportError(error.message);
@@ -290,7 +312,9 @@ function ProductTable({ products, onChanged, onSaved }) {
         onChanged();
         return;
       }
+      insertedIds.push(...data.map((r) => r.id));
     }
+    await seedReadyMadeStock(insertedIds, locations);
     setImporting(false);
     setCatalogPreview({ done: true, addedCount: rows.length });
     onChanged();
@@ -553,6 +577,17 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
   const { t } = useLanguage();
   const [edits, setEdits] = useState({});
   const [savingKey, setSavingKey] = useState(null);
+  const [markingInStock, setMarkingInStock] = useState(false);
+
+  async function markAllReadyMadeInStock() {
+    const readyMadeIds = products.filter((p) => p.category === 'ready_made').map((p) => p.id);
+    setMarkingInStock(true);
+    await seedReadyMadeStock(readyMadeIds, locations);
+    setMarkingInStock(false);
+    setEdits({});
+    onChanged();
+    onSaved();
+  }
 
   function cellKey(productId, locationId, field) {
     return `${productId}:${locationId}:${field}`;
@@ -636,7 +671,14 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <SubHeader title={t('stockGridTitle')} />
+      <SubHeader
+        title={t('stockGridTitle')}
+        actions={
+          <Button size="sm" color="secondary" onClick={markAllReadyMadeInStock} isLoading={markingInStock}>
+            {t('markReadyMadeInStock')}
+          </Button>
+        }
+      />
       <div className="overflow-x-auto rounded-lg ring-1 ring-secondary ring-inset">
         <table className="w-full">
           <thead>

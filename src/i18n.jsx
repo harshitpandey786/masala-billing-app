@@ -205,6 +205,7 @@ const STRINGS = {
     activeLabel: 'Active',
     printLabel: 'Print Label',
     stockGridTitle: 'Stock by Shop',
+    markReadyMadeInStock: 'Mark all ready-made as in stock',
     noLocationsYetHint: 'Add a shop below before setting stock levels.',
 
     locationsManagerTitle: 'Shops',
@@ -452,6 +453,7 @@ const STRINGS = {
     activeLabel: 'सक्रिय',
     printLabel: 'लेबल प्रिंट करा',
     stockGridTitle: 'दुकानानुसार स्टॉक',
+    markReadyMadeInStock: 'सर्व रेडीमेड स्टॉकमध्ये दाखवा',
     noLocationsYetHint: 'स्टॉक सेट करण्यापूर्वी खाली एक दुकान जोडा.',
 
     locationsManagerTitle: 'दुकाने',
