@@ -9,6 +9,7 @@ import { logOrderToSupabase } from './orderLogger.js';
 import { decrementStock } from './productLookup.js';
 import { fetchPricingConfig } from './pricingData.js';
 import { getStoredLocation, clearStoredLocation } from './locationSession.js';
+import { supabase } from './supabaseClient.js';
 import { useLanguage } from './i18n.jsx';
 import { ArrowRight, Check, Lock01, ShoppingCart01, Users01 } from '@untitledui/icons';
 import ShopAdminPanel from './shopAdmin/ShopAdminPanel.jsx';
@@ -28,6 +29,48 @@ const STEP_LABEL_KEYS = {
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+// A quiet, real signal on the start screen -- how many bills this shop has
+// already made today -- instead of decoration for its own sake. Renders
+// nothing until the count resolves (and stays silent if Supabase isn't
+// configured), so there's never an empty/loading flash on the counter's
+// first screen of the day.
+function TodayStrip({ location }) {
+  const { t } = useLanguage();
+  const [count, setCount] = useState(null);
+
+  useEffect(() => {
+    if (!supabase || !location) return;
+    let cancelled = false;
+    supabase
+      .from('bills')
+      .select('id', { count: 'exact', head: true })
+      .eq('location_id', location.id)
+      .eq('order_date', todayISO())
+      .then(({ count: c, error }) => {
+        if (!cancelled && !error) setCount(c ?? 0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [location]);
+
+  if (count === null) return null;
+
+  return (
+    <div className="relative flex h-full flex-col justify-between gap-8 overflow-hidden rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
+      <div
+        className="pointer-events-none absolute inset-0 bg-cover bg-center opacity-[0.06]"
+        style={{ backgroundImage: "url('/products/5745.jpg')" }}
+      />
+      <p className="relative text-sm font-semibold text-tertiary">{t('todaySoFar')}</p>
+      <div className="relative flex flex-col gap-1">
+        <p className="text-display-md font-bold text-primary tabular-nums">{count}</p>
+        <p className="text-sm text-tertiary">{t('totalBills')}</p>
+      </div>
+    </div>
+  );
+}
 
 // /shop-admin used to be a page of its own. Old bookmarks (and the Customers
 // page's sidebar link) still land here and open the Shop Admin section, then
@@ -241,39 +284,43 @@ export default function App() {
           {step === 'start' && (
             <>
               <PageHeader title={location.name} description={t('startScreenHint')} />
-              <div className="flex flex-col gap-4 px-4 pt-8 lg:px-8">
-                <button
-                  type="button"
-                  onClick={() => setStep('order')}
-                  className="group relative flex w-full max-w-xl items-center justify-between gap-5 overflow-hidden rounded-xl bg-brand-solid px-6 py-5 text-left shadow-md transition duration-150 ease-linear hover:bg-brand-solid_hover"
-                >
-                  <div
-                    className="pointer-events-none absolute inset-y-0 right-0 w-40 bg-cover bg-center opacity-25 [mask-image:linear-gradient(to_left,black,transparent)]"
-                    style={{ backgroundImage: "url('/products/5745.jpg')" }}
-                  />
-                  <div className="relative flex flex-col gap-1">
-                    <p className="text-xl font-bold text-white">{t('generateNewBill')}</p>
-                    <p className="max-w-xs text-sm text-white/80">{t('startScreenDetail')}</p>
-                  </div>
-                  <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 transition-transform duration-150 ease-linear group-hover:translate-x-1">
-                    <ArrowRight className="size-4" />
-                  </span>
-                </button>
+              <div className="grid grid-cols-1 gap-5 px-4 pt-8 lg:grid-cols-[minmax(0,1fr)_240px] lg:px-8">
+                <div className="flex flex-col gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setStep('order')}
+                    className="group relative flex w-full items-center justify-between gap-5 overflow-hidden rounded-xl bg-brand-solid px-6 py-5 text-left shadow-md transition duration-150 ease-linear hover:bg-brand-solid_hover"
+                  >
+                    <div
+                      className="pointer-events-none absolute inset-y-0 right-0 w-40 bg-cover bg-center opacity-25 [mask-image:linear-gradient(to_left,black,transparent)]"
+                      style={{ backgroundImage: "url('/products/5745.jpg')" }}
+                    />
+                    <div className="relative flex flex-col gap-1">
+                      <p className="text-xl font-bold text-white">{t('generateNewBill')}</p>
+                      <p className="max-w-xs text-sm text-white/80">{t('startScreenDetail')}</p>
+                    </div>
+                    <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 transition-transform duration-150 ease-linear group-hover:translate-x-1">
+                      <ArrowRight className="size-4" />
+                    </span>
+                  </button>
 
-                <button
-                  type="button"
-                  onClick={() => setView('shopAdmin')}
-                  className="group flex w-full max-w-xl items-center gap-3 rounded-xl bg-primary px-5 py-3.5 text-left shadow-xs ring-1 ring-secondary ring-inset transition duration-150 ease-linear hover:bg-secondary"
-                >
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-fg-brand-primary ring-1 ring-secondary ring-inset">
-                    <Lock01 className="size-4.5" />
-                  </span>
-                  <div className="flex min-w-0 flex-col">
-                    <p className="text-sm font-semibold text-primary">{t('shopAdminLink')}</p>
-                    <p className="truncate text-xs text-tertiary">{t('shopAdminLoginHint')}</p>
-                  </div>
-                  <ArrowRight className="ml-auto size-4 shrink-0 text-fg-quaternary transition-transform duration-150 ease-linear group-hover:translate-x-1" />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setView('shopAdmin')}
+                    className="group flex w-full items-center gap-3 rounded-xl bg-primary px-5 py-3.5 text-left shadow-xs ring-1 ring-secondary ring-inset transition duration-150 ease-linear hover:bg-secondary"
+                  >
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-fg-brand-primary ring-1 ring-secondary ring-inset">
+                      <Lock01 className="size-4.5" />
+                    </span>
+                    <div className="flex min-w-0 flex-col">
+                      <p className="text-sm font-semibold text-primary">{t('shopAdminLink')}</p>
+                      <p className="truncate text-xs text-tertiary">{t('shopAdminLoginHint')}</p>
+                    </div>
+                    <ArrowRight className="ml-auto size-4 shrink-0 text-fg-quaternary transition-transform duration-150 ease-linear group-hover:translate-x-1" />
+                  </button>
+                </div>
+
+                <TodayStrip location={location} />
               </div>
             </>
           )}
