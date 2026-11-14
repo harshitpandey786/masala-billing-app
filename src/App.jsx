@@ -10,11 +10,11 @@ import { decrementStock } from './productLookup.js';
 import { fetchPricingConfig } from './pricingData.js';
 import { getStoredLocation, clearStoredLocation } from './locationSession.js';
 import { useLanguage } from './i18n.jsx';
-import { Building07, Check, Lock01, Plus, ReceiptCheck, ShoppingCart01, Users01 } from '@untitledui/icons';
+import { Check, Lock01, Plus, ReceiptCheck, ShoppingCart01, Users01 } from '@untitledui/icons';
 import ShopAdminPanel from './shopAdmin/ShopAdminPanel.jsx';
 import { Button } from '@/components/base/buttons/button';
 import { cx } from '@/utils/cx';
-import LanguageToggle from './components/LanguageToggle.jsx';
+import ShopSidebarFooter from './components/shell/ShopSidebarFooter.jsx';
 import AppShell from './components/shell/AppShell.jsx';
 import PageHeader from './components/shell/PageHeader.jsx';
 import staticPricingConfig from '../data/pricing-config.json' with { type: 'json' };
@@ -115,8 +115,12 @@ export default function App() {
     setBills([]);
   }
 
-  function handleSwitchShop() {
+  // Logging out also drops any bill in progress, so whoever signs in next
+  // never sees the previous person's customer or cart.
+  function handleLogOut() {
     clearStoredLocation();
+    handleStartOver();
+    setView('billing');
     setLocation(null);
   }
 
@@ -191,20 +195,7 @@ export default function App() {
     },
   ];
 
-  const footer = (
-    <>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Building07 className="size-5 shrink-0 text-fg-quaternary" />
-          <p className="truncate text-sm font-semibold text-primary">{location.name}</p>
-        </div>
-        <Button size="sm" color="link-gray" onClick={handleSwitchShop}>
-          {t('switchShop')}
-        </Button>
-      </div>
-      <LanguageToggle />
-    </>
-  );
+  const footer = <ShopSidebarFooter location={location} onLogOut={handleLogOut} />;
 
   return (
     <AppShell sections={sections} subtitle={t('tagline')} footer={footer}>

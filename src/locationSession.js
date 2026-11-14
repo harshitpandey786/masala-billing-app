@@ -1,11 +1,26 @@
 const STORAGE_KEY = 'shindraj_location';
 
-// Persisted in localStorage (not sessionStorage) -- the shop logs in once on
-// its device and stays logged in across reloads/restarts, per the client's
-// requirement that staff never have to pick their shop "every now and then."
-export function getStoredLocation() {
+// Kept in sessionStorage: the shop stays signed in while the browser tab is
+// open (reloads, moving between Billing / Customers / Shop Admin), but
+// closing the tab or pressing Log out asks for the shop's username and
+// password again. The owner asked for this so a counter computer left open
+// overnight, or a link opened on someone else's device, doesn't go straight
+// into the shop.
+//
+// Earlier builds kept the login in localStorage forever; that copy is
+// removed on first read so already-signed-in devices are asked once more.
+function dropLegacyLogin() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+  } catch {
+    // ignore
+  }
+}
+
+export function getStoredLocation() {
+  dropLegacyLogin();
+  try {
+    const raw = sessionStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
@@ -14,15 +29,16 @@ export function getStoredLocation() {
 
 export function storeLocation(location) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(location));
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify(location));
   } catch {
-    // localStorage unavailable -- login just won't persist across reloads.
+    // sessionStorage unavailable -- login just won't survive a reload.
   }
 }
 
 export function clearStoredLocation() {
+  dropLegacyLogin();
   try {
-    localStorage.removeItem(STORAGE_KEY);
+    sessionStorage.removeItem(STORAGE_KEY);
   } catch {
     // ignore
   }

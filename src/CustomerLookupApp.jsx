@@ -4,17 +4,28 @@ import AppShell from './components/shell/AppShell.jsx';
 import PageHeader from './components/shell/PageHeader.jsx';
 import CustomerList from './admin/CustomerList.jsx';
 import CustomerDetail from './admin/CustomerDetail.jsx';
-import LanguageToggle from './components/LanguageToggle.jsx';
+import ShopSidebarFooter from './components/shell/ShopSidebarFooter.jsx';
+import LocationLogin from './steps/LocationLogin.jsx';
+import { getStoredLocation, clearStoredLocation } from './locationSession.js';
 import { useLanguage } from './i18n.jsx';
 
-// Front-of-house customer lookup -- no password. Any operator can find a
-// returning customer and see their order history while billing; the
-// business-wide numbers (revenue, growth, top customers) stay admin-only on
-// /admin, which is the only real difference between this and the old
-// admin-embedded version.
+// Front-of-house customer lookup. It needs the same shop sign-in as billing
+// (customer names and phone numbers are private), but no extra password:
+// any signed-in operator can find a returning customer and see their order
+// history. Business-wide numbers (revenue, growth, top customers) stay on
+// the owner's dashboard.
 export default function CustomerLookupApp() {
   const { t } = useLanguage();
+  const [location, setLocation] = useState(getStoredLocation);
   const [selectedPhone, setSelectedPhone] = useState(null);
+
+  if (!location) return <LocationLogin onLoggedIn={setLocation} />;
+
+  function handleLogOut() {
+    clearStoredLocation();
+    setSelectedPhone(null);
+    setLocation(null);
+  }
 
   const sections = [
     {
@@ -28,7 +39,11 @@ export default function CustomerLookupApp() {
   ];
 
   return (
-    <AppShell sections={sections} subtitle={t('customerLookupTitle')} footer={<LanguageToggle />}>
+    <AppShell
+      sections={sections}
+      subtitle={t('customerLookupTitle')}
+      footer={<ShopSidebarFooter location={location} onLogOut={handleLogOut} />}
+    >
       {!selectedPhone && <PageHeader title={t('customerLookupTitle')} description={t('adminSubtitle')} />}
 
       <div className="px-4 pt-6 pb-12 lg:px-8">
