@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useState } from 'react';
 import JsBarcode from 'jsbarcode';
-import { CheckCircle, Plus, Printer, X } from '@untitledui/icons';
+import { AlertCircle, CheckCircle, DownloadCloud01, Plus, Printer, X } from '@untitledui/icons';
 import { BadgeWithIcon } from '@/components/base/badges/badges';
 import { Button } from '@/components/base/buttons/button';
 import { Checkbox } from '@/components/base/checkbox/checkbox';
@@ -9,6 +9,7 @@ import { NativeSelect } from '@/components/base/select/select-native';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
 import { ProductThumb } from '../components/ProductThumb.jsx';
+import shindrajCatalog from '../../data/shindraj-catalog.json' with { type: 'json' };
 
 const th = 'border-b border-secondary bg-secondary px-4 py-3 text-left text-xs font-semibold whitespace-nowrap text-tertiary';
 const td = 'border-b border-secondary px-4 py-3 align-middle text-sm text-tertiary';
@@ -161,6 +162,9 @@ function ProductTable({ products, onChanged, onSaved }) {
   });
   const [addError, setAddError] = useState('');
   const [printQty, setPrintQty] = useState({});
+  const [catalogPreview, setCatalogPreview] = useState(null); // { newItems, skipCount } | { done: true, addedCount } | null
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
 
   const categoryOptions = [
     { value: 'ready_made', label: t('readyMadeLabel') },
@@ -253,21 +257,115 @@ function ProductTable({ products, onChanged, onSaved }) {
     onSaved();
   }
 
+  // Compares the Shindraj website catalog (data/shindraj-catalog.json -- a
+  // snapshot pulled from shindrajmasale.com's WooCommerce store, see that
+  // file) against what's already here, matching on name_en so re-running
+  // this after new products ship on the website only adds what's missing.
+  function openCatalogPreview() {
+    setImportError('');
+    const existingNames = new Set(products.map((p) => p.name_en.trim().toLowerCase()));
+    const newItems = shindrajCatalog.filter((c) => !existingNames.has(c.name_en.trim().toLowerCase()));
+    setCatalogPreview({ newItems, skipCount: shindrajCatalog.length - newItems.length });
+  }
+
+  async function confirmCatalogImport() {
+    if (!catalogPreview?.newItems?.length) return;
+    setImporting(true);
+    setImportError('');
+    const rows = catalogPreview.newItems.map((c) => ({
+      barcode: generateBarcode(),
+      name_en: c.name_en,
+      name_mr: null,
+      category: c.category,
+      unit: c.unit,
+      price: c.price,
+    }));
+    const chunkSize = 50;
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const { error } = await supabase.from('products').insert(rows.slice(i, i + chunkSize));
+      if (error) {
+        console.error('Failed to import catalog', error);
+        setImportError(error.message);
+        setImporting(false);
+        onChanged();
+        return;
+      }
+    }
+    setImporting(false);
+    setCatalogPreview({ done: true, addedCount: rows.length });
+    onChanged();
+    onSaved();
+  }
+
   return (
     <div className="flex flex-col gap-3">
       <SubHeader
         title={t('productsTableTitle')}
         actions={
-          <Button
-            size="sm"
-            color="secondary"
-            iconLeading={showAddForm ? X : Plus}
-            onClick={() => setShowAddForm((v) => !v)}
-          >
-            {showAddForm ? t('cancel') : t('addProduct')}
-          </Button>
+          <>
+            <Button size="sm" color="secondary" iconLeading={DownloadCloud01} onClick={openCatalogPreview}>
+              {t('importCatalogButton')}
+            </Button>
+            <Button
+              size="sm"
+              color="secondary"
+              iconLeading={showAddForm ? X : Plus}
+              onClick={() => setShowAddForm((v) => !v)}
+            >
+              {showAddForm ? t('cancel') : t('addProduct')}
+            </Button>
+          </>
         }
       />
+
+      {catalogPreview && (
+        <div className="flex flex-col gap-3 rounded-lg bg-secondary p-4 ring-1 ring-secondary ring-inset">
+          {catalogPreview.done ? (
+            <div className="flex items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-sm font-medium text-success-primary">
+                <CheckCircle className="size-4 shrink-0" />
+                {t('importCatalogDone')} {catalogPreview.addedCount}
+              </p>
+              <Button size="sm" color="secondary" onClick={() => setCatalogPreview(null)}>
+                {t('cancel')}
+              </Button>
+            </div>
+          ) : catalogPreview.newItems.length === 0 ? (
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm text-tertiary">{t('importCatalogUpToDate')}</p>
+              <Button size="sm" color="secondary" onClick={() => setCatalogPreview(null)}>
+                {t('cancel')}
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className="text-sm text-secondary">
+                {t('importCatalogNewCount')} <span className="font-semibold text-primary">{catalogPreview.newItems.length}</span>
+                {catalogPreview.skipCount > 0 && (
+                  <>
+                    {' '}
+                    &middot; {t('importCatalogSkipCount')} <span className="font-medium">{catalogPreview.skipCount}</span>
+                  </>
+                )}
+              </p>
+              {importError && (
+                <p className="flex items-center gap-2 text-sm text-error-primary">
+                  <AlertCircle className="size-4 shrink-0" />
+                  {importError}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <Button size="sm" iconLeading={DownloadCloud01} onClick={confirmCatalogImport} isLoading={importing}>
+                  {t('importCatalogConfirm')}
+                </Button>
+                <Button size="sm" color="secondary" onClick={() => setCatalogPreview(null)} isDisabled={importing}>
+                  {t('cancel')}
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {showAddForm && (
         <div className="flex flex-col gap-3 rounded-lg bg-secondary p-4 ring-1 ring-secondary ring-inset">
