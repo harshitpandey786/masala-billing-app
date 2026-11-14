@@ -241,7 +241,7 @@ export default function App() {
           {step === 'start' && (
             <>
               <PageHeader title={location.name} description={t('startScreenHint')} />
-              <div className="px-4 pt-8 lg:px-8">
+              <div className="flex flex-col gap-4 px-4 pt-8 lg:px-8">
                 <button
                   type="button"
                   onClick={() => setStep('order')}
@@ -258,6 +258,21 @@ export default function App() {
                   <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 transition-transform duration-150 ease-linear group-hover:translate-x-1">
                     <ArrowRight className="size-4" />
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setView('shopAdmin')}
+                  className="group flex w-full max-w-xl items-center gap-3 rounded-xl bg-primary px-5 py-3.5 text-left shadow-xs ring-1 ring-secondary ring-inset transition duration-150 ease-linear hover:bg-secondary"
+                >
+                  <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-fg-brand-primary ring-1 ring-secondary ring-inset">
+                    <Lock01 className="size-4.5" />
+                  </span>
+                  <div className="flex min-w-0 flex-col">
+                    <p className="text-sm font-semibold text-primary">{t('shopAdminLink')}</p>
+                    <p className="truncate text-xs text-tertiary">{t('shopAdminLoginHint')}</p>
+                  </div>
+                  <ArrowRight className="ml-auto size-4 shrink-0 text-fg-quaternary transition-transform duration-150 ease-linear group-hover:translate-x-1" />
                 </button>
               </div>
             </>
