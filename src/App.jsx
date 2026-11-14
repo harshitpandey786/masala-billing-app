@@ -10,6 +10,7 @@ import { decrementStock } from './productLookup.js';
 import { fetchPricingConfig } from './pricingData.js';
 import { getStoredLocation, clearStoredLocation } from './locationSession.js';
 import { supabase } from './supabaseClient.js';
+import { clearReorder, readReorder, resolveReorder } from './reorder.js';
 import { useLanguage } from './i18n.jsx';
 import { ArrowRight, Check, Lock01, ShoppingCart01, Users01 } from '@untitledui/icons';
 import ShopAdminPanel from './shopAdmin/ShopAdminPanel.jsx';
@@ -29,6 +30,15 @@ const STEP_LABEL_KEYS = {
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
+
+const emptyCustomer = () => ({
+  name: '',
+  phone: '',
+  area: '',
+  pocName: '',
+  billingMode: 'online',
+  date: todayISO(),
+});
 
 // A quiet, real signal on the start screen -- how many bills this shop has
 // already made today -- instead of decoration for its own sake. Renders
@@ -113,14 +123,7 @@ export default function App() {
     if (openedViaShopAdminUrl()) window.history.replaceState(null, '', '/');
   }, []);
   const [step, setStep] = useState('start');
-  const [customer, setCustomer] = useState({
-    name: '',
-    phone: '',
-    area: '',
-    pocName: '',
-    billingMode: 'online',
-    date: todayISO(),
-  });
+  const [customer, setCustomer] = useState(emptyCustomer);
   const [orderItems, setOrderItems] = useState([]);
   const [billIndex, setBillIndex] = useState(0);
   const [bills, setBills] = useState([]);
@@ -129,6 +132,11 @@ export default function App() {
   // if it never resolves (offline, misconfigured), billing just keeps using
   // whatever shipped in the last deploy, same as before this feature existed.
   const [pricingConfig, setPricingConfig] = useState(staticPricingConfig);
+  const [pricingLoaded, setPricingLoaded] = useState(false);
+  // An "Order again" handed over from the Customers page, applied once this
+  // shop's live pricing is in so custom masala maps onto today's recipes.
+  const [pendingReorder, setPendingReorder] = useState(readReorder);
+  const [reorderInfo, setReorderInfo] = useState(null);
 
   // Re-fetch on the way back from Shop Admin too, so a price just changed
   // there is used on the very next bill.
@@ -136,26 +144,42 @@ export default function App() {
     if (!location || view !== 'billing') return;
     let cancelled = false;
     fetchPricingConfig(location.id).then((cfg) => {
-      if (!cancelled) setPricingConfig(cfg);
+      if (cancelled) return;
+      setPricingConfig(cfg);
+      setPricingLoaded(true);
     });
     return () => {
       cancelled = true;
     };
   }, [location, view]);
 
+  useEffect(() => {
+    if (!pendingReorder || !location || !pricingLoaded) return;
+    let cancelled = false;
+    clearReorder();
+    resolveReorder(pendingReorder, { locationId: location.id, pricingConfig }).then(({ items, skipped }) => {
+      if (cancelled) return;
+      setCustomer({ ...emptyCustomer(), ...pendingReorder.customer });
+      setOrderItems(items);
+      setBillIndex(0);
+      setBills([]);
+      setReorderInfo({ fromDate: pendingReorder.fromDate, skipped });
+      setView('billing');
+      setStep('order');
+      setPendingReorder(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pendingReorder, location, pricingLoaded, pricingConfig]);
+
   function handleStartOver() {
     setStep('start');
-    setCustomer({
-      name: '',
-      phone: '',
-      area: '',
-      pocName: '',
-      billingMode: 'online',
-      date: todayISO(),
-    });
+    setCustomer(emptyCustomer());
     setOrderItems([]);
     setBillIndex(0);
     setBills([]);
+    setReorderInfo(null);
   }
 
   // Logging out also drops any bill in progress, so whoever signs in next
@@ -334,6 +358,7 @@ export default function App() {
               pricingConfig={pricingConfig}
               locationId={location.id}
               customer={customer}
+              reorderInfo={reorderInfo}
             />
           )}
 

@@ -1,16 +1,32 @@
 import { supabase } from './supabaseClient.js';
 
+// `qtyOnHand` is null when this shop has no stock row for the product yet --
+// "not tracked", not "zero left". Only a row that's actually been counted
+// down to 0 means out of stock.
+function withShopStock(product, stock) {
+  return {
+    ...product,
+    qtyOnHand: stock ? Number(stock.qty_on_hand) : null,
+    price: stock?.price != null ? Number(stock.price) : product.price,
+  };
+}
+
+async function stockFor(locationId, productIds) {
+  if (!locationId || productIds.length === 0) return new Map();
+  const { data } = await supabase
+    .from('stock_levels')
+    .select('product_id, qty_on_hand, price')
+    .eq('location_id', locationId)
+    .in('product_id', productIds);
+  return new Map((data || []).map((s) => [s.product_id, s]));
+}
+
 /**
- * Looks up a ready-made/loose product by its barcode, plus how much stock
- * and what price this location has for it. Returns null if not found, not
- * configured, or the lookup fails -- the caller (OrderBuilder) just shows
- * "unknown barcode" rather than throwing, same resilience rule as the rest
- * of the app.
- *
- * `price` on the returned product is this shop's own price if it has set
- * one (per-shop pricing, see docs/supabase-setup.md §9), falling back to the
- * shared `products.price` as a default for a shop that hasn't priced this
- * item yet.
+ * Looks up a ready-made/loose product by its barcode, with this shop's own
+ * price (per-shop pricing, see docs/supabase-setup.md §9) falling back to
+ * the shared `products.price`. Returns null if not found, not configured, or
+ * the lookup fails -- the counter just shows "unknown barcode" rather than
+ * throwing.
  */
 export async function lookupProductByBarcode(barcode, locationId) {
   if (!supabase || !barcode.trim()) return null;
@@ -22,21 +38,8 @@ export async function lookupProductByBarcode(barcode, locationId) {
       .eq('is_active', true)
       .maybeSingle();
     if (error || !product) return null;
-
-    let qtyOnHand = null;
-    let price = product.price;
-    if (locationId) {
-      const { data: stock } = await supabase
-        .from('stock_levels')
-        .select('qty_on_hand, price')
-        .eq('product_id', product.id)
-        .eq('location_id', locationId)
-        .maybeSingle();
-      qtyOnHand = stock ? Number(stock.qty_on_hand) : 0;
-      if (stock?.price != null) price = Number(stock.price);
-    }
-
-    return { ...product, qtyOnHand, price };
+    const stock = await stockFor(locationId, [product.id]);
+    return withShopStock(product, stock.get(product.id));
   } catch (err) {
     console.error('Barcode lookup failed', err);
     return null;
@@ -44,78 +47,50 @@ export async function lookupProductByBarcode(barcode, locationId) {
 }
 
 /**
- * Same as above but by name, for the manual search fallback when scanning
- * isn't available. Returns up to `limit` active products matching the term.
- */
-export async function searchProductsByName(term, locationId, limit = 8) {
-  if (!supabase || !term.trim()) return [];
-  try {
-    const escaped = term.trim().replace(/[%,]/g, '');
-    const { data: products, error } = await supabase
-      .from('products')
-      .select('*')
-      .eq('is_active', true)
-      .or(`name_en.ilike.%${escaped}%,name_mr.ilike.%${escaped}%`)
-      .limit(limit);
-    if (error || !products) return [];
-
-    if (!locationId || products.length === 0) {
-      return products.map((p) => ({ ...p, qtyOnHand: null }));
-    }
-
-    const { data: stockRows } = await supabase
-      .from('stock_levels')
-      .select('product_id, qty_on_hand, price')
-      .eq('location_id', locationId)
-      .in('product_id', products.map((p) => p.id));
-    const stockByProduct = new Map((stockRows || []).map((s) => [s.product_id, s]));
-
-    return products.map((p) => {
-      const stock = stockByProduct.get(p.id);
-      return {
-        ...p,
-        qtyOnHand: stock ? Number(stock.qty_on_hand) : 0,
-        price: stock?.price != null ? Number(stock.price) : p.price,
-      };
-    });
-  } catch (err) {
-    console.error('Product search failed', err);
-    return [];
-  }
-}
-
-/**
  * Every active product with this shop's price and stock, for the counter's
- * product grid. Read-only; same per-shop price fallback as the lookups above.
+ * product grid. Read-only.
  */
-export async function listProducts(locationId, limit = 120) {
+export async function listProducts(locationId) {
   if (!supabase) return [];
   try {
     const { data: products, error } = await supabase
       .from('products')
       .select('*')
       .eq('is_active', true)
-      .order('name_en')
-      .limit(limit);
+      .order('name_en');
     if (error || !products) return [];
-    if (!locationId || products.length === 0) {
-      return products.map((p) => ({ ...p, qtyOnHand: null }));
-    }
-    const { data: stockRows } = await supabase
-      .from('stock_levels')
-      .select('product_id, qty_on_hand, price')
-      .eq('location_id', locationId);
+    const { data: stockRows } = locationId
+      ? await supabase.from('stock_levels').select('product_id, qty_on_hand, price').eq('location_id', locationId)
+      : { data: [] };
     const stockByProduct = new Map((stockRows || []).map((s) => [s.product_id, s]));
-    return products.map((p) => {
-      const stock = stockByProduct.get(p.id);
-      return {
-        ...p,
-        qtyOnHand: stock ? Number(stock.qty_on_hand) : 0,
-        price: stock?.price != null ? Number(stock.price) : p.price,
-      };
-    });
+    return products.map((p) => withShopStock(p, stockByProduct.get(p.id)));
   } catch (err) {
     console.error('Product list failed', err);
+    return [];
+  }
+}
+
+/**
+ * The given products at this shop's *current* price -- used to rebuild a
+ * past order at today's prices. Inactive or deleted products are simply
+ * missing from the result.
+ */
+export async function getProductsByIds(ids, locationId) {
+  if (!supabase || ids.length === 0) return [];
+  try {
+    const { data: products, error } = await supabase
+      .from('products')
+      .select('*')
+      .in('id', ids)
+      .eq('is_active', true);
+    if (error || !products) return [];
+    const stock = await stockFor(
+      locationId,
+      products.map((p) => p.id)
+    );
+    return products.map((p) => withShopStock(p, stock.get(p.id)));
+  } catch (err) {
+    console.error('Product lookup by id failed', err);
     return [];
   }
 }

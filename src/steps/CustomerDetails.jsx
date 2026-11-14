@@ -45,8 +45,9 @@ export default function CustomerDetails({ customer, onChange, onBack, onNext }) 
     const id = setTimeout(async () => {
       const results = await searchCustomers(customer.phone);
       if (!cancelled) {
+        const alreadyFilled = results.some((r) => r.phone === customer.phone && r.name === customer.name);
         setMatches(results);
-        setMatchesOpen(results.length > 0);
+        setMatchesOpen(results.length > 0 && !alreadyFilled);
       }
     }, 300);
     return () => {

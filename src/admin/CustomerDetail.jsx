@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CurrencyRupeeCircle, Heart, Receipt, Repeat04 } from '@untitledui/icons';
+import { groupBillsIntoOrders } from '../reorder.js';
 import { Avatar } from '@/components/base/avatar/avatar';
 import { Button } from '@/components/base/buttons/button';
 import { FeaturedIcon } from '@/components/foundations/featured-icon/featured-icon';
@@ -45,8 +46,9 @@ function MetaItem({ label, value }) {
 
 // A single customer's full order history -- deliberately ignores the
 // Customer Lookup date filter, since "this customer's whole history" is the
-// point of drilling into their profile.
-export default function CustomerDetail({ phone, demoMode, onBack }) {
+// point of drilling into their profile. `onReorder(customer, order)` is
+// only passed from the shop's side, where an order can actually be billed.
+export default function CustomerDetail({ phone, demoMode, onBack, onReorder }) {
   const { t, lang } = useLanguage();
   const [bills, setBills] = useState([]);
   const [status, setStatus] = useState('loading');
@@ -155,15 +157,20 @@ export default function CustomerDetail({ phone, demoMode, onBack }) {
 
       {status === 'ready' && profile && (
         <>
-          <div className="flex items-center gap-4 rounded-xl bg-primary p-5 shadow-xs ring-1 ring-secondary ring-inset">
+          <div className="flex flex-wrap items-center gap-4 rounded-xl bg-primary p-5 shadow-xs ring-1 ring-secondary ring-inset">
             <Avatar size="xl" initials={initialsOf(profile.name)} className="ring-4 ring-brand-secondary" />
-            <div className="flex min-w-0 flex-col gap-0.5">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
               <h2 className="truncate text-display-xs font-bold text-primary">{profile.name}</h2>
               <p className="text-md text-tertiary">
                 {profile.phone}
                 {profile.area ? ` · ${profile.area}` : ''}
               </p>
             </div>
+            {onReorder && (
+              <Button size="lg" iconLeading={Repeat04} onClick={() => onReorder(profile, groupBillsIntoOrders(bills)[0])}>
+                {t('repeatLastOrder')}
+              </Button>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -200,7 +207,7 @@ export default function CustomerDetail({ phone, demoMode, onBack }) {
             <div className="border-b border-secondary px-4 py-5 md:px-6">
               <h3 className="text-md font-semibold text-primary">{t('tableOrders')}</h3>
             </div>
-            <BillLedgerTable rows={bills} />
+            <BillLedgerTable rows={bills} onReorder={onReorder && ((order) => onReorder(profile, order))} />
           </div>
         </>
       )}

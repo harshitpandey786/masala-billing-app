@@ -7,6 +7,7 @@ import CustomerDetail from './admin/CustomerDetail.jsx';
 import ShopSidebarFooter from './components/shell/ShopSidebarFooter.jsx';
 import LocationLogin from './steps/LocationLogin.jsx';
 import { getStoredLocation, clearStoredLocation } from './locationSession.js';
+import { stashReorder } from './reorder.js';
 import { useLanguage } from './i18n.jsx';
 
 // Front-of-house customer lookup. It needs the same shop sign-in as billing
@@ -25,6 +26,11 @@ export default function CustomerLookupApp() {
     clearStoredLocation();
     setSelectedPhone(null);
     setLocation(null);
+  }
+
+  function handleReorder(customer, order) {
+    stashReorder({ customer, order });
+    window.location.assign('/');
   }
 
   const sections = [
@@ -49,7 +55,12 @@ export default function CustomerLookupApp() {
       <div className="px-4 pt-6 pb-12 lg:px-8">
         {selectedPhone ? (
           <div className="pt-2">
-            <CustomerDetail phone={selectedPhone} demoMode={false} onBack={() => setSelectedPhone(null)} />
+            <CustomerDetail
+              phone={selectedPhone}
+              demoMode={false}
+              onBack={() => setSelectedPhone(null)}
+              onReorder={handleReorder}
+            />
           </div>
         ) : (
           <CustomerList demoMode={false} showStats={false} onSelectCustomer={setSelectedPhone} />

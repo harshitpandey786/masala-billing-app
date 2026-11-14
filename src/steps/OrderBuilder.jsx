@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, ArrowLeft, ArrowRight, Package, Plus, Scan, SearchLg, Trash01 } from '@untitledui/icons';
-import { Badge, BadgeWithDot } from '@/components/base/badges/badges';
+import { AlertCircle, ArrowLeft, ArrowRight, Minus, Package, Plus, Repeat04, Scan, SearchLg, Trash01 } from '@untitledui/icons';
+import { Badge } from '@/components/base/badges/badges';
 import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
 import { Button } from '@/components/base/buttons/button';
 import { ButtonUtility } from '@/components/base/buttons/button-utility';
@@ -10,7 +10,7 @@ import { Select } from '@/components/base/select/select';
 import { cx } from '@/utils/cx';
 import { getRecipeCatalog } from '../recipeCatalog.js';
 import { priceRecipe } from '../pricing-engine.js';
-import { listProducts, lookupProductByBarcode, searchProductsByName } from '../productLookup.js';
+import { listProducts, lookupProductByBarcode } from '../productLookup.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
 import { ProductThumb } from '../components/ProductThumb.jsx';
@@ -20,6 +20,20 @@ function unitAbbrev(unit) {
   if (unit === 'piece') return 'pcs';
   if (unit === 'kg') return 'kg';
   return 'g';
+}
+
+// One tap on a product adds a sensible amount for its unit; the cart's -/+
+// then nudges by a finer step for things sold by weight.
+const TAP_QTY = { piece: 1, kg: 1, g: 100 };
+const STEP_QTY = { piece: 1, kg: 0.25, g: 50 };
+const roundQty = (n) => Math.round(n * 1000) / 1000;
+
+// Imported website products are named "Malvani Masala - Pack of 1"; show the
+// pack size as its own line instead of letting it get truncated away.
+function splitPackName(name) {
+  const i = name.lastIndexOf(' - ');
+  if (i === -1) return { base: name, pack: null };
+  return { base: name.slice(0, i), pack: name.slice(i + 3) };
 }
 
 const inr = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
@@ -32,33 +46,21 @@ function estimateCustomTotal(item, pricingConfig) {
   }
 }
 
-const POP = {
-  initial: { opacity: 0, scale: 0.96 },
-  animate: { opacity: 1, scale: 1 },
-  exit: { opacity: 0, scale: 0.96 },
-  transition: { duration: 0.16, ease: [0.23, 1, 0.32, 1] },
-  style: { transformOrigin: 'top' },
-};
-
 const card = 'rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset';
 
-function ProductScanner({ orderItems, onChange, locationId }) {
+function ProductScanner({ orderItems, onAdd, locationId }) {
   const { t } = useLanguage();
   const [barcode, setBarcode] = useState('');
-  const [nameSearch, setNameSearch] = useState('');
-  const [matches, setMatches] = useState([]);
-  const [pending, setPending] = useState(null); // the scanned/selected product, awaiting qty + Add
-  const [qty, setQty] = useState('1');
+  const [filter, setFilter] = useState('');
   const [notFound, setNotFound] = useState(false);
-  const [allProducts, setAllProducts] = useState([]);
+  const [allProducts, setAllProducts] = useState(null);
   const barcodeInputRef = useRef(null);
 
-  // Keeps the scan field focused between scans so a USB/Bluetooth barcode
-  // scanner (which just "types" the code + Enter) can be used back-to-back
-  // without the operator clicking back into the field each time.
+  // A USB/Bluetooth scanner just "types" the code + Enter, so the scan field
+  // starts focused and keeps focus between scans.
   useEffect(() => {
-    if (!pending) barcodeInputRef.current?.focus();
-  }, [pending]);
+    barcodeInputRef.current?.focus();
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -82,55 +84,17 @@ function ProductScanner({ orderItems, onChange, locationId }) {
       setNotFound(true);
       return;
     }
-    setPending(product);
-    setQty('1');
+    onAdd(product);
   }
 
-  useEffect(() => {
-    if (!nameSearch.trim()) {
-      setMatches([]);
-      return;
-    }
-    let cancelled = false;
-    const id = setTimeout(async () => {
-      const results = await searchProductsByName(nameSearch, locationId);
-      if (!cancelled) setMatches(results);
-    }, 300);
-    return () => {
-      cancelled = true;
-      clearTimeout(id);
-    };
-  }, [nameSearch, locationId]);
-
-  function selectMatch(product) {
-    setPending(product);
-    setQty('1');
-    setNameSearch('');
-    setMatches([]);
-  }
-
-  function cancelPending() {
-    setPending(null);
-    setNotFound(false);
-  }
-
-  function handleAddPending() {
-    const n = Number(qty);
-    if (!pending || !n || n <= 0) return;
-    onChange([
-      ...orderItems,
-      {
-        id: crypto.randomUUID(),
-        kind: 'product',
-        productId: pending.id,
-        name: pending.name_en,
-        unit: pending.unit,
-        qty: n,
-        unitPrice: Number(pending.price),
-      },
-    ]);
-    setPending(null);
-  }
+  const visible = useMemo(() => {
+    if (!allProducts) return [];
+    const q = filter.trim().toLowerCase();
+    if (!q) return allProducts;
+    return allProducts.filter(
+      (p) => p.name_en.toLowerCase().includes(q) || (p.name_mr || '').toLowerCase().includes(q)
+    );
+  }, [allProducts, filter]);
 
   const inBill = useMemo(() => {
     const m = new Map();
@@ -152,101 +116,50 @@ function ProductScanner({ orderItems, onChange, locationId }) {
             label={t('scanBarcodeLabel')}
             icon={Scan}
             value={barcode}
-            onChange={setBarcode}
+            onChange={(v) => {
+              setBarcode(v);
+              setNotFound(false);
+            }}
             onKeyDown={handleBarcodeKeyDown}
             placeholder={t('scanBarcodePlaceholder')}
-            isDisabled={!!pending}
             isInvalid={notFound}
             hint={notFound ? t('unknownBarcode') : undefined}
           />
-          <div className="relative">
-            <Input
-              label={t('searchProductLabel')}
-              icon={SearchLg}
-              value={nameSearch}
-              onChange={setNameSearch}
-              placeholder={t('searchProductPlaceholder')}
-              isDisabled={!!pending}
-            />
-            <AnimatePresence>
-              {matches.length > 0 && (
-                <motion.ul
-                  {...POP}
-                  className="absolute inset-x-0 top-full z-20 mt-1.5 max-h-80 overflow-auto rounded-lg bg-primary py-1 shadow-lg ring-1 ring-secondary"
-                >
-                  {matches.map((m) => (
-                    <li key={m.id} className="px-1.5">
-                      <button
-                        type="button"
-                        onClick={() => selectMatch(m)}
-                        className="flex w-full items-center gap-3 rounded-md px-2.5 py-2 text-left transition duration-100 ease-linear hover:bg-primary_hover"
-                      >
-                        <ProductThumb name={m.name_en} className="size-9 rounded-md" />
-                        <span className="min-w-0 flex-1 truncate text-sm font-medium text-primary">{m.name_en}</span>
-                        <span className="text-sm text-tertiary tabular-nums">
-                          {inr(m.price)}/{unitAbbrev(m.unit)}
-                        </span>
-                      </button>
-                    </li>
-                  ))}
-                </motion.ul>
-              )}
-            </AnimatePresence>
-          </div>
+          <Input
+            label={t('searchProductLabel')}
+            icon={SearchLg}
+            value={filter}
+            onChange={setFilter}
+            placeholder={t('searchProductPlaceholder')}
+          />
         </div>
 
-        <AnimatePresence>
-          {pending && (
-            <motion.div {...POP} className="flex flex-col gap-4 rounded-xl bg-secondary p-4 ring-1 ring-secondary ring-inset sm:flex-row sm:items-end">
-              <div className="flex min-w-0 flex-1 items-center gap-3">
-                <ProductThumb name={pending.name_en} className="size-14 rounded-lg" />
-                <div className="flex min-w-0 flex-col gap-1">
-                  <p className="truncate text-md font-semibold text-primary">{pending.name_en}</p>
-                  <p className="text-sm text-tertiary tabular-nums">
-                    {inr(pending.price)} / {unitAbbrev(pending.unit)}
-                  </p>
-                  {pending.qtyOnHand != null && (
-                    <BadgeWithDot size="sm" type="modern" color={pending.qtyOnHand > 0 ? 'success' : 'error'}>
-                      {pending.qtyOnHand > 0 ? `${t('stockHereLabel')}: ${pending.qtyOnHand}` : t('outOfStockWarning')}
-                    </BadgeWithDot>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-end gap-3">
-                <Input
-                  label={`${t('quantity')} (${unitAbbrev(pending.unit)})`}
-                  type="number"
-                  inputMode="decimal"
-                  value={String(qty)}
-                  onChange={setQty}
-                  className="w-28"
-                  autoFocus
-                />
-                <Button color="secondary" size="md" onClick={cancelPending}>
-                  {t('cancel')}
-                </Button>
-                <Button size="md" iconLeading={Plus} onClick={handleAddPending}>
-                  {t('addItem').replace(/^\+\s*/, '')}
-                </Button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {allProducts === null && <p className="py-6 text-center text-sm text-tertiary">{t('loadingResults')}</p>}
 
-        {allProducts.length > 0 && (
+        {allProducts !== null && visible.length === 0 && (
+          <p className="py-6 text-center text-sm text-tertiary">{filter ? t('noProductMatch') : t('noProductsYetHint')}</p>
+        )}
+
+        {visible.length > 0 && (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 2xl:grid-cols-4">
-            {allProducts.map((p) => {
+            {visible.map((p) => {
               const count = inBill.get(p.id) || 0;
-              const out = p.qtyOnHand != null && p.qtyOnHand <= 0;
+              // Ready-made packets are always sellable at the counter; only a
+              // loose item whose count has actually been entered and hit zero
+              // is flagged.
+              const out = p.category !== 'ready_made' && p.qtyOnHand != null && p.qtyOnHand <= 0;
+              const { base, pack } = splitPackName(p.name_en);
               return (
                 <button
                   key={p.id}
                   type="button"
-                  disabled={!!pending}
-                  onClick={() => selectMatch(p)}
-                  className="group flex flex-col overflow-hidden rounded-xl bg-primary text-left shadow-xs ring-1 ring-secondary ring-inset transition duration-100 ease-linear hover:ring-primary disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => onAdd(p)}
+                  className={cx(
+                    'group flex flex-col overflow-hidden rounded-xl bg-primary text-left shadow-xs ring-1 ring-inset transition duration-100 ease-out active:scale-[0.98]',
+                    count > 0 ? 'ring-2 ring-brand' : 'ring-secondary hover:ring-primary'
+                  )}
                 >
-                  <span className="relative block aspect-square bg-secondary">
+                  <span className="relative block aspect-[4/3] bg-secondary">
                     <ProductThumb name={p.name_en} className="size-full ring-0" />
                     <span className="absolute top-2 left-2 flex gap-1">
                       {count > 0 && (
@@ -260,11 +173,16 @@ function ProductScanner({ orderItems, onChange, locationId }) {
                         </Badge>
                       )}
                     </span>
+                    <span className="absolute right-2 bottom-2 flex size-8 items-center justify-center rounded-full bg-brand-solid text-white shadow-md transition duration-100 ease-out group-hover:scale-110">
+                      <Plus className="size-4" />
+                    </span>
                   </span>
                   <span className="flex flex-col gap-0.5 p-3">
-                    <span className="truncate text-sm font-semibold text-primary">{p.name_en}</span>
-                    <span className="text-sm text-tertiary tabular-nums">
-                      {inr(p.price)} / {unitAbbrev(p.unit)}
+                    <span className="line-clamp-2 text-sm font-semibold text-primary">{base}</span>
+                    {pack && <span className="truncate text-xs text-tertiary">{pack}</span>}
+                    <span className="text-sm font-medium text-secondary tabular-nums">
+                      {inr(p.price)}
+                      {p.unit !== 'piece' && ` / ${unitAbbrev(p.unit)}`}
                     </span>
                   </span>
                 </button>
@@ -277,7 +195,16 @@ function ProductScanner({ orderItems, onChange, locationId }) {
   );
 }
 
-export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pricingConfig, locationId, customer }) {
+export default function OrderBuilder({
+  orderItems,
+  onChange,
+  onBack,
+  onNext,
+  pricingConfig,
+  locationId,
+  customer,
+  reorderInfo,
+}) {
   const { t, lang } = useLanguage();
   const catalog = useMemo(() => getRecipeCatalog(pricingConfig), [pricingConfig]);
   const types = Object.keys(catalog);
@@ -304,6 +231,36 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pri
     ]);
   }
 
+  function addProduct(product) {
+    const add = TAP_QTY[product.unit] ?? 1;
+    const existing = orderItems.find((i) => i.kind === 'product' && i.productId === product.id);
+    if (existing) {
+      onChange(orderItems.map((i) => (i.id === existing.id ? { ...i, qty: roundQty(i.qty + add) } : i)));
+      return;
+    }
+    onChange([
+      ...orderItems,
+      {
+        id: crypto.randomUUID(),
+        kind: 'product',
+        productId: product.id,
+        name: product.name_en,
+        unit: product.unit,
+        qty: add,
+        unitPrice: Number(product.price),
+      },
+    ]);
+  }
+
+  function changeQty(item, delta) {
+    const next = roundQty(item.qty + delta);
+    if (next <= 0) {
+      handleRemove(item.id);
+      return;
+    }
+    onChange(orderItems.map((i) => (i.id === item.id ? { ...i, qty: next } : i)));
+  }
+
   function handleRemove(id) {
     onChange(orderItems.filter((item) => item.id !== id));
   }
@@ -321,6 +278,11 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pri
   const selectedOption = catalog[type]?.find((o) => o.qtyLabel === qtyLabel);
   const selectedEstimate = selectedOption ? estimateCustomTotal(selectedOption, pricingConfig) : null;
   const typeLabel = (ty) => masalaTypeLabel(t, ty, pricingConfig?.masala_types, lang);
+  const dateFormatter = new Intl.DateTimeFormat(lang === 'mr' ? 'mr-IN' : 'en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  });
 
   return (
     <>
@@ -333,6 +295,29 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pri
           </Button>
         }
       />
+
+      {reorderInfo && (
+        <div className="px-4 pt-6 lg:px-8">
+          <div className="flex items-start gap-3 rounded-xl bg-brand-primary px-4 py-3 ring-1 ring-brand ring-inset">
+            <Repeat04 className="mt-0.5 size-5 shrink-0 text-fg-brand-primary" />
+            <div className="flex flex-col gap-0.5">
+              <p className="text-sm font-semibold text-primary">
+                {t('reorderBannerTitle')}{' '}
+                {reorderInfo.fromDate && (
+                  <span className="font-normal text-tertiary">
+                    · {t('reorderFromLabel')} {dateFormatter.format(new Date(reorderInfo.fromDate))}
+                  </span>
+                )}
+              </p>
+              {reorderInfo.skipped > 0 && (
+                <p className="text-sm text-tertiary">
+                  {reorderInfo.skipped} {t('reorderSkippedLabel')}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 items-start gap-6 px-4 pt-8 lg:px-8 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="flex min-w-0 flex-col gap-6">
@@ -383,7 +368,7 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pri
             </div>
           </section>
 
-          <ProductScanner orderItems={orderItems} onChange={onChange} locationId={locationId} />
+          <ProductScanner orderItems={orderItems} onAdd={addProduct} locationId={locationId} />
         </div>
 
         <aside className={cx(card, 'flex flex-col xl:sticky xl:top-6')}>
@@ -409,6 +394,7 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pri
                 {orderItems.map((item) => {
                   const isProduct = item.kind === 'product';
                   const amount = isProduct ? item.qty * item.unitPrice : estimateCustomTotal(item, pricingConfig);
+                  const step = STEP_QTY[item.unit] ?? 1;
                   return (
                     <motion.li
                       key={item.id}
@@ -432,13 +418,35 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pri
                           {item.qtyLabel}
                         </span>
                       )}
-                      <div className="flex min-w-0 flex-1 flex-col">
+                      <div className="flex min-w-0 flex-1 flex-col gap-1">
                         <p className="truncate text-sm font-medium text-primary">
                           {isProduct ? item.name : `${typeLabel(item.type)} · ${item.qtyLabel} kg`}
                         </p>
-                        <p className="text-xs text-tertiary tabular-nums">
-                          {isProduct ? `${item.qty} ${unitAbbrev(item.unit)} × ${inr(item.unitPrice)}` : t('customBlendEstimate')}
-                        </p>
+                        {isProduct ? (
+                          <div className="flex items-center gap-1.5">
+                            <ButtonUtility
+                              size="xs"
+                              color="secondary"
+                              tooltip={t('decreaseQty')}
+                              icon={Minus}
+                              onClick={() => changeQty(item, -step)}
+                            />
+                            <span className="min-w-8 text-center text-sm font-semibold text-primary tabular-nums">
+                              {item.qty}
+                              {item.unit !== 'piece' && <span className="font-normal text-tertiary"> {unitAbbrev(item.unit)}</span>}
+                            </span>
+                            <ButtonUtility
+                              size="xs"
+                              color="secondary"
+                              tooltip={t('increaseQty')}
+                              icon={Plus}
+                              onClick={() => changeQty(item, step)}
+                            />
+                            <span className="text-xs text-tertiary tabular-nums">× {inr(item.unitPrice)}</span>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-tertiary">{t('customBlendEstimate')}</p>
+                        )}
                       </div>
                       <p className="text-sm font-semibold text-primary tabular-nums">{amount != null ? inr(amount) : '—'}</p>
                       <ButtonUtility size="xs" color="tertiary" tooltip={t('remove')} icon={Trash01} onClick={() => handleRemove(item.id)} />
