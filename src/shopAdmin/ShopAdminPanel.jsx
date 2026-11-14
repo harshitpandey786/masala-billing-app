@@ -41,7 +41,9 @@ export default function ShopAdminPanel({ location }) {
             <ShopProductPricing key={location.id} locationId={location.id} />
           </>
         ) : (
-          <ShopAdminLogin location={location} onUnlock={() => setAuthed(true)} />
+          <div className="flex min-h-[65vh] items-center justify-center">
+            <ShopAdminLogin location={location} onUnlock={() => setAuthed(true)} />
+          </div>
         )}
       </div>
     </>

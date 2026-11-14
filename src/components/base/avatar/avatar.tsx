@@ -20,6 +20,10 @@ export interface AvatarProps {
      */
     contentClassName?: string;
     /**
+     * The class name for the initials text, e.g. to give each person a distinct color.
+     */
+    initialsClassName?: string;
+    /**
      * The URL of the avatar image. Falls back to the initials, placeholder icon or placeholder if it is missing or fails to load.
      */
     src?: string | null;
@@ -105,6 +109,7 @@ export const Avatar = ({
     rounded = true,
     className,
     contentClassName,
+    initialsClassName,
 }: AvatarProps) => {
     const [isFailed, setIsFailed] = useState(false);
 
@@ -116,7 +121,7 @@ export const Avatar = ({
         }
 
         if (initials) {
-            return <span className={cx("text-quaternary", styles[size].initials)}>{initials}</span>;
+            return <span className={cx("text-quaternary", styles[size].initials, initialsClassName)}>{initials}</span>;
         }
 
         if (PlaceholderIcon) {

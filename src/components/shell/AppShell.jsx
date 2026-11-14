@@ -11,11 +11,11 @@ export default function AppShell({ sections = [], subtitle, footer, children }) 
   const sidebar = (
     <aside
       style={{ '--width': `${SIDEBAR_WIDTH}px` }}
-      className="flex h-full w-full max-w-full flex-col justify-between overflow-auto bg-primary pt-5 shadow-xs ring-secondary ring-inset lg:w-(--width) lg:rounded-xl lg:ring-1"
+      className="flex h-full w-full max-w-full flex-col justify-between overflow-auto bg-primary shadow-xs ring-secondary ring-inset lg:w-(--width) lg:rounded-xl lg:ring-1"
     >
-      <div className="flex flex-col gap-1 px-4 lg:px-5">
+      <div className="flex flex-col gap-1 bg-brand-primary px-4 pt-5 pb-5 lg:rounded-t-xl lg:px-5">
         <ShindrajLogo />
-        {subtitle && <p className="pl-[42px] text-sm text-tertiary">{subtitle}</p>}
+        {subtitle && <p className="pl-14 text-sm text-tertiary">{subtitle}</p>}
       </div>
 
       <ul className="mt-6">
@@ -58,7 +58,7 @@ export default function AppShell({ sections = [], subtitle, footer, children }) 
   );
 
   return (
-    <div className="flex min-h-dvh flex-col bg-primary lg:flex-row">
+    <div className="flex min-h-dvh flex-col bg-secondary lg:flex-row">
       <MobileNavigationHeader>{sidebar}</MobileNavigationHeader>
       <div className="hidden lg:fixed lg:inset-y-0 lg:left-0 lg:z-10 lg:flex lg:py-1 lg:pl-1">{sidebar}</div>
       <div style={{ paddingLeft: SIDEBAR_WIDTH + 4 }} className="invisible hidden lg:block" />

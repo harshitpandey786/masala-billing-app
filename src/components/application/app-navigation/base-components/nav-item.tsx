@@ -9,7 +9,7 @@ import { cx, sortCx } from "@/utils/cx";
 
 const styles = sortCx({
     root: "group relative flex max-h-9 w-full cursor-pointer items-center rounded-md bg-primary outline-focus-ring transition duration-100 ease-linear select-none hover:bg-primary_hover focus-visible:z-10 focus-visible:outline-2 focus-visible:outline-offset-2",
-    rootSelected: "bg-secondary hover:bg-secondary_hover",
+    rootSelected: "bg-brand-primary hover:bg-brand-secondary",
 });
 
 /**
@@ -59,7 +59,7 @@ export const NavItemBase = (props: NavItemBaseProps) => {
             aria-hidden="true"
             className={cx(
                 "mr-2 size-5 shrink-0 text-fg-quaternary transition-inherit-all group-hover/item:text-fg-quaternary_hover",
-                current && "text-fg-quaternary_hover",
+                current && "text-fg-brand-primary",
             )}
         />
     );
@@ -78,7 +78,7 @@ export const NavItemBase = (props: NavItemBaseProps) => {
             className={cx(
                 "flex-1 text-sm font-semibold text-secondary transition-inherit-all group-hover/item:text-secondary_hover",
                 truncate && "truncate",
-                current && "text-secondary_hover",
+                current && "text-brand-primary",
             )}
         >
             {children}

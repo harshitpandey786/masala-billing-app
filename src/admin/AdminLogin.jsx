@@ -4,6 +4,7 @@ import { Button } from '@/components/base/buttons/button';
 import { Input } from '@/components/base/input/input';
 import { useLanguage } from '../i18n.jsx';
 import LanguageToggle from '../components/LanguageToggle.jsx';
+import AuthBackdrop from '../components/AuthBackdrop.jsx';
 
 const ADMIN_PASSWORD = import.meta.env.VITE_ADMIN_PASSWORD;
 
@@ -23,28 +24,26 @@ export default function AdminLogin({ onUnlock }) {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-secondary">
+    <AuthBackdrop>
       <div className="flex justify-end p-4">
-        <LanguageToggle />
+        <div className="rounded-lg bg-primary/90 p-1 shadow-sm backdrop-blur-sm">
+          <LanguageToggle />
+        </div>
       </div>
-      <div className="flex flex-1 items-start justify-center px-4 pt-8 pb-16 sm:pt-16">
-        <div className="flex w-full max-w-sm flex-col gap-8">
-          <div className="flex flex-col items-center gap-5 text-center">
-            <img
-              src="/logo-mark.png"
-              alt="Shindraj Masale logo"
-              className="size-14 object-contain"
-            />
-            <div className="flex flex-col gap-2">
-              <h1 className="text-display-xs font-semibold text-primary">{t('ownerLoginTitle')}</h1>
-              <p className="text-md text-tertiary">{t('enterPassword')}</p>
-            </div>
-          </div>
-
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-10">
+        <div className="flex w-full max-w-sm flex-col gap-5">
           <form
             onSubmit={handleSubmit}
-            className="flex flex-col gap-5 rounded-xl bg-primary p-6 shadow-sm ring-1 ring-secondary ring-inset"
+            className="flex flex-col gap-5 rounded-2xl bg-primary p-7 shadow-xl ring-1 ring-secondary ring-inset"
           >
+            <div className="flex flex-col items-center gap-4 text-center">
+              <img src="/logo-mark.png" alt="Shindraj Masale logo" className="size-14 rounded-xl object-contain" />
+              <div className="flex flex-col gap-1">
+                <h1 className="text-display-xs font-bold text-primary">{t('ownerLoginTitle')}</h1>
+                <p className="text-sm text-tertiary">{t('enterPassword')}</p>
+              </div>
+            </div>
+
             {!ADMIN_PASSWORD && (
               <p className="text-sm text-error-primary">
                 VITE_ADMIN_PASSWORD is not set — see docs/supabase-setup.md to configure the owner
@@ -65,8 +64,10 @@ export default function AdminLogin({ onUnlock }) {
               {t('unlock')}
             </Button>
           </form>
+
+          <p className="text-center text-sm font-medium text-white drop-shadow-sm">{t('tagline')}</p>
         </div>
       </div>
-    </div>
+    </AuthBackdrop>
   );
 }

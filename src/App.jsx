@@ -19,7 +19,7 @@ import AppShell from './components/shell/AppShell.jsx';
 import PageHeader from './components/shell/PageHeader.jsx';
 import staticPricingConfig from '../data/pricing-config.json' with { type: 'json' };
 
-const STEPS = ['customer', 'order', 'bill', 'share'];
+const STEPS = ['order', 'customer', 'bill', 'share'];
 const STEP_LABEL_KEYS = {
   customer: 'stepCustomer',
   order: 'stepOrder',
@@ -241,36 +241,54 @@ export default function App() {
           {step === 'start' && (
             <>
               <PageHeader title={location.name} description={t('startScreenHint')} />
-              <div className="px-4 pt-8 lg:px-8">
-                <div className="flex max-w-xl flex-col items-start gap-4 rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
-                  <span className="flex size-12 items-center justify-center rounded-lg bg-brand-secondary text-fg-brand-primary">
-                    <ReceiptCheck className="size-6" />
+              <div className="grid grid-cols-1 gap-5 px-4 pt-8 lg:grid-cols-3 lg:px-8">
+                <div className="flex flex-col items-start gap-4 rounded-xl bg-brand-primary p-6 shadow-xs ring-1 ring-brand ring-inset lg:col-span-2">
+                  <span className="flex size-14 items-center justify-center rounded-xl bg-brand-solid text-fg-white shadow-xs-skeuomorphic">
+                    <ReceiptCheck className="size-7" />
                   </span>
                   <div className="flex flex-col gap-1">
-                    <p className="text-lg font-semibold text-primary">{t('generateNewBill')}</p>
+                    <p className="text-xl font-bold text-primary">{t('generateNewBill')}</p>
                     <p className="text-sm text-tertiary">{t('startScreenDetail')}</p>
                   </div>
-                  <Button size="lg" iconLeading={Plus} onClick={() => setStep('customer')}>
+                  <Button size="lg" iconLeading={Plus} onClick={() => setStep('order')}>
                     {t('generateNewBill')}
                   </Button>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setView('shopAdmin')}
+                  className="group flex flex-col items-start gap-4 rounded-xl bg-primary p-6 text-left shadow-xs ring-1 ring-secondary ring-inset transition-colors hover:bg-secondary"
+                >
+                  <span className="flex size-14 items-center justify-center rounded-xl bg-secondary text-fg-brand-primary ring-1 ring-secondary ring-inset">
+                    <Lock01 className="size-7" />
+                  </span>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xl font-bold text-primary">{t('shopAdminLink')}</p>
+                    <p className="text-sm text-tertiary">{t('shopAdminLoginHint')}</p>
+                  </div>
+                </button>
               </div>
             </>
-          )}
-
-          {step === 'customer' && (
-            <CustomerDetails customer={customer} onChange={setCustomer} onNext={() => setStep('order')} />
           )}
 
           {step === 'order' && (
             <OrderBuilder
               orderItems={orderItems}
               onChange={setOrderItems}
-              onBack={() => setStep('customer')}
-              onNext={() => advanceBilling([], 0)}
+              onBack={() => setStep('start')}
+              onNext={() => setStep('customer')}
               pricingConfig={pricingConfig}
               locationId={location.id}
               customer={customer}
+            />
+          )}
+
+          {step === 'customer' && (
+            <CustomerDetails
+              customer={customer}
+              onChange={setCustomer}
+              onBack={() => setStep('order')}
+              onNext={() => advanceBilling([], 0)}
             />
           )}
 

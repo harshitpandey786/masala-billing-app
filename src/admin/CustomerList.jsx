@@ -8,6 +8,7 @@ import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
 import { groupBillsByCustomer } from '../customerSearch.js';
 import { DEMO_ROWS } from './demoData.js';
+import { avatarColorFor } from '../utils/avatarColor.js';
 
 const RESULT_LIMIT = 500;
 
@@ -180,7 +181,12 @@ export default function CustomerList({ demoMode, fromDate = '', toDate = '', sho
                 <Table.Row id={c.phone} className="cursor-pointer">
                   <Table.Cell>
                     <div className="flex items-center gap-3">
-                      <Avatar size="md" initials={initialsOf(c.name)} />
+                      <Avatar
+                        size="md"
+                        initials={initialsOf(c.name)}
+                        contentClassName={avatarColorFor(c.phone).bg}
+                        initialsClassName={avatarColorFor(c.phone).text}
+                      />
                       <div className="whitespace-nowrap">
                         <p className="text-sm font-medium text-primary">{c.name}</p>
                         <p className="text-sm text-tertiary">{c.phone}</p>

@@ -8,6 +8,7 @@ import { Input } from '@/components/base/input/input';
 import { NativeSelect } from '@/components/base/select/select-native';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
+import { ProductThumb } from '../components/ProductThumb.jsx';
 
 const th = 'border-b border-secondary bg-secondary px-4 py-3 text-left text-xs font-semibold whitespace-nowrap text-tertiary';
 const td = 'border-b border-secondary px-4 py-3 align-middle text-sm text-tertiary';
@@ -353,13 +354,16 @@ function ProductTable({ products, onChanged, onSaved }) {
             {products.map((p) => (
               <tr key={p.id} className="hover:bg-secondary">
                 <td className={td}>
-                  <Input
-                    size="sm"
-                    aria-label={t('tableNameEn')}
-                    value={String(fieldFor(p, 'name_en'))}
-                    onChange={(v) => setField(p.id, 'name_en', v)}
-                    className="min-w-40"
-                  />
+                  <div className="flex items-center gap-3">
+                    <ProductThumb name={p.name_en} className="size-9 rounded-md" />
+                    <Input
+                      size="sm"
+                      aria-label={t('tableNameEn')}
+                      value={String(fieldFor(p, 'name_en'))}
+                      onChange={(v) => setField(p.id, 'name_en', v)}
+                      className="min-w-40"
+                    />
+                  </div>
                 </td>
                 <td className={td}>
                   <Input
@@ -500,16 +504,24 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
 
   function Cell({ product, locationId, field, fallback, label }) {
     const key = cellKey(product.id, locationId, field);
+    const value = fieldValue(product, locationId, field, fallback);
+    const showOutOfStock = field === 'qty_on_hand' && Number(value) === 0;
     return (
       <div className="flex items-center gap-2">
         <Input
           size="sm"
           type="number"
           aria-label={label}
-          value={String(fieldValue(product, locationId, field, fallback))}
+          value={String(value)}
           onChange={(v) => setEdits((prev) => ({ ...prev, [key]: v }))}
           className="w-24"
         />
+        {showOutOfStock && (
+          <span className="flex items-center gap-1.5 text-xs font-medium whitespace-nowrap text-fg-error-primary">
+            <span className="size-1.5 shrink-0 rounded-full bg-fg-error-primary" />
+            {t('outOfStockShort')}
+          </span>
+        )}
         {isDirty(product, locationId, field, fallback) && (
           <Button
             size="sm"
@@ -551,7 +563,12 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
           <tbody>
             {products.map((p) => (
               <tr key={p.id} className="hover:bg-secondary">
-                <td className={`${td} font-medium whitespace-nowrap text-primary`}>{p.name_en}</td>
+                <td className={`${td} font-medium whitespace-nowrap text-primary`}>
+                  <div className="flex items-center gap-3">
+                    <ProductThumb name={p.name_en} className="size-9 rounded-md" />
+                    {p.name_en}
+                  </div>
+                </td>
                 {locations.map((loc) => (
                   <Fragment key={loc.id}>
                     <td className={`${td} border-l`}>

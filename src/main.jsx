@@ -5,7 +5,8 @@ import AdminApp from './admin/AdminApp.jsx';
 import CustomerLookupApp from './CustomerLookupApp.jsx';
 import { LanguageProvider } from './i18n.jsx';
 import { ADMIN_ON_SHOP_SITE, isAdminHost } from './siteConfig.js';
-import '@fontsource-variable/inter';
+import '@fontsource-variable/plus-jakarta-sans';
+import '@fontsource-variable/inter'; // printed bills keep Inter, see bill-print.css
 import '@fontsource-variable/noto-sans-devanagari';
 import './styles/app.css';
 

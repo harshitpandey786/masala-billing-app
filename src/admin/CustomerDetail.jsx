@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft } from '@untitledui/icons';
+import { ArrowLeft, CurrencyRupeeCircle, Heart, Receipt, Repeat04 } from '@untitledui/icons';
 import { Avatar } from '@/components/base/avatar/avatar';
 import { Button } from '@/components/base/buttons/button';
+import { FeaturedIcon } from '@/components/foundations/featured-icon/featured-icon';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage, masalaTypeLabel, channelLabel } from '../i18n.jsx';
 import { DEMO_ROWS } from './demoData.js';
@@ -18,11 +19,26 @@ function initialsOf(name) {
     .toUpperCase();
 }
 
-function Stat({ label, value }) {
+function Stat({ label, value, icon }) {
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl bg-primary p-4 shadow-xs ring-1 ring-secondary ring-inset">
-      <p className="text-sm font-medium text-tertiary">{label}</p>
+    <div className="flex flex-col gap-3 rounded-xl bg-primary p-4 shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium text-tertiary">{label}</p>
+        {icon && <FeaturedIcon icon={icon} color="brand" size="sm" />}
+      </div>
       <p className="truncate text-lg font-semibold text-primary tabular-nums">{value}</p>
+    </div>
+  );
+}
+
+// Quieter than a Stat card: reference info the owner glances at, not a
+// headline number -- so it reads as one compact strip instead of four more
+// identical boxes.
+function MetaItem({ label, value }) {
+  return (
+    <div className="flex flex-col gap-1 px-4 py-3">
+      <p className="text-xs font-medium text-quaternary">{label}</p>
+      <p className="truncate text-sm font-medium text-primary tabular-nums">{value}</p>
     </div>
   );
 }
@@ -139,10 +155,10 @@ export default function CustomerDetail({ phone, demoMode, onBack }) {
 
       {status === 'ready' && profile && (
         <>
-          <div className="flex items-center gap-4">
-            <Avatar size="xl" initials={initialsOf(profile.name)} />
+          <div className="flex items-center gap-4 rounded-xl bg-primary p-5 shadow-xs ring-1 ring-secondary ring-inset">
+            <Avatar size="xl" initials={initialsOf(profile.name)} className="ring-4 ring-brand-secondary" />
             <div className="flex min-w-0 flex-col gap-0.5">
-              <h2 className="truncate text-display-xs font-semibold text-primary">{profile.name}</h2>
+              <h2 className="truncate text-display-xs font-bold text-primary">{profile.name}</h2>
               <p className="text-md text-tertiary">
                 {profile.phone}
                 {profile.area ? ` · ${profile.area}` : ''}
@@ -151,26 +167,30 @@ export default function CustomerDetail({ phone, demoMode, onBack }) {
           </div>
 
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-            <Stat label={t('totalSpent')} value={inr(profile.totalSpent)} />
-            <Stat label={t('totalBills')} value={profile.totalBills} />
-            <Stat label={t('avgOrderValue')} value={inr(profile.avgOrderValue)} />
+            <Stat label={t('totalSpent')} value={inr(profile.totalSpent)} icon={CurrencyRupeeCircle} />
+            <Stat label={t('totalBills')} value={profile.totalBills} icon={Receipt} />
+            <Stat label={t('avgOrderValue')} value={inr(profile.avgOrderValue)} icon={Repeat04} />
             <Stat
               label={t('favoriteItem')}
               value={profile.favoriteItem ? masalaTypeLabel(t, profile.favoriteItem.type) : '—'}
+              icon={Heart}
             />
-            <Stat
+          </div>
+
+          <div className="grid grid-cols-2 divide-x divide-y divide-secondary rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset sm:grid-cols-4 sm:divide-y-0">
+            <MetaItem
               label={t('firstOrderLabel')}
               value={profile.firstOrderDate ? dateFormatter.format(new Date(profile.firstOrderDate)) : '—'}
             />
-            <Stat
+            <MetaItem
               label={t('lastOrderLabel')}
               value={profile.lastOrderDate ? dateFormatter.format(new Date(profile.lastOrderDate)) : '—'}
             />
-            <Stat
+            <MetaItem
               label={t('orderFrequencyLabel')}
               value={profile.orderFrequencyDays != null ? `~${Math.round(profile.orderFrequencyDays)} ${t('daysUnit')}` : '—'}
             />
-            <Stat
+            <MetaItem
               label={t('preferredChannelLabel')}
               value={profile.preferredChannel ? channelLabel(t, profile.preferredChannel.key) : '—'}
             />

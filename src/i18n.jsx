@@ -224,7 +224,7 @@ const STRINGS = {
     // Untitled UI redesign
     navCounter: 'Counter',
     navShop: 'Shop',
-    startScreenDetail: "Start with the customer's phone number, then add masalas and packs.",
+    startScreenDetail: 'Add masalas and packs first, then take the customer’s details at the end.',
     customerDetailsHint: 'Type the phone number first. Returning customers fill in automatically.',
     returningCustomers: 'Returning customers',
     readyMadeProductsHint: 'Scan a barcode, search by name, or tap a product.',
@@ -466,7 +466,7 @@ const STRINGS = {
     // Untitled UI redesign
     navCounter: 'काउंटर',
     navShop: 'दुकान',
-    startScreenDetail: 'ग्राहकाच्या फोन नंबरने सुरुवात करा, मग मसाले आणि पॅक जोडा.',
+    startScreenDetail: 'आधी मसाले आणि पॅक जोडा, मग शेवटी ग्राहकाची माहिती घ्या.',
     customerDetailsHint: 'आधी फोन नंबर टाका. जुन्या ग्राहकांची माहिती आपोआप भरली जाते.',
     returningCustomers: 'जुने ग्राहक',
     readyMadeProductsHint: 'बारकोड स्कॅन करा, नावाने शोधा किंवा उत्पादनावर टॅप करा.',

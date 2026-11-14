@@ -2,6 +2,7 @@ import { Fragment, useState } from 'react';
 import { ChevronDown, ChevronRight } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { useLanguage, masalaTypeLabel, channelLabel } from '../i18n.jsx';
+import { masalaTypeColorFor } from '../utils/masalaTypeColor.js';
 
 const th = 'border-b border-secondary bg-secondary px-4 py-3 text-left text-xs font-semibold whitespace-nowrap text-tertiary md:px-6';
 const td = 'border-b border-secondary px-4 py-4 align-middle text-sm text-tertiary md:px-6';
@@ -39,8 +40,11 @@ export default function BillLedgerTable({ rows }) {
                 <tr className="hover:bg-secondary">
                   <td className={`${td} whitespace-nowrap`}>{dateFormatter.format(new Date(row.order_date))}</td>
                   <td className={td}>
-                    <span className="font-medium text-primary">
-                      {masalaTypeLabel(t, (row.masala_type || '').toLowerCase())}
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className={`size-1.5 shrink-0 rounded-full ${masalaTypeColorFor(row.masala_type).dot}`} />
+                      <span className="font-medium text-primary">
+                        {masalaTypeLabel(t, (row.masala_type || '').toLowerCase())}
+                      </span>
                     </span>
                     {' · '}
                     {channelLabel(t, row.billing_mode === 'offline' ? row.store || 'offline-other' : 'online')}

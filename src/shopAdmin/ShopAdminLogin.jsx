@@ -1,6 +1,8 @@
 import { useState } from 'react';
+import { Lock01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { Input } from '@/components/base/input/input';
+import { FeaturedIcon } from '@/components/foundations/featured-icon/featured-icon';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
 
@@ -47,9 +49,12 @@ export default function ShopAdminLogin({ location, onUnlock }) {
   }
 
   return (
-    <section className="w-full max-w-md rounded-xl bg-primary p-6 shadow-xs ring-1 ring-secondary ring-inset">
+    <section className="w-full max-w-md rounded-2xl bg-primary p-7 shadow-lg ring-1 ring-secondary ring-inset">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <p className="text-sm text-tertiary">{t('shopAdminLoginHint')}</p>
+        <div className="flex flex-col items-center gap-3 pb-1 text-center">
+          <FeaturedIcon icon={Lock01} color="brand" theme="light" size="lg" />
+          <p className="text-sm text-tertiary">{t('shopAdminLoginHint')}</p>
+        </div>
         <Input
           label={t('password')}
           type="password"

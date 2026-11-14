@@ -1,14 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowUp } from '@untitledui/icons';
+import { CurrencyRupeeCircle, Receipt, Repeat04, TrendDown02, TrendUp02, Users01 } from '@untitledui/icons';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltipContent } from '@/components/application/charts/charts-base';
 import { Table, TableCard } from '@/components/application/table/table';
 import { Avatar } from '@/components/base/avatar/avatar';
+import { FeaturedIcon } from '@/components/foundations/featured-icon/featured-icon';
 import { ProgressBarBase } from '@/components/base/progress-indicators/progress-indicators';
+import { cx } from '@/utils/cx';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage, masalaTypeLabel, storeLabel } from '../i18n.jsx';
 import { DEMO_ROWS } from './demoData.js';
 import { computeAnalytics } from './analytics.js';
+import { avatarColorFor } from '../utils/avatarColor.js';
 
 // Analytics are scoped by the same from/to date pickers as the search below,
 // but deliberately ignore the name/phone search box -- "best seller" and
@@ -139,10 +142,10 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode, locations =
 
   const growth = analytics.growthPct;
   const metrics = [
-    { label: t('totalRevenue'), value: inr(analytics.totalRevenue) },
-    { label: t('avgOrderValue'), value: inr(analytics.avgOrderValue) },
-    { label: t('uniqueCustomers'), value: analytics.uniqueCustomers.toLocaleString('en-IN') },
-    { label: t('repeatCustomerRate'), value: `${analytics.repeatRatePct.toFixed(0)}%` },
+    { label: t('totalRevenue'), value: inr(analytics.totalRevenue), icon: CurrencyRupeeCircle },
+    { label: t('avgOrderValue'), value: inr(analytics.avgOrderValue), icon: Receipt },
+    { label: t('uniqueCustomers'), value: analytics.uniqueCustomers.toLocaleString('en-IN'), icon: Users01 },
+    { label: t('repeatCustomerRate'), value: `${analytics.repeatRatePct.toFixed(0)}%`, icon: Repeat04 },
   ];
 
   return (
@@ -151,23 +154,24 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode, locations =
         {metrics.slice(0, 2).map((m) => (
           <MetricCard key={m.label} {...m} />
         ))}
-        <div className="flex flex-col gap-2 rounded-xl bg-primary p-5 shadow-xs ring-1 ring-secondary ring-inset">
-          <p className="text-sm font-medium text-tertiary">{t('monthlyGrowth')}</p>
+        <div className="flex flex-col gap-3 rounded-xl bg-primary p-5 shadow-xs ring-1 ring-secondary ring-inset">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium text-tertiary">{t('monthlyGrowth')}</p>
+            <FeaturedIcon icon={growth >= 0 ? TrendUp02 : TrendDown02} color={growth >= 0 ? 'success' : 'error'} size="sm" />
+          </div>
           {growth == null ? (
             <p className="text-display-sm font-semibold text-primary">—</p>
           ) : (
             <div className="flex flex-col gap-1.5">
-              <p className="text-display-sm font-semibold text-primary tabular-nums">
+              <p
+                className={cx(
+                  'text-display-sm font-semibold tabular-nums',
+                  growth >= 0 ? 'text-fg-success-primary' : 'text-fg-error-primary'
+                )}
+              >
                 {`${growth >= 0 ? '+' : ''}${growth.toFixed(1)}%`}
               </p>
-              <span className="flex items-center gap-1.5 text-sm text-tertiary">
-                {growth >= 0 ? (
-                  <ArrowUp className="size-4 text-fg-success-primary" />
-                ) : (
-                  <ArrowDown className="size-4 text-fg-error-primary" />
-                )}
-                {t('vsLastMonth')}
-              </span>
+              <span className="text-sm text-tertiary">{t('vsLastMonth')}</span>
             </div>
           )}
         </div>
@@ -223,7 +227,7 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode, locations =
       )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Panel title={t('topItemsTitle')}>
+        <Panel title={t('topItemsTitle')} className="xl:col-span-2">
           <ShareList
             rows={analytics.topItems.map((item) => ({
               key: item.type,
@@ -234,28 +238,30 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode, locations =
             }))}
           />
         </Panel>
-        <Panel title={t('channelBreakdownTitle')}>
-          <ShareList
-            rows={analytics.channelBreakdown.map((c) => ({
-              key: c.key,
-              label: channelLabel(t, c.key),
-              value: inr(c.revenue),
-              sharePct: c.sharePct,
-              meta: `${c.bills} ${billsWord}`,
-            }))}
-          />
-        </Panel>
-        <Panel title={t('shopPerformanceTitle')}>
-          <ShareList
-            rows={analytics.shopBreakdown.map((s) => ({
-              key: s.locationId,
-              label: shopLabel(s.locationId),
-              value: inr(s.revenue),
-              sharePct: s.sharePct,
-              meta: `${s.bills} ${billsWord}`,
-            }))}
-          />
-        </Panel>
+        <div className="flex flex-col gap-6">
+          <Panel title={t('channelBreakdownTitle')}>
+            <ShareList
+              rows={analytics.channelBreakdown.map((c) => ({
+                key: c.key,
+                label: channelLabel(t, c.key),
+                value: inr(c.revenue),
+                sharePct: c.sharePct,
+                meta: `${c.bills} ${billsWord}`,
+              }))}
+            />
+          </Panel>
+          <Panel title={t('shopPerformanceTitle')}>
+            <ShareList
+              rows={analytics.shopBreakdown.map((s) => ({
+                key: s.locationId,
+                label: shopLabel(s.locationId),
+                value: inr(s.revenue),
+                sharePct: s.sharePct,
+                meta: `${s.bills} ${billsWord}`,
+              }))}
+            />
+          </Panel>
+        </div>
       </div>
 
       <TableCard.Root>
@@ -272,7 +278,12 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode, locations =
               <Table.Row id={c.id}>
                 <Table.Cell>
                   <div className="flex items-center gap-3">
-                    <Avatar size="md" initials={initials(c.name)} />
+                    <Avatar
+                      size="md"
+                      initials={initials(c.name)}
+                      contentClassName={avatarColorFor(c.phone).bg}
+                      initialsClassName={avatarColorFor(c.phone).text}
+                    />
                     <div className="whitespace-nowrap">
                       <p className="text-sm font-medium text-primary">{c.name}</p>
                       <p className="text-sm text-tertiary">{c.phone}</p>
@@ -293,10 +304,13 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode, locations =
   );
 }
 
-function MetricCard({ label, value }) {
+function MetricCard({ label, value, icon }) {
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-primary p-5 shadow-xs ring-1 ring-secondary ring-inset">
-      <p className="text-sm font-medium text-tertiary">{label}</p>
+    <div className="flex flex-col gap-3 rounded-xl bg-primary p-5 shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium text-tertiary">{label}</p>
+        {icon && <FeaturedIcon icon={icon} color="brand" size="sm" />}
+      </div>
       <p className="text-display-sm font-semibold text-primary tabular-nums">{value}</p>
     </div>
   );

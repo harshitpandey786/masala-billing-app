@@ -11,9 +11,10 @@ import { cx } from '@/utils/cx';
 import { getRecipeCatalog } from '../recipeCatalog.js';
 import { priceRecipe } from '../pricing-engine.js';
 import { listProducts, lookupProductByBarcode, searchProductsByName } from '../productLookup.js';
-import { productImageFor } from '../productImages.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
+import { ProductThumb } from '../components/ProductThumb.jsx';
+import { masalaTypeColorFor } from '../utils/masalaTypeColor.js';
 
 function unitAbbrev(unit) {
   if (unit === 'piece') return 'pcs';
@@ -38,18 +39,6 @@ const POP = {
   transition: { duration: 0.16, ease: [0.23, 1, 0.32, 1] },
   style: { transformOrigin: 'top' },
 };
-
-function ProductThumb({ name, className }) {
-  const src = productImageFor(name);
-  if (src) {
-    return <img src={src} alt="" className={cx('shrink-0 object-cover ring-1 ring-secondary ring-inset', className)} />;
-  }
-  return (
-    <span className={cx('flex shrink-0 items-center justify-center bg-secondary text-fg-quaternary', className)}>
-      <Package className="size-5" />
-    </span>
-  );
-}
 
 const card = 'rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset';
 
@@ -433,7 +422,13 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pri
                       {isProduct ? (
                         <ProductThumb name={item.name} className="size-10 rounded-lg" />
                       ) : (
-                        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-brand-secondary text-xs font-semibold text-brand-secondary">
+                        <span
+                          className={cx(
+                            'flex size-10 shrink-0 items-center justify-center rounded-lg text-xs font-semibold',
+                            masalaTypeColorFor(item.type).bg,
+                            masalaTypeColorFor(item.type).text
+                          )}
+                        >
                           {item.qtyLabel}
                         </span>
                       )}
@@ -461,7 +456,7 @@ export default function OrderBuilder({ orderItems, onChange, onBack, onNext, pri
 
           <div className="flex flex-col gap-2 border-t border-secondary px-5 py-4">
             <Button size="lg" iconTrailing={ArrowRight} isDisabled={orderItems.length === 0} onClick={onNext} className="w-full">
-              {t('generateBills')}
+              {t('next')}
             </Button>
             {orderItems.some((i) => i.kind === 'custom') && (
               <p className="flex items-center gap-1.5 text-xs text-tertiary">

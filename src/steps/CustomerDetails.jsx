@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, ArrowRight, Phone } from '@untitledui/icons';
+import { AlertCircle, ArrowLeft, ArrowRight, Phone } from '@untitledui/icons';
 import { Avatar } from '@/components/base/avatar/avatar';
 import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
 import { Button } from '@/components/base/buttons/button';
@@ -20,7 +20,7 @@ const initials = (name) =>
     .slice(0, 2)
     .toUpperCase();
 
-export default function CustomerDetails({ customer, onChange, onNext }) {
+export default function CustomerDetails({ customer, onChange, onBack, onNext }) {
   const { t } = useLanguage();
   const [touched, setTouched] = useState(false);
   const [matches, setMatches] = useState([]);
@@ -76,7 +76,17 @@ export default function CustomerDetails({ customer, onChange, onNext }) {
 
   return (
     <>
-      <PageHeader title={t('customerDetailsTitle')} description={t('customerDetailsHint')} />
+      <PageHeader
+        title={t('customerDetailsTitle')}
+        description={t('customerDetailsHint')}
+        actions={
+          onBack && (
+            <Button color="secondary" size="md" iconLeading={ArrowLeft} onClick={onBack}>
+              {t('back')}
+            </Button>
+          )
+        }
+      />
 
       <div className="px-4 pt-8 lg:px-8">
         <div className="max-w-3xl rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
