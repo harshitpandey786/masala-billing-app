@@ -245,18 +245,18 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setStep('order')}
-                  className="group relative flex w-full max-w-3xl items-center justify-between gap-6 overflow-hidden rounded-2xl bg-brand-solid px-8 py-10 text-left shadow-lg transition duration-150 ease-linear hover:bg-brand-solid_hover sm:px-10"
+                  className="group relative flex w-full max-w-xl items-center justify-between gap-5 overflow-hidden rounded-xl bg-brand-solid px-6 py-5 text-left shadow-md transition duration-150 ease-linear hover:bg-brand-solid_hover"
                 >
                   <div
-                    className="pointer-events-none absolute inset-y-0 right-0 w-72 bg-cover bg-center opacity-30 [mask-image:linear-gradient(to_left,black,transparent)]"
+                    className="pointer-events-none absolute inset-y-0 right-0 w-40 bg-cover bg-center opacity-25 [mask-image:linear-gradient(to_left,black,transparent)]"
                     style={{ backgroundImage: "url('/products/5745.jpg')" }}
                   />
-                  <div className="relative flex flex-col gap-2">
-                    <p className="text-display-sm font-bold text-white">{t('generateNewBill')}</p>
-                    <p className="max-w-md text-md text-white/80">{t('startScreenDetail')}</p>
+                  <div className="relative flex flex-col gap-1">
+                    <p className="text-xl font-bold text-white">{t('generateNewBill')}</p>
+                    <p className="max-w-xs text-sm text-white/80">{t('startScreenDetail')}</p>
                   </div>
-                  <span className="relative flex size-12 shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 transition-transform duration-150 ease-linear group-hover:translate-x-1">
-                    <ArrowRight className="size-5" />
+                  <span className="relative flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white ring-1 ring-white/25 transition-transform duration-150 ease-linear group-hover:translate-x-1">
+                    <ArrowRight className="size-4" />
                   </span>
                 </button>
               </div>
