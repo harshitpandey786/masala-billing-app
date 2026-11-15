@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import AdminApp from './admin/AdminApp.jsx';
 import CustomerLookupApp from './CustomerLookupApp.jsx';
+import ScanPage from './ScanPage.jsx';
 import { LanguageProvider } from './i18n.jsx';
 import { ADMIN_ON_SHOP_SITE, isAdminHost } from './siteConfig.js';
 import '@fontsource-variable/plus-jakarta-sans';
@@ -17,12 +18,15 @@ const page = isAdminHost()
     ? 'admin'
     : path.startsWith('/customers')
       ? 'customers'
-      : 'billing'; // includes old /shop-admin links: App opens its Shop Admin section
+      : path.startsWith('/scan')
+        ? 'scan'
+        : 'billing'; // includes old /shop-admin links: App opens its Shop Admin section
 
 const PAGES = {
   admin: AdminApp,
   customers: CustomerLookupApp,
   billing: App,
+  scan: ScanPage,
 };
 const Page = PAGES[page];
 

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, ArrowLeft, ArrowRight, Minus, Package, Plus, Repeat04, Scan, SearchLg, Trash01 } from '@untitledui/icons';
+import QRCode from 'qrcode';
+import { AlertCircle, ArrowLeft, ArrowRight, Minus, Package, Plus, QrCode01, Repeat04, Scan, SearchLg, Trash01, XClose } from '@untitledui/icons';
 import { Badge } from '@/components/base/badges/badges';
 import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
 import { Button } from '@/components/base/buttons/button';
@@ -11,6 +12,8 @@ import { cx } from '@/utils/cx';
 import { getRecipeCatalog } from '../recipeCatalog.js';
 import { priceRecipe } from '../pricing-engine.js';
 import { listProducts, lookupProductByBarcode } from '../productLookup.js';
+import { supabase } from '../supabaseClient.js';
+import { remoteScanChannelName, scanPageUrl } from '../remoteScan.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
 import { ProductThumb } from '../components/ProductThumb.jsx';
@@ -54,6 +57,10 @@ function ProductScanner({ orderItems, onAdd, locationId }) {
   const [filter, setFilter] = useState('');
   const [notFound, setNotFound] = useState(false);
   const [allProducts, setAllProducts] = useState(null);
+  const [pendingScans, setPendingScans] = useState([]);
+  const [phoneModalOpen, setPhoneModalOpen] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+  const [linkCopied, setLinkCopied] = useState(false);
   const barcodeInputRef = useRef(null);
 
   // A USB/Bluetooth scanner just "types" the code + Enter, so the scan field
@@ -71,6 +78,57 @@ function ProductScanner({ orderItems, onAdd, locationId }) {
       cancelled = true;
     };
   }, [locationId]);
+
+  // Barcodes scanned on a phone (opened via the QR below) arrive here over a
+  // Supabase Realtime broadcast channel scoped to this shop. Each one is
+  // looked up and held as a card so the cashier confirms the Add -- unlike
+  // the hardware scanner above, a phone scan isn't auto-added straight away.
+  useEffect(() => {
+    if (!supabase || !locationId) return;
+    const channel = supabase.channel(remoteScanChannelName(locationId));
+    channel.on('broadcast', { event: 'scan' }, async ({ payload }) => {
+      const code = payload?.code;
+      if (!code) return;
+      const id = `${Date.now()}-${Math.random()}`;
+      setPendingScans((prev) => [...prev, { id, code, product: null, loading: true }]);
+      const product = await lookupProductByBarcode(code, locationId);
+      setPendingScans((prev) => prev.map((p) => (p.id === id ? { ...p, product, loading: false } : p)));
+    });
+    channel.subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [locationId]);
+
+  useEffect(() => {
+    if (!phoneModalOpen || !locationId) return;
+    let cancelled = false;
+    QRCode.toDataURL(scanPageUrl(locationId), { margin: 1, width: 240 }).then((url) => {
+      if (!cancelled) setQrDataUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [phoneModalOpen, locationId]);
+
+  function dismissPendingScan(id) {
+    setPendingScans((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  function addPendingScan(scan) {
+    onAdd(scan.product);
+    dismissPendingScan(scan.id);
+  }
+
+  async function copyPhoneLink() {
+    try {
+      await navigator.clipboard.writeText(scanPageUrl(locationId));
+      setLinkCopied(true);
+      window.setTimeout(() => setLinkCopied(false), 1500);
+    } catch {
+      // Clipboard unavailable -- the QR above still works.
+    }
+  }
 
   async function handleBarcodeKeyDown(e) {
     if (e.key !== 'Enter') return;
@@ -103,6 +161,7 @@ function ProductScanner({ orderItems, onAdd, locationId }) {
   }, [orderItems]);
 
   return (
+    <>
     <section className={card}>
       <div className="flex flex-col gap-1 border-b border-secondary px-5 py-4 lg:px-6">
         <h2 className="text-lg font-semibold text-primary">{t('readyMadeProductsTitle')}</h2>
@@ -111,20 +170,29 @@ function ProductScanner({ orderItems, onAdd, locationId }) {
 
       <div className="flex flex-col gap-4 p-5 lg:p-6">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input
-            ref={barcodeInputRef}
-            label={t('scanBarcodeLabel')}
-            icon={Scan}
-            value={barcode}
-            onChange={(v) => {
-              setBarcode(v);
-              setNotFound(false);
-            }}
-            onKeyDown={handleBarcodeKeyDown}
-            placeholder={t('scanBarcodePlaceholder')}
-            isInvalid={notFound}
-            hint={notFound ? t('unknownBarcode') : undefined}
-          />
+          <div className="flex items-end gap-2">
+            <div className="flex-1">
+              <Input
+                ref={barcodeInputRef}
+                label={t('scanBarcodeLabel')}
+                icon={Scan}
+                value={barcode}
+                onChange={(v) => {
+                  setBarcode(v);
+                  setNotFound(false);
+                }}
+                onKeyDown={handleBarcodeKeyDown}
+                placeholder={t('scanBarcodePlaceholder')}
+                isInvalid={notFound}
+                hint={notFound ? t('unknownBarcode') : undefined}
+              />
+            </div>
+            {locationId && (
+              <Button color="secondary" size="md" iconLeading={QrCode01} onClick={() => setPhoneModalOpen(true)}>
+                {t('scanWithPhoneButton')}
+              </Button>
+            )}
+          </div>
           <Input
             label={t('searchProductLabel')}
             icon={SearchLg}
@@ -133,6 +201,41 @@ function ProductScanner({ orderItems, onAdd, locationId }) {
             placeholder={t('searchProductPlaceholder')}
           />
         </div>
+
+        {pendingScans.length > 0 && (
+          <div className="flex flex-col gap-2">
+            {pendingScans.map((scan) => (
+              <div
+                key={scan.id}
+                className="flex items-center gap-3 rounded-lg bg-secondary px-4 py-3 ring-1 ring-secondary ring-inset"
+              >
+                <Scan className="size-4 shrink-0 text-tertiary" />
+                <div className="min-w-0 flex-1">
+                  {scan.loading ? (
+                    <p className="text-sm text-tertiary">{t('loadingResults')}</p>
+                  ) : scan.product ? (
+                    <>
+                      <p className="truncate text-sm font-medium text-primary">{scan.product.name_en}</p>
+                      <p className="text-xs text-tertiary">
+                        {t('remoteScanFoundHint')} · {inr(scan.product.price)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="text-sm text-tertiary">
+                      {t('remoteScanNotFoundHint')} ({scan.code})
+                    </p>
+                  )}
+                </div>
+                {!scan.loading && scan.product && (
+                  <Button size="sm" color="primary" onClick={() => addPendingScan(scan)}>
+                    {t('addItem')}
+                  </Button>
+                )}
+                <ButtonUtility size="sm" color="tertiary" icon={XClose} onClick={() => dismissPendingScan(scan.id)} />
+              </div>
+            ))}
+          </div>
+        )}
 
         {allProducts === null && <p className="py-6 text-center text-sm text-tertiary">{t('loadingResults')}</p>}
 
@@ -192,6 +295,33 @@ function ProductScanner({ orderItems, onAdd, locationId }) {
         )}
       </div>
     </section>
+
+    {phoneModalOpen && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-overlay/70 px-4 backdrop-blur-[6px]"
+        onClick={() => setPhoneModalOpen(false)}
+      >
+        <div
+          className="flex w-full max-w-sm flex-col items-center gap-4 rounded-2xl bg-primary p-6 text-center shadow-xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex w-full items-center justify-between">
+            <h3 className="text-md font-semibold text-primary">{t('scanWithPhoneModalTitle')}</h3>
+            <ButtonUtility size="sm" color="tertiary" icon={XClose} onClick={() => setPhoneModalOpen(false)} />
+          </div>
+          <p className="text-sm text-tertiary">{t('scanWithPhoneModalHint')}</p>
+          {qrDataUrl ? (
+            <img src={qrDataUrl} alt="" className="size-60 rounded-lg ring-1 ring-secondary" />
+          ) : (
+            <div className="flex size-60 items-center justify-center text-sm text-tertiary">{t('loadingResults')}</div>
+          )}
+          <Button color="secondary" size="md" className="w-full" onClick={copyPhoneLink}>
+            {linkCopied ? t('linkCopied') : t('copyLink')}
+          </Button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 
