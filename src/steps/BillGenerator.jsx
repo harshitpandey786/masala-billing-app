@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, MessageTextSquare01, Plus, XClose } from '@untitledui/icons';
+import { ArrowRight, MessageTextSquare01, Plus, XClose } from '@untitledui/icons';
 import { Badge } from '@/components/base/badges/badges';
 import { Button } from '@/components/base/buttons/button';
 import { ButtonUtility } from '@/components/base/buttons/button-utility';
@@ -10,6 +10,7 @@ import { getAddonIngredientCodes, getCoreChiliRowCodes } from '../recipeCatalog.
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import { cx } from '@/utils/cx';
 import PageHeader from '../components/shell/PageHeader.jsx';
+import BackButton from '../components/shell/BackButton.jsx';
 import { SPICE_LEVELS, applySpiceLevel, detailsParts } from '../masalaDetails.js';
 
 const inr = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
@@ -159,11 +160,7 @@ export default function BillGenerator({
         description={
           itemCount > 1 ? `${t('billTitle')} ${itemNumber} ${t('of')} ${itemCount}` : t('billTitle')
         }
-        actions={
-          <Button color="secondary" size="md" iconLeading={ArrowLeft} onClick={onBack}>
-            {t('back')}
-          </Button>
-        }
+        actions={<BackButton onClick={onBack} />}
       />
 
       {detailsParts(details, t).length > 0 && (

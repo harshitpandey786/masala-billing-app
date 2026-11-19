@@ -1,12 +1,12 @@
 import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
 import { useLanguage } from '../i18n.jsx';
 
-// The base ButtonGroup's selected state is a quiet grey (shared with the
-// masala-type / billing-mode toggles, where that's the right call) -- the
-// language switch is the one exception, since it's the first thing on the
-// login screens and should read as a clear, branded on/off rather than
-// blend into the page.
-const SELECTED_BRAND = [
+// The base ButtonGroup's selected state defaults to a quiet grey -- too
+// quiet for this app's bold-red design language, where the client wants a
+// selected option (language, billing mode, payment method, ...) to read as
+// clearly, unmistakably chosen. Shared by every ButtonGroup in the app that
+// needs that -- see CustomerDetails.jsx's billing mode / payment method.
+export const SELECTED_BRAND_BUTTON_GROUP = [
   'selected:bg-brand-solid! selected:text-white! selected:shadow-xs-skeuomorphic!',
   'selected:hover:bg-brand-solid_hover! selected:hover:text-white!',
 ].join(' ');
@@ -24,10 +24,10 @@ export default function LanguageToggle() {
         if (next) setLang(String(next));
       }}
     >
-      <ButtonGroupItem id="mr" className={SELECTED_BRAND}>
+      <ButtonGroupItem id="mr" className={SELECTED_BRAND_BUTTON_GROUP}>
         मराठी
       </ButtonGroupItem>
-      <ButtonGroupItem id="en" className={SELECTED_BRAND}>
+      <ButtonGroupItem id="en" className={SELECTED_BRAND_BUTTON_GROUP}>
         English
       </ButtonGroupItem>
     </ButtonGroup>

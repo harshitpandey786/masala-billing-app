@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AlertCircle } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { Input } from '@/components/base/input/input';
@@ -18,6 +18,17 @@ export default function LocationLogin({ onLoggedIn }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState('idle'); // idle | checking | error
+  const passwordRef = useRef(null);
+
+  // A wrong attempt left the old (wrong) value sitting in the field --
+  // retyping on top of it, rather than a clean field, is what the client
+  // reported as "can't enter it correctly again". Clear and refocus so the
+  // next attempt starts clean.
+  function failWith(status) {
+    setStatus(status);
+    setPassword('');
+    passwordRef.current?.focus();
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -46,13 +57,13 @@ export default function LocationLogin({ onLoggedIn }) {
         }
       }
       if (error || !data) {
-        setStatus('error');
+        failWith('error');
         return;
       }
       storeLocation(data);
       onLoggedIn(data);
     } catch {
-      setStatus('error');
+      failWith('error');
     }
   }
 
@@ -91,6 +102,7 @@ export default function LocationLogin({ onLoggedIn }) {
               autoComplete="username"
             />
             <Input
+              ref={passwordRef}
               label={t('password')}
               type="password"
               value={password}

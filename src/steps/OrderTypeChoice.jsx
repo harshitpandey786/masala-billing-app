@@ -1,7 +1,7 @@
-import { ArrowLeft, ArrowRight, Scales02, ShoppingBag01 } from '@untitledui/icons';
-import { Button } from '@/components/base/buttons/button';
+import { ArrowRight, Scales02, ShoppingBag01 } from '@untitledui/icons';
 import { useLanguage } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
+import BackButton from '../components/shell/BackButton.jsx';
 
 // First thing after "Generate New Bill": start with custom masala or with
 // ready-made products. Either way the next screen can add the other kind
@@ -14,11 +14,7 @@ export default function OrderTypeChoice({ onChoose, onBack }) {
       <PageHeader
         title={t('chooseTitle')}
         description={t('chooseHint')}
-        actions={
-          <Button color="secondary" size="md" iconLeading={ArrowLeft} onClick={onBack}>
-            {t('back')}
-          </Button>
-        }
+        actions={<BackButton onClick={onBack} />}
       />
 
       <div className="grid grid-cols-1 gap-5 px-4 pt-8 md:grid-cols-2 lg:px-8">
