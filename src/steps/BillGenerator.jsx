@@ -46,7 +46,6 @@ function BaseLineRow({ line, overrides, onChangeQty }) {
           onChange={(v) => onChangeQty(line.code, v)}
         />
       </td>
-      <td className={`${td} text-right font-medium text-primary tabular-nums`}>{inr(line.amount)}</td>
     </tr>
   );
 }
@@ -115,7 +114,6 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
 
   const additionCodes = new Set(additions.map((a) => a.code));
   const baseLines = result.lineItems.filter((l) => !additionCodes.has(l.code));
-  const addedLines = result.lineItems.filter((l) => additionCodes.has(l.code));
 
   // Render added chilies right after the core chili rows (GTDC/ABDC/AKDC), matching
   // where the pricing engine places them in the confirmed bill / shared image.
@@ -149,7 +147,6 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
                 <tr>
                   <th className={th}>{t('particulars')}</th>
                   <th className={th}>{t('quantity')}</th>
-                  <th className={`${th} text-right`}>{t('amount')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,41 +154,35 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
                   <BaseLineRow key={line.code} line={line} overrides={overrides} onChangeQty={updateOverride} />
                 ))}
 
-                {additions.map((addition) => {
-                  const line = addedLines.find((l) => l.code === addition.code);
-                  return (
-                    <tr key={addition.id} className="border-t border-secondary bg-brand-primary">
-                      <td className={td}>
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium text-primary">{addition.code}</span>
-                          <Badge size="sm" type="color" color="brand">
-                            {t('addedSuffix')}
-                          </Badge>
-                        </div>
-                      </td>
-                      <td className={td}>
+                {additions.map((addition) => (
+                  <tr key={addition.id} className="border-t border-secondary bg-brand-primary">
+                    <td className={td}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-primary">{addition.code}</span>
+                        <Badge size="sm" type="color" color="brand">
+                          {t('addedSuffix')}
+                        </Badge>
+                      </div>
+                    </td>
+                    <td className={td}>
+                      <div className="flex items-center justify-between gap-2">
                         <QtyInput
                           label={addition.code}
                           value={addition.qty}
                           unit="g"
                           onChange={(v) => updateAdditionQty(addition.id, v)}
                         />
-                      </td>
-                      <td className={`${td} text-right`}>
-                        <div className="flex items-center justify-end gap-2">
-                          <span className="font-medium text-primary tabular-nums">{inr(line ? line.amount : 0)}</span>
-                          <ButtonUtility
-                            size="xs"
-                            color="tertiary"
-                            tooltip={t('remove')}
-                            icon={XClose}
-                            onClick={() => removeAddition(addition.id)}
-                          />
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                        <ButtonUtility
+                          size="xs"
+                          color="tertiary"
+                          tooltip={t('remove')}
+                          icon={XClose}
+                          onClick={() => removeAddition(addition.id)}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
 
                 {linesAfterAdditions.map((line) => (
                   <BaseLineRow key={line.code} line={line} overrides={overrides} onChangeQty={updateOverride} />
