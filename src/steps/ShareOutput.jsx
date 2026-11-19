@@ -6,6 +6,7 @@ import { TextArea } from '@/components/base/textarea/textarea';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
 import { updateBillNotes } from '../orderLogger.js';
+import { detailsParts } from '../masalaDetails.js';
 import pricingConfig from '../../data/pricing-config.json' with { type: 'json' };
 
 const businessInfo = pricingConfig.business_info || {};
@@ -207,6 +208,9 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
                       : `${masalaTypeLabel(t, bill.type, pricingConfig?.masala_types, lang)} ${bill.qtyLabel} kg`}
                     {bill.billNo ? ` · ${t('billNoLabel')} ${bill.billNo}` : ''}
                   </h3>
+                  {detailsParts(bill.details, t).length > 0 && (
+                    <p className="bill-item-details">{detailsParts(bill.details, t).join(' · ')}</p>
+                  )}
                   <table className="bill-table">
                     <thead>
                       <tr>

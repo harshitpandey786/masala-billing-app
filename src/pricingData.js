@@ -47,6 +47,8 @@ export async function fetchPricingConfig(locationId) {
       rate_card[ing.code] = {
         price_per_kg: ing.price_per_kg != null ? Number(ing.price_per_kg) : null,
         price_per_piece: ing.price_per_piece != null ? Number(ing.price_per_piece) : null,
+        name_en: ing.name_en || null,
+        name_mr: ing.name_mr || null,
       };
     }
 

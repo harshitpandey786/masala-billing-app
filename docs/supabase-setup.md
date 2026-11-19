@@ -542,3 +542,25 @@ Delete is deliberately left out -- nothing in `/admin` deletes a shop, so
 `anon` has no reason to be able to. After running this, editing a shop's
 admin password (or adding a new shop) in `/admin` → **Shops** should save
 immediately.
+
+## 11. Save each custom masala's step 2 details
+
+Billing step 2 ("get into the details") records, for each custom masala, how
+spicy the customer wants it, which ingredients they want extra, which they
+don't want, and a short note. It's saved on that masala's bill row as JSON,
+for example:
+
+```json
+{ "spice": "hot", "extra": ["GTDC"], "without": ["LSN"], "note": "coarse grind" }
+```
+
+Run once in the **SQL Editor**:
+
+```sql
+alter table public.bills add column if not exists details jsonb;
+```
+
+No new policy or grant is needed: §2 already lets `anon` insert into
+`bills`, which covers the new column. Until this is run, bills still save
+normally; only the details are left off (the browser console logs a
+"Bill details not saved" error when that happens).

@@ -9,6 +9,7 @@ import ProductScanner from '../components/ProductScanner.jsx';
 import { ProductThumb } from '../components/ProductThumb.jsx';
 import { masalaTypeColorFor } from '../utils/masalaTypeColor.js';
 import { STEP_QTY, addProductItem, roundQty, unitAbbrev } from '../orderItems.js';
+import { detailsParts } from '../masalaDetails.js';
 
 const inr = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
@@ -21,7 +22,7 @@ export function itemAmount(item, proformaBills) {
 // Client steps 4 and 5: show the customer the final bill with its estimated
 // price (Change goes back to that masala's proforma), and add anything extra
 // into this same bill before confirming.
-export default function FinalBill({ orderItems, proformaBills, onChange, onEditItem, onBack, onNext, pricingConfig, locationId }) {
+export default function FinalBill({ orderItems, proformaBills, masalaDetails = {}, onChange, onEditItem, onBack, onNext, pricingConfig, locationId }) {
   const { t, lang } = useLanguage();
   const typeLabel = (ty) => masalaTypeLabel(t, ty, pricingConfig?.masala_types, lang);
   const total = orderItems.reduce((sum, item) => sum + itemAmount(item, proformaBills), 0);
@@ -100,9 +101,14 @@ export default function FinalBill({ orderItems, proformaBills, onChange, onEditI
                             {item.qtyLabel}
                           </span>
                         )}
-                        <p className="min-w-0 flex-1 text-md font-semibold text-primary">
-                          {isProduct ? item.name : `${typeLabel(item.type)} · ${item.qtyLabel} kg`}
-                        </p>
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <p className="text-md font-semibold text-primary">
+                            {isProduct ? item.name : `${typeLabel(item.type)} · ${item.qtyLabel} kg`}
+                          </p>
+                          {!isProduct && detailsParts(masalaDetails[item.id], t).length > 0 && (
+                            <p className="truncate text-sm text-tertiary">{detailsParts(masalaDetails[item.id], t).join(' · ')}</p>
+                          )}
+                        </div>
                         {!isProduct && (
                           <Button
                             color="secondary"

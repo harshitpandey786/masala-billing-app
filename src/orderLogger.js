@@ -1,4 +1,5 @@
 import { supabase } from './supabaseClient.js';
+import { hasDetails } from './masalaDetails.js';
 
 // Supabase calls never block or throw into the UI -- if it isn't configured,
 // the insert fails, or it's just slow, billing itself still works and we log
@@ -54,13 +55,22 @@ export async function logOrderToSupabase(customer, bills, location) {
       unit: line.unit,
       amount: line.amount,
     })),
+    // Only sent when there is something to save, so orders without step 2
+    // details work even before the `details` column exists.
+    ...(hasDetails(bill.details) ? { details: bill.details } : {}),
   }));
 
+  const insert = (rows) =>
+    withTimeout(supabase.from('bills').insert(rows).select('id, bill_no'), SUPABASE_TIMEOUT_MS);
+
   try {
-    const { data, error } = await withTimeout(
-      supabase.from('bills').insert(billRows).select('id, bill_no'),
-      SUPABASE_TIMEOUT_MS
-    );
+    let { data, error } = await insert(billRows);
+    // `details` column not added yet (docs/supabase-setup.md §11): keep the
+    // bill, drop the details, rather than losing the whole order.
+    if (error && /details/.test(error.message || '')) {
+      console.error('Bill details not saved -- add the `details` column', error);
+      ({ data, error } = await insert(billRows.map(({ details: _details, ...row }) => row)));
+    }
     if (error || !data) {
       console.error('Failed to log order to Supabase', error);
       return bills.map(() => null);
