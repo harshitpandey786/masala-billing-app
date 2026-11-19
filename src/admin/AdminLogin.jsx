@@ -59,6 +59,7 @@ export default function AdminLogin({ onUnlock }) {
               isInvalid={error}
               hint={error ? t('wrongPassword') : undefined}
               autoFocus
+              autoComplete="current-password"
             />
             <Button type="submit" size="lg" className="w-full">
               {t('unlock')}
