@@ -8,8 +8,9 @@ import { Select } from '@/components/base/select/select';
 import { priceRecipe } from '../pricing-engine.js';
 import { getAddonIngredientCodes, getCoreChiliRowCodes } from '../recipeCatalog.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
+import { cx } from '@/utils/cx';
 import PageHeader from '../components/shell/PageHeader.jsx';
-import { detailsParts } from '../masalaDetails.js';
+import { SPICE_LEVELS, applySpiceLevel, detailsParts } from '../masalaDetails.js';
 
 const inr = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
@@ -65,7 +66,13 @@ export default function BillGenerator({
   const { t, lang } = useLanguage();
   const addonCodes = useMemo(() => getAddonIngredientCodes(pricingConfig), [pricingConfig]);
   const coreChiliCodes = useMemo(() => getCoreChiliRowCodes(pricingConfig), [pricingConfig]);
-  const [overrides, setOverrides] = useState(initialEdits?.overrides ?? {});
+  const recipe = pricingConfig?.recipes?.[orderItem.recipeKey];
+  // First time in, start at the spice level asked for in step 2 (if any);
+  // coming back from the final bill, keep exactly what was left here.
+  const [spice, setSpice] = useState(initialEdits ? (initialEdits.spice ?? null) : (details?.spice ?? null));
+  const [overrides, setOverrides] = useState(() =>
+    initialEdits?.overrides ?? (details?.spice ? applySpiceLevel({}, recipe, coreChiliCodes, details.spice) : {})
+  );
   const [additions, setAdditions] = useState(initialEdits?.additions ?? []);
   const [addCode, setAddCode] = useState(addonCodes[0] || '');
   const [addQty, setAddQty] = useState('');
@@ -82,6 +89,13 @@ export default function BillGenerator({
   function updateOverride(code, rawValue) {
     const qty = rawValue === '' ? 0 : Number(rawValue);
     setOverrides({ ...overrides, [code]: qty });
+    // Hand-editing a chilli row means the level no longer describes it.
+    if (coreChiliCodes.includes(code)) setSpice(null);
+  }
+
+  function chooseSpice(levelId) {
+    setSpice(levelId);
+    setOverrides(applySpiceLevel(overrides, recipe, coreChiliCodes, levelId));
   }
 
   function handleAddIngredient() {
@@ -119,7 +133,7 @@ export default function BillGenerator({
         makingCharge: result.makingCharge,
         total: result.total,
       },
-      { overrides, additions, makingChargeOverride }
+      { overrides, additions, makingChargeOverride, spice }
     );
     setConfirming(false);
   }
@@ -169,6 +183,38 @@ export default function BillGenerator({
           <div className="flex flex-col gap-1 px-4 py-4 lg:px-6">
             <h2 className="text-lg font-semibold text-primary">{t('particulars')}</h2>
             <p className="text-sm text-tertiary">{t('billEditHint')}</p>
+          </div>
+          <div className="flex flex-col gap-2.5 border-t border-secondary px-4 py-4 lg:px-6">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+              <span className="text-sm font-semibold text-secondary">{t('spiceLevelLabel')}</span>
+              <span className="text-xs text-tertiary">
+                {t('spiceControlHint')} {coreChiliCodes.join(', ')}
+              </span>
+            </div>
+            <div role="group" aria-label={t('spiceLevelLabel')} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {SPICE_LEVELS.map((level, i) => {
+                const active = spice === level.id;
+                return (
+                  <button
+                    key={level.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => chooseSpice(level.id)}
+                    className={cx(
+                      'flex items-center justify-center gap-2 rounded-xl px-3 py-3 ring-inset transition duration-100 ease-linear',
+                      active ? 'bg-brand-solid text-white shadow-md' : 'bg-primary text-primary ring-1 ring-secondary hover:bg-secondary'
+                    )}
+                  >
+                    <span aria-hidden="true" className="flex gap-0.5">
+                      {Array.from({ length: i + 1 }).map((_, n) => (
+                        <span key={n} className={cx('size-1.5 rounded-full', active ? 'bg-white' : 'bg-brand-solid')} />
+                      ))}
+                    </span>
+                    <span className="text-sm font-bold">{t(level.labelKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[480px] border-collapse">
