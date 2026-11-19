@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Plus, XClose } from '@untitledui/icons';
+import { ArrowLeft, ArrowRight, MessageTextSquare01, Plus, XClose } from '@untitledui/icons';
 import { Badge } from '@/components/base/badges/badges';
 import { Button } from '@/components/base/buttons/button';
 import { ButtonUtility } from '@/components/base/buttons/button-utility';
@@ -9,6 +9,7 @@ import { priceRecipe } from '../pricing-engine.js';
 import { getAddonIngredientCodes, getCoreChiliRowCodes } from '../recipeCatalog.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
+import { detailsParts } from '../masalaDetails.js';
 
 const inr = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
@@ -50,7 +51,17 @@ function BaseLineRow({ line, overrides, onChangeQty }) {
   );
 }
 
-export default function BillGenerator({ orderItem, itemNumber, itemCount, isLast, initialEdits, onConfirm, onBack, pricingConfig }) {
+export default function BillGenerator({
+  orderItem,
+  itemNumber,
+  itemCount,
+  isLast,
+  initialEdits,
+  details,
+  onConfirm,
+  onBack,
+  pricingConfig,
+}) {
   const { t, lang } = useLanguage();
   const addonCodes = useMemo(() => getAddonIngredientCodes(pricingConfig), [pricingConfig]);
   const coreChiliCodes = useMemo(() => getCoreChiliRowCodes(pricingConfig), [pricingConfig]);
@@ -140,6 +151,18 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, isLast
           </Button>
         }
       />
+
+      {detailsParts(details, t).length > 0 && (
+        <div className="px-4 pt-6 lg:px-8">
+          <div className="flex items-start gap-3 rounded-xl bg-brand-primary px-4 py-3 ring-1 ring-brand ring-inset">
+            <MessageTextSquare01 className="mt-0.5 size-5 shrink-0 text-fg-brand-primary" />
+            <div className="flex flex-col gap-0.5">
+              <p className="text-sm font-semibold text-primary">{t('detailsReminderTitle')}</p>
+              <p className="text-sm text-secondary">{detailsParts(details, t).join(' · ')}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 items-start gap-6 px-4 pt-8 lg:px-8 xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="overflow-hidden rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">

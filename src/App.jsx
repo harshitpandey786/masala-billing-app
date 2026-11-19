@@ -5,6 +5,7 @@ import OrderBuilder from './steps/OrderBuilder.jsx';
 import BillGenerator from './steps/BillGenerator.jsx';
 import FinalBill from './steps/FinalBill.jsx';
 import OrderTypeChoice from './steps/OrderTypeChoice.jsx';
+import MasalaDetails from './steps/MasalaDetails.jsx';
 import ShareOutput from './steps/ShareOutput.jsx';
 import LocationLogin from './steps/LocationLogin.jsx';
 import { logOrderToSupabase } from './orderLogger.js';
@@ -23,14 +24,14 @@ import AppShell from './components/shell/AppShell.jsx';
 import PageHeader from './components/shell/PageHeader.jsx';
 import staticPricingConfig from '../data/pricing-config.json' with { type: 'json' };
 
-// The client's six steps. Some screens cover two of them at once: the
-// proforma editor is where spice/ingredient details are set (2) on the
-// proforma (3), and the final bill is where extras get added (4, 5).
+// The client's six steps. The final bill screen covers two of them at once
+// (show the bill, 4, and add extras, 5).
 const CLIENT_STEP_LABEL_KEYS = ['stepOrder', 'stepDetails', 'stepProforma', 'stepFinalBill', 'stepExtras', 'stepConfirm'];
 const SCREEN_CLIENT_STEPS = {
   choose: [0],
   order: [0],
-  proforma: [1, 2],
+  details: [1],
+  proforma: [2],
   review: [3, 4],
   customer: [5],
   share: [6],
@@ -154,6 +155,8 @@ export default function App() {
   // edits behind it, so "Change" on the final bill reopens it as it was left.
   const [proformaBills, setProformaBills] = useState({});
   const [proformaEdits, setProformaEdits] = useState({});
+  // Per custom-masala item id: what the customer asked for in step 2.
+  const [masalaDetails, setMasalaDetails] = useState({});
   const [editingId, setEditingId] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [bills, setBills] = useState([]);
@@ -194,6 +197,7 @@ export default function App() {
       setOrderMode(items.some((i) => i.kind === 'custom') ? 'custom' : 'readymade');
       setProformaBills({});
       setProformaEdits({});
+      setMasalaDetails({});
       setBills([]);
       setReorderInfo({ fromDate: pendingReorder.fromDate, skipped });
       setView('billing');
@@ -211,6 +215,7 @@ export default function App() {
     setOrderItems([]);
     setProformaBills({});
     setProformaEdits({});
+    setMasalaDetails({});
     setEditingId(null);
     setBills([]);
     setReorderInfo(null);
@@ -225,16 +230,21 @@ export default function App() {
     setLocation(null);
   }
 
-  // Opens the proforma for the next custom masala that doesn't have one yet,
-  // or the final bill once they all do.
+  // Opens the details (step 2) for the next custom masala that doesn't have
+  // a proforma yet, or the final bill once they all do.
   function goToNextProforma(saved = proformaBills) {
     const next = orderItems.find((i) => i.kind === 'custom' && !saved[i.id]);
     if (next) {
       setEditingId(next.id);
-      setStep('proforma');
+      setStep('details');
       return;
     }
     setStep('review');
+  }
+
+  function handleDetailsSaved(details) {
+    setMasalaDetails({ ...masalaDetails, [editingId]: details });
+    setStep('proforma');
   }
 
   function handleProformaSaved(bill, edits) {
@@ -253,7 +263,9 @@ export default function App() {
   async function handleConfirmOrder() {
     setConfirming(true);
     const finalBills = orderItems.map((item) =>
-      item.kind === 'product' ? synthesizeProductBill(item) : proformaBills[item.id]
+      item.kind === 'product'
+        ? synthesizeProductBill(item)
+        : { ...proformaBills[item.id], details: masalaDetails[item.id] ?? null }
     );
     const logged = await logOrderToSupabase(customer, finalBills, location);
     const productLines = finalBills
@@ -271,7 +283,7 @@ export default function App() {
 
   const screenSteps = SCREEN_CLIENT_STEPS[step] || [];
   const customItems = orderItems.filter((i) => i.kind === 'custom');
-  const editingItem = step === 'proforma' ? orderItems.find((i) => i.id === editingId) : null;
+  const editingItem = step === 'proforma' || step === 'details' ? orderItems.find((i) => i.id === editingId) : null;
 
   const sections = [
     {
@@ -341,7 +353,7 @@ export default function App() {
 
       {view === 'billing' && (
         <motion.div
-          key={step === 'proforma' ? `proforma-${editingId}` : step}
+          key={step === 'proforma' || step === 'details' ? `${step}-${editingId}` : step}
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
@@ -435,7 +447,20 @@ export default function App() {
             />
           )}
 
-          {editingItem && (
+          {editingItem && step === 'details' && (
+            <MasalaDetails
+              key={editingItem.id}
+              orderItem={editingItem}
+              itemNumber={customItems.indexOf(editingItem) + 1}
+              itemCount={customItems.length}
+              initialDetails={masalaDetails[editingItem.id]}
+              onNext={handleDetailsSaved}
+              onBack={() => setStep(proformaBills[editingItem.id] ? 'proforma' : 'order')}
+              pricingConfig={pricingConfig}
+            />
+          )}
+
+          {editingItem && step === 'proforma' && (
             <BillGenerator
               key={editingItem.id}
               orderItem={editingItem}
@@ -443,8 +468,9 @@ export default function App() {
               itemCount={customItems.length}
               isLast={!customItems.some((i) => i.id !== editingItem.id && !proformaBills[i.id])}
               initialEdits={proformaEdits[editingItem.id]}
+              details={masalaDetails[editingItem.id]}
               onConfirm={handleProformaSaved}
-              onBack={() => setStep(proformaBills[editingItem.id] ? 'review' : 'order')}
+              onBack={() => setStep('details')}
               pricingConfig={pricingConfig}
             />
           )}
@@ -453,6 +479,7 @@ export default function App() {
             <FinalBill
               orderItems={orderItems}
               proformaBills={proformaBills}
+              masalaDetails={masalaDetails}
               onChange={setOrderItems}
               onEditItem={handleEditItem}
               onBack={() => setStep('order')}
