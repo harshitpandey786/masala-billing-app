@@ -4,6 +4,7 @@ import CustomerDetails from './steps/CustomerDetails.jsx';
 import OrderBuilder from './steps/OrderBuilder.jsx';
 import BillGenerator from './steps/BillGenerator.jsx';
 import FinalBill from './steps/FinalBill.jsx';
+import OrderTypeChoice from './steps/OrderTypeChoice.jsx';
 import ShareOutput from './steps/ShareOutput.jsx';
 import LocationLogin from './steps/LocationLogin.jsx';
 import { logOrderToSupabase } from './orderLogger.js';
@@ -27,6 +28,7 @@ import staticPricingConfig from '../data/pricing-config.json' with { type: 'json
 // proforma (3), and the final bill is where extras get added (4, 5).
 const CLIENT_STEP_LABEL_KEYS = ['stepOrder', 'stepDetails', 'stepProforma', 'stepFinalBill', 'stepExtras', 'stepConfirm'];
 const SCREEN_CLIENT_STEPS = {
+  choose: [0],
   order: [0],
   proforma: [1, 2],
   review: [3, 4],
@@ -146,6 +148,8 @@ export default function App() {
   const [step, setStep] = useState('start');
   const [customer, setCustomer] = useState(emptyCustomer);
   const [orderItems, setOrderItems] = useState([]);
+  // Which tab the first step shows: 'custom' masala or 'readymade' products.
+  const [orderMode, setOrderMode] = useState('custom');
   // Per custom-masala item id: the priced bill from its proforma, and the raw
   // edits behind it, so "Change" on the final bill reopens it as it was left.
   const [proformaBills, setProformaBills] = useState({});
@@ -187,6 +191,7 @@ export default function App() {
       if (cancelled) return;
       setCustomer({ ...emptyCustomer(), ...pendingReorder.customer });
       setOrderItems(items);
+      setOrderMode(items.some((i) => i.kind === 'custom') ? 'custom' : 'readymade');
       setProformaBills({});
       setProformaEdits({});
       setBills([]);
@@ -350,7 +355,7 @@ export default function App() {
 
                 <button
                   type="button"
-                  onClick={() => setStep('order')}
+                  onClick={() => setStep('choose')}
                   className="group relative flex w-full items-center justify-between gap-5 overflow-hidden rounded-xl bg-brand-solid px-6 py-7 text-left shadow-md transition duration-150 ease-linear hover:bg-brand-solid_hover"
                 >
                   <div
@@ -405,13 +410,26 @@ export default function App() {
             </>
           )}
 
+          {step === 'choose' && (
+            <OrderTypeChoice
+              onChoose={(mode) => {
+                setOrderMode(mode);
+                setStep('order');
+              }}
+              onBack={() => setStep('start')}
+            />
+          )}
+
           {step === 'order' && (
             <OrderBuilder
               orderItems={orderItems}
               onChange={setOrderItems}
-              onBack={() => setStep('start')}
+              onBack={() => setStep('choose')}
               onNext={() => goToNextProforma()}
+              mode={orderMode}
+              onModeChange={setOrderMode}
               pricingConfig={pricingConfig}
+              locationId={location.id}
               customer={customer}
               reorderInfo={reorderInfo}
             />

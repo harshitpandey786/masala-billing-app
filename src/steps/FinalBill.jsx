@@ -8,20 +8,10 @@ import PageHeader from '../components/shell/PageHeader.jsx';
 import ProductScanner from '../components/ProductScanner.jsx';
 import { ProductThumb } from '../components/ProductThumb.jsx';
 import { masalaTypeColorFor } from '../utils/masalaTypeColor.js';
+import { STEP_QTY, addProductItem, roundQty, unitAbbrev } from '../orderItems.js';
 
 const inr = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
-function unitAbbrev(unit) {
-  if (unit === 'piece') return 'pcs';
-  if (unit === 'kg') return 'kg';
-  return 'g';
-}
-
-// One tap on a product adds a sensible amount for its unit; the -/+ then
-// nudges by a finer step for things sold by weight.
-const TAP_QTY = { piece: 1, kg: 1, g: 100 };
-const STEP_QTY = { piece: 1, kg: 0.25, g: 50 };
-const roundQty = (n) => Math.round(n * 1000) / 1000;
 
 export function itemAmount(item, proformaBills) {
   if (item.kind === 'product') return Math.round(item.qty * item.unitPrice);
@@ -37,24 +27,7 @@ export default function FinalBill({ orderItems, proformaBills, onChange, onEditI
   const total = orderItems.reduce((sum, item) => sum + itemAmount(item, proformaBills), 0);
 
   function addProduct(product) {
-    const add = TAP_QTY[product.unit] ?? 1;
-    const existing = orderItems.find((i) => i.kind === 'product' && i.productId === product.id);
-    if (existing) {
-      onChange(orderItems.map((i) => (i.id === existing.id ? { ...i, qty: roundQty(i.qty + add) } : i)));
-      return;
-    }
-    onChange([
-      ...orderItems,
-      {
-        id: crypto.randomUUID(),
-        kind: 'product',
-        productId: product.id,
-        name: product.name_en,
-        unit: product.unit,
-        qty: add,
-        unitPrice: Number(product.price),
-      },
-    ]);
+    onChange(addProductItem(orderItems, product));
   }
 
   function changeQty(item, delta) {
