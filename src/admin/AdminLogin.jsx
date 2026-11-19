@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Lock01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { Input } from '@/components/base/input/input';
@@ -12,6 +12,7 @@ export default function AdminLogin({ onUnlock }) {
   const { t } = useLanguage();
   const [value, setValue] = useState('');
   const [error, setError] = useState(false);
+  const passwordRef = useRef(null);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -19,7 +20,11 @@ export default function AdminLogin({ onUnlock }) {
       setError(false);
       onUnlock();
     } else {
+      // Clear and refocus rather than leaving the wrong value sitting
+      // there -- retyping on top of it is what read as "won't take input".
       setError(true);
+      setValue('');
+      passwordRef.current?.focus();
     }
   }
 
@@ -51,6 +56,7 @@ export default function AdminLogin({ onUnlock }) {
               </p>
             )}
             <Input
+              ref={passwordRef}
               type="password"
               label={t('password')}
               icon={Lock01}

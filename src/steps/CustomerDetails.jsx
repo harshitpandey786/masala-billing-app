@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, ArrowLeft, Check, Phone } from '@untitledui/icons';
+import { AlertCircle, Check, Phone } from '@untitledui/icons';
 import { Avatar } from '@/components/base/avatar/avatar';
 import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
 import { Button } from '@/components/base/buttons/button';
@@ -9,6 +9,8 @@ import { Select } from '@/components/base/select/select';
 import { searchCustomers } from '../customerSearch.js';
 import { useLanguage } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
+import BackButton from '../components/shell/BackButton.jsx';
+import { SELECTED_BRAND_BUTTON_GROUP } from '../components/LanguageToggle.jsx';
 
 const POC_OPTIONS = ['Sachin', 'Bhaskar', 'Sanket', 'Shreyash', 'Suvarna', 'Rampal', 'Sonu'];
 
@@ -80,13 +82,7 @@ export default function CustomerDetails({ customer, onChange, onBack, onNext, is
       <PageHeader
         title={t('customerDetailsTitle')}
         description={t('customerDetailsHint')}
-        actions={
-          onBack && (
-            <Button color="secondary" size="md" iconLeading={ArrowLeft} onClick={onBack}>
-              {t('back')}
-            </Button>
-          )
-        }
+        actions={<BackButton onClick={onBack} />}
       />
 
       <div className="px-4 pt-8 lg:px-8">
@@ -180,8 +176,12 @@ export default function CustomerDetails({ customer, onChange, onBack, onNext, is
                 }}
                 className="w-full [&>*]:flex-1 [&>*]:justify-center"
               >
-                <ButtonGroupItem id="online">{t('online')}</ButtonGroupItem>
-                <ButtonGroupItem id="offline">{t('offline')}</ButtonGroupItem>
+                <ButtonGroupItem id="online" className={SELECTED_BRAND_BUTTON_GROUP}>
+                  {t('online')}
+                </ButtonGroupItem>
+                <ButtonGroupItem id="offline" className={SELECTED_BRAND_BUTTON_GROUP}>
+                  {t('offline')}
+                </ButtonGroupItem>
               </ButtonGroup>
             </div>
 
@@ -196,9 +196,15 @@ export default function CustomerDetails({ customer, onChange, onBack, onNext, is
                 }}
                 className="w-full [&>*]:flex-1 [&>*]:justify-center"
               >
-                <ButtonGroupItem id="cash">{t('paymentMethodCash')}</ButtonGroupItem>
-                <ButtonGroupItem id="upi">{t('paymentMethodUpi')}</ButtonGroupItem>
-                <ButtonGroupItem id="credit">{t('paymentMethodCredit')}</ButtonGroupItem>
+                <ButtonGroupItem id="cash" className={SELECTED_BRAND_BUTTON_GROUP}>
+                  {t('paymentMethodCash')}
+                </ButtonGroupItem>
+                <ButtonGroupItem id="upi" className={SELECTED_BRAND_BUTTON_GROUP}>
+                  {t('paymentMethodUpi')}
+                </ButtonGroupItem>
+                <ButtonGroupItem id="credit" className={SELECTED_BRAND_BUTTON_GROUP}>
+                  {t('paymentMethodCredit')}
+                </ButtonGroupItem>
               </ButtonGroup>
               {customer.paymentMethod === 'credit' && (
                 <p className="text-xs text-tertiary">{t('paymentMethodCreditHint')}</p>

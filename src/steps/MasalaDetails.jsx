@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check } from '@untitledui/icons';
-import { Button } from '@/components/base/buttons/button';
+import { ArrowRight, Check } from '@untitledui/icons';
 import { TextArea } from '@/components/base/textarea/textarea';
 import { cx } from '@/utils/cx';
 import { priceRecipe } from '../pricing-engine.js';
@@ -8,6 +7,7 @@ import { getAddonIngredientCodes } from '../recipeCatalog.js';
 import { SPICE_LEVELS, emptyDetails } from '../masalaDetails.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
+import BackButton from '../components/shell/BackButton.jsx';
 
 function recipeCodes(recipeKey, config) {
   try {
@@ -82,11 +82,7 @@ export default function MasalaDetails({ orderItem, itemNumber, itemCount, initia
             ? `${t('detailsStepHint')} · ${itemNumber} ${t('of')} ${itemCount}`
             : t('detailsStepHint')
         }
-        actions={
-          <Button color="secondary" size="md" iconLeading={ArrowLeft} onClick={onBack}>
-            {t('back')}
-          </Button>
-        }
+        actions={<BackButton onClick={onBack} />}
       />
 
       <div className="grid grid-cols-1 items-start gap-6 px-4 pt-8 lg:px-8 xl:grid-cols-[minmax(0,1fr)_340px]">

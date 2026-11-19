@@ -1,10 +1,11 @@
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, ArrowRight, Edit03, Minus, Package, Plus, Trash01 } from '@untitledui/icons';
+import { ArrowRight, Edit03, Minus, Package, Plus, Trash01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { ButtonUtility } from '@/components/base/buttons/button-utility';
 import { cx } from '@/utils/cx';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
+import BackButton from '../components/shell/BackButton.jsx';
 import ProductScanner from '../components/ProductScanner.jsx';
 import { ProductThumb } from '../components/ProductThumb.jsx';
 import { masalaTypeColorFor } from '../utils/masalaTypeColor.js';
@@ -49,11 +50,7 @@ export default function FinalBill({ orderItems, proformaBills, masalaDetails = {
       <PageHeader
         title={t('finalBillTitle')}
         description={t('finalBillHint')}
-        actions={
-          <Button color="secondary" size="md" iconLeading={ArrowLeft} onClick={onBack}>
-            {t('back')}
-          </Button>
-        }
+        actions={<BackButton onClick={onBack} />}
       />
 
       <div className="grid grid-cols-1 items-start gap-6 px-4 pt-8 lg:px-8 xl:grid-cols-[minmax(0,1fr)_380px]">

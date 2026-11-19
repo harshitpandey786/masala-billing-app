@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { Lock01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { Input } from '@/components/base/input/input';
@@ -16,6 +16,15 @@ export default function ShopAdminLogin({ location, onUnlock }) {
   const { t } = useLanguage();
   const [value, setValue] = useState('');
   const [status, setStatus] = useState('idle'); // idle | checking | error | not_set
+  const passwordRef = useRef(null);
+
+  // Clear and refocus on a wrong password -- retyping on top of the old
+  // (wrong) value is what read as "won't take input" for a correct retry.
+  function failWith(status) {
+    setStatus(status);
+    setValue('');
+    passwordRef.current?.focus();
+  }
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,7 +40,7 @@ export default function ShopAdminLogin({ location, onUnlock }) {
         .eq('id', location.id)
         .maybeSingle();
       if (error || !data) {
-        setStatus('error');
+        failWith('error');
         return;
       }
       if (!data.admin_password) {
@@ -39,12 +48,12 @@ export default function ShopAdminLogin({ location, onUnlock }) {
         return;
       }
       if (data.admin_password !== value) {
-        setStatus('error');
+        failWith('error');
         return;
       }
       onUnlock();
     } catch {
-      setStatus('error');
+      failWith('error');
     }
   }
 
@@ -56,6 +65,7 @@ export default function ShopAdminLogin({ location, onUnlock }) {
           <p className="text-sm text-tertiary">{t('shopAdminLoginHint')}</p>
         </div>
         <Input
+          ref={passwordRef}
           label={t('password')}
           type="password"
           value={value}

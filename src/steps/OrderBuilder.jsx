@@ -1,12 +1,12 @@
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowLeft, ArrowRight, Check, Minus, Package, Plus, Repeat04, Scales02, ShoppingBag01, Trash01 } from '@untitledui/icons';
-import { Button } from '@/components/base/buttons/button';
+import { ArrowRight, Check, Minus, Package, Plus, Repeat04, Scales02, ShoppingBag01, Trash01 } from '@untitledui/icons';
 import { ButtonUtility } from '@/components/base/buttons/button-utility';
 import { cx } from '@/utils/cx';
 import { getRecipeCatalog } from '../recipeCatalog.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
+import BackButton from '../components/shell/BackButton.jsx';
 import { ProductThumb } from '../components/ProductThumb.jsx';
 import { masalaTypeColorFor } from '../utils/masalaTypeColor.js';
 import ProductScanner from '../components/ProductScanner.jsx';
@@ -85,11 +85,7 @@ export default function OrderBuilder({
       <PageHeader
         title={t('orderStepTitle')}
         description={customer?.name ? `${customer.name} · ${customer.phone}` : t('orderStepHint')}
-        actions={
-          <Button color="secondary" size="md" iconLeading={ArrowLeft} onClick={onBack}>
-            {t('back')}
-          </Button>
-        }
+        actions={<BackButton onClick={onBack} />}
       />
 
       {reorderInfo && (
