@@ -108,6 +108,17 @@ export function computeAnalytics(rows) {
   const repeatRatePct = uniqueCustomers ? (repeatCustomers / uniqueCustomers) * 100 : 0;
   const topCustomers = [...customers].sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
+  // ---- win-back: regulars (2+ past orders) who haven't ordered in a
+  // while, worth a nudge -- sorted by how much they've spent before, since
+  // that's who it's most worth the shop's time to reach out to.
+  const today = new Date();
+  const inactiveCustomers = customers
+    .filter((c) => c.bills > 1 && c.lastOrderDate)
+    .map((c) => ({ ...c, daysSinceOrder: Math.floor((today - new Date(c.lastOrderDate)) / 86400000) }))
+    .filter((c) => c.daysSinceOrder >= 45)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 20);
+
   return {
     totalRevenue,
     totalBills,
@@ -121,5 +132,6 @@ export function computeAnalytics(rows) {
     channelBreakdown,
     shopBreakdown,
     topCustomers,
+    inactiveCustomers,
   };
 }

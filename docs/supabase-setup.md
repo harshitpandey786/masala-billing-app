@@ -564,3 +564,133 @@ No new policy or grant is needed: §2 already lets `anon` insert into
 `bills`, which covers the new column. Until this is run, bills still save
 normally; only the details are left off (the browser console logs a
 "Bill details not saved" error when that happens).
+
+## 12. Low-stock alerts, credit/khata ledger, and GST invoicing
+
+Four features added together, each independent of the others -- run any
+subset of this section and only the matching feature lights up (everything
+else keeps working exactly as before, same resilience rule as the rest of
+this app).
+
+**12a. Low-stock alerts** -- a reorder threshold per product (shared across
+shops, same as the rest of the product catalog), checked against each
+shop's own `stock_levels.qty_on_hand`:
+
+```sql
+alter table public.products add column if not exists reorder_level numeric not null default 5;
+```
+
+No new policy/grant needed -- §2/§8 already let `anon` update `products`.
+Until this is run, the Products page's reorder-level column just won't
+save (shows the same "running low" threshold of 5 for everyone, client-side
+default).
+
+**12b. Credit / khata ledger** -- one row per charge or payment against a
+customer's running balance. Scoped to `phone` (customers are shared across
+shops, see §9's note on that), not to one shop, so any shop can see and add
+to the same customer's balance.
+
+```sql
+create table public.credit_ledger (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  entry_date date not null default current_date,
+  phone text not null,
+  customer_name text not null,
+  location_id uuid references public.locations(id),
+  entry_type text not null, -- 'charge' (customer now owes more) | 'payment' (they paid some back)
+  amount numeric not null,
+  note text
+);
+
+alter table public.credit_ledger enable row level security;
+
+create policy "Allow anonymous read/write" on public.credit_ledger for all to anon using (true) with check (true);
+
+grant usage on schema public to anon;
+grant select, insert on public.credit_ledger to anon;
+```
+
+Until this table exists, the Khata card on a customer's profile shows as
+not configured rather than erroring.
+
+**12c. GST-compliant invoices** -- a GSTIN per shop (blank for a shop not
+GST-registered, which simply hides the tax breakup on its bills) and a GST
+rate per shop (defaults to 5%, the common slab for spice/masala HSN 0910,
+but editable since actual registration/slab varies):
+
+```sql
+alter table public.locations add column if not exists gstin text;
+alter table public.pricing_settings add column if not exists gst_rate_pct numeric not null default 5;
+```
+
+No new policy/grant needed -- §9/§10 already let `anon` read/write
+`pricing_settings` and update `locations`. The tax breakup shown on the
+bill is computed by splitting the existing (unchanged) total into taxable
+value + CGST/SGST -- it assumes an intra-state sale (the common case for a
+single-city shop) and does not change what the customer is charged, only
+how that total is itemized for the GST-registered shop's records.
+
+Then set each shop's GSTIN in `/admin` → **Shops**, and its GST rate in
+**Pricing** (owner) or **Shop Admin** (shop) alongside the making charge.
+
+**12d. Customer win-back / retention** -- no schema change. It's computed
+client-side from the existing `bills` table (customers whose last order is
+older than 45 days), shown on the owner's Analytics page with a one-click
+WhatsApp nudge.
+
+## 13. Payment method on the bill (Cash / UPI / Credit)
+
+How the customer actually paid, separate from `billing_mode` (which is the
+sales channel -- Online/Offline -- not how payment was collected):
+
+```sql
+alter table public.bills add column if not exists payment_method text; -- 'cash' | 'upi' | 'credit'
+```
+
+No new policy/grant needed -- §2 already lets `anon` insert into `bills`.
+Until this is run, bills still save normally; only the payment method is
+left off (same fallback behavior as §11's `details` column -- the browser
+console logs a "Payment method not saved" error when that happens).
+
+Picking **Credit** at Customer Details also writes a `credit_ledger` charge
+for the bill's total (§12b must be run for that part to take effect --
+otherwise the bill still saves, the khata entry just silently doesn't).
+
+## 14. UPI QR on the bill (scan-and-pay, no gateway)
+
+A shop's own UPI id (VPA -- e.g. `shindrajmasale@okaxis`) and a `paid` flag
+per bill, so the Share screen can show a QR with that bill's amount
+pre-filled and let the operator mark it paid once they see the payment land
+in their own UPI app:
+
+```sql
+alter table public.locations add column if not exists upi_vpa text;
+alter table public.bills add column if not exists paid boolean not null default false;
+```
+
+No new policy/grant needed -- §9/§10 already let `anon` update `locations`,
+and §2 already lets `anon` insert/update `bills` (the `notes` update grant
+from §7 only covers that one column, though, so marking a bill paid needs
+its own narrow grant):
+
+```sql
+grant update (paid) on public.bills to anon;
+```
+
+Then set each shop's UPI VPA in `/admin` → **Shops**, next to its GSTIN.
+Until both run, the bill screen just doesn't show a QR or the Mark as Paid
+button -- nothing else changes, same fail-quiet rule as the rest of this
+app.
+
+**What this is, and isn't:** the QR pays directly into the shop's own bank
+account via UPI, with zero transaction fees and no sign-up -- it's a
+dynamic version of the static QR code many shops already have taped to the
+counter. It cannot confirm payment automatically; the operator still
+confirms it the normal way (their own phone's payment notification/sound)
+and taps Mark as Paid. Real auto-confirmation needs a payment gateway
+account (Razorpay, PhonePe Business, etc.), which needs its own business
+KYC/bank linking the shop would set up directly with that provider, charges
+a per-transaction fee, and -- since this app has no backend -- would need a
+small serverless function to hold the API key and receive the webhook. Not
+built here; ask for it if/when that trade-off is worth making.

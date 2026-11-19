@@ -12,6 +12,8 @@ import AdminAnalytics from './AdminAnalytics.jsx';
 import AdminPricing from './AdminPricing.jsx';
 import AdminProducts from './AdminProducts.jsx';
 import AdminLocations from './AdminLocations.jsx';
+import LowStockAlerts from './LowStockAlerts.jsx';
+import OutstandingCredit from './OutstandingCredit.jsx';
 
 // Owner-only: business analytics, and per-shop pricing/product control.
 // Looking up a specific customer's order history is a front-of-house task
@@ -203,6 +205,11 @@ export default function AdminDashboard({ view = 'overview' }) {
           )}
         </div>
       </PageHeader>
+
+      <div className="grid grid-cols-1 gap-6 px-4 lg:grid-cols-2 lg:px-8">
+        <LowStockAlerts />
+        <OutstandingCredit />
+      </div>
 
       <AdminAnalytics fromDate={fromDate} toDate={toDate} demoMode={demoMode} locations={locations} />
     </div>

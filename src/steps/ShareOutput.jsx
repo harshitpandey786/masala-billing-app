@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { AlertCircle, File06, Image01, MessageChatCircle, Printer, RefreshCw01 } from '@untitledui/icons';
+import QRCode from 'qrcode';
+import { AlertCircle, CheckCircle, File06, Image01, MessageChatCircle, Printer, QrCode01, RefreshCw01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { TextArea } from '@/components/base/textarea/textarea';
-import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
+import { useLanguage, masalaTypeLabel, paymentMethodLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
-import { updateBillNotes } from '../orderLogger.js';
+import { updateBillNotes, markBillsPaid } from '../orderLogger.js';
 import { detailsParts } from '../masalaDetails.js';
+import { computeGstBreakup } from '../gst.js';
+import { buildUpiLink } from '../upiQr.js';
 import pricingConfig from '../../data/pricing-config.json' with { type: 'json' };
 
 const businessInfo = pricingConfig.business_info || {};
@@ -33,10 +36,57 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
   const [imageBlob, setImageBlob] = useState(null);
   const [pdfStatus, setPdfStatus] = useState('idle'); // idle | generating | error
   const [notes, setNotes] = useState('');
+  const [upiQrUrl, setUpiQrUrl] = useState(null);
+  const [paid, setPaid] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
 
   const grandTotal = bills.reduce((sum, b) => sum + b.total, 0);
   const isMultiItem = bills.length > 1;
   const fileName = safeFileName(customer, 'png');
+  const billIds = bills.map((b) => b.id).filter(Boolean);
+
+  // A "Tax Invoice" with a GST breakup only makes sense once the shop has a
+  // GSTIN on file (docs/supabase-setup.md §12c) -- otherwise this stays a
+  // plain bill summary, same as before this feature existed.
+  const gstin = location?.gstin;
+  const gstBreakup = gstin ? computeGstBreakup(grandTotal, pricingConfig?.gst_rate_pct) : null;
+  const invoiceNo = bills.find((b) => b.billNo)?.billNo;
+
+  // Scan-and-pay QR, only once the shop has a UPI id on file and the
+  // operator picked UPI as the payment method -- see docs/supabase-setup.md
+  // §14. Pays straight into the shop's own bank account; there's no gateway
+  // here to confirm it landed, so "Mark as paid" below is the operator's
+  // own confirmation, not an automatic one.
+  const upiVpa = location?.upi_vpa;
+  const showUpiQr = !!upiVpa && customer.paymentMethod === 'upi';
+
+  useEffect(() => {
+    if (!showUpiQr) {
+      setUpiQrUrl(null);
+      return;
+    }
+    let cancelled = false;
+    const link = buildUpiLink({
+      vpa: upiVpa,
+      payeeName: location?.name,
+      amount: grandTotal,
+      note: invoiceNo ? `Bill ${invoiceNo}` : customer.name,
+    });
+    QRCode.toDataURL(link, { margin: 1, width: 220 }).then((url) => {
+      if (!cancelled) setUpiQrUrl(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showUpiQr, upiVpa, grandTotal, invoiceNo]);
+
+  async function handleMarkPaid() {
+    setMarkingPaid(true);
+    await markBillsPaid(billIds);
+    setMarkingPaid(false);
+    setPaid(true);
+  }
 
   async function generateImage() {
     setStatus('generating');
@@ -77,7 +127,6 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
   // already covers the initial, note-less render) but still fires if they
   // type then clear the field back to empty.
   const touchedNotesRef = useRef(false);
-  const billIds = bills.map((b) => b.id).filter(Boolean);
   useEffect(() => {
     if (!touchedNotesRef.current) {
       touchedNotesRef.current = true;
@@ -199,6 +248,12 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
                 <div>
                   <h2 className="bill-letterhead-title">{t('appName')}</h2>
                   <p className="bill-letterhead-tagline">{t('tagline')}</p>
+                  {gstin && (
+                    <p className="bill-gstin-line">
+                      {t('taxInvoiceLabel')} · {t('gstinLabel')}: {gstin}
+                      {invoiceNo ? ` · ${t('invoiceNoLabel')} ${invoiceNo}` : ''}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -213,6 +268,7 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
                 </p>
                 <p>
                   {t('billMadeByLabel')}: {customer.pocName}
+                  {customer.paymentMethod ? ` · ${t('paymentMethodLabel')}: ${paymentMethodLabel(t, customer.paymentMethod)}` : ''}
                 </p>
               </div>
 
@@ -280,6 +336,23 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
                 </div>
               )}
 
+              {gstBreakup && (
+                <div className="bill-tax-breakup">
+                  <div className="bill-tax-breakup-row">
+                    <span>{t('taxableValueLabel')}</span>
+                    <span>₹{gstBreakup.taxableValue.toFixed(2)}</span>
+                  </div>
+                  <div className="bill-tax-breakup-row">
+                    <span>{t('cgstLabel')}</span>
+                    <span>₹{gstBreakup.cgst.toFixed(2)}</span>
+                  </div>
+                  <div className="bill-tax-breakup-row">
+                    <span>{t('sgstLabel')}</span>
+                    <span>₹{gstBreakup.sgst.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
+
               {(businessInfo.address || businessInfo.follow_us) && (
                 <div className="bill-footer">
                   {businessInfo.address && <p>{businessInfo.address}</p>}
@@ -295,6 +368,33 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
         </section>
 
         <aside className="flex flex-col rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset xl:sticky xl:top-6">
+          {showUpiQr && (
+            <div className="flex flex-col items-center gap-3 border-b border-secondary px-5 py-5">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-primary">
+                <QrCode01 className="size-4.5 shrink-0" />
+                {t('scanToPayLabel')}
+              </p>
+              {upiQrUrl ? (
+                <img src={upiQrUrl} alt={t('scanToPayLabel')} className="size-44 rounded-lg ring-1 ring-secondary" />
+              ) : (
+                <div className="flex size-44 items-center justify-center rounded-lg bg-secondary text-sm text-tertiary">
+                  {t('loadingResults')}
+                </div>
+              )}
+              <p className="text-lg font-bold text-primary tabular-nums">₹{grandTotal}</p>
+              {paid ? (
+                <span className="flex items-center gap-1.5 text-sm font-semibold text-success-primary">
+                  <CheckCircle className="size-4 shrink-0" />
+                  {t('paymentConfirmedLabel')}
+                </span>
+              ) : (
+                <Button size="md" color="secondary" className="w-full" onClick={handleMarkPaid} isLoading={markingPaid}>
+                  {t('markAsPaidButton')}
+                </Button>
+              )}
+            </div>
+          )}
+
           <div className="flex flex-col gap-2 border-b border-secondary px-5 py-5">
             <Button
               size="lg"

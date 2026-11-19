@@ -14,8 +14,10 @@ import { fetchPricingConfig } from './pricingData.js';
 import { getStoredLocation, clearStoredLocation } from './locationSession.js';
 import { supabase } from './supabaseClient.js';
 import { clearReorder, readReorder, resolveReorder } from './reorder.js';
+import { fetchLowStock } from './lowStock.js';
+import { addLedgerEntry } from './creditLedger.js';
 import { useLanguage } from './i18n.jsx';
-import { ArrowRight, Check, CurrencyRupee, Lock01, ReceiptCheck, ShoppingCart01, Users01 } from '@untitledui/icons';
+import { AlertTriangle, ArrowRight, Check, CurrencyRupee, Lock01, ReceiptCheck, ShoppingCart01, Users01 } from '@untitledui/icons';
 import ShopAdminPanel from './shopAdmin/ShopAdminPanel.jsx';
 import { Button } from '@/components/base/buttons/button';
 import { cx } from '@/utils/cx';
@@ -45,6 +47,7 @@ const emptyCustomer = () => ({
   area: '',
   pocName: '',
   billingMode: 'online',
+  paymentMethod: 'cash',
   date: todayISO(),
 });
 
@@ -102,6 +105,38 @@ function TodayStats({ location }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// Quiet, like TodayStats above -- renders nothing while loading or once
+// resolved empty, so a shop that's fully stocked never sees an empty box.
+function LowStockBanner({ location }) {
+  const { t } = useLanguage();
+  const [items, setItems] = useState(null);
+
+  useEffect(() => {
+    if (!location) return;
+    let cancelled = false;
+    fetchLowStock({ locationId: location.id }).then((rows) => {
+      if (!cancelled) setItems(rows);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [location]);
+
+  if (!items || items.length === 0) return null;
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl bg-primary p-4 shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex items-center gap-2 text-fg-warning-primary">
+        <AlertTriangle className="size-4.5 shrink-0" />
+        <p className="text-sm font-semibold text-primary">{t('lowStockBannerTitle')}</p>
+      </div>
+      <p className="text-sm text-tertiary">
+        {items.map((item) => `${item.name} (${item.qtyOnHand})`).join(' · ')}
+      </p>
     </div>
   );
 }
@@ -272,6 +307,20 @@ export default function App() {
       .filter((b) => b.kind === 'product')
       .map((b) => ({ productId: b.productId, qty: b.productQty }));
     decrementStock(location?.id, productLines);
+    // "Credit" is a payment method, not just a note -- the customer now
+    // owes this bill's total, so it goes straight into their khata balance
+    // instead of the shop having to remember to log it separately.
+    if (customer.paymentMethod === 'credit') {
+      const billNo = logged.find((b) => b?.billNo)?.billNo;
+      addLedgerEntry({
+        phone: customer.phone,
+        customerName: customer.name,
+        locationId: location?.id,
+        entryType: 'charge',
+        amount: finalBills.reduce((sum, b) => sum + b.total, 0),
+        note: billNo ? `${t('billNoLabel')} ${billNo}` : null,
+      });
+    }
     setBills(finalBills.map((b, i) => ({ ...b, id: logged[i]?.id ?? null, billNo: logged[i]?.billNo ?? null })));
     setConfirming(false);
     setStep('share');
@@ -364,6 +413,7 @@ export default function App() {
               <PageHeader title={location.name} description={t('startScreenHint')} />
               <div className="flex flex-col gap-5 px-4 pt-8 lg:px-8">
                 <TodayStats location={location} />
+                <LowStockBanner location={location} />
 
                 <button
                   type="button"

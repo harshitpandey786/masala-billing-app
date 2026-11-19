@@ -85,12 +85,17 @@ export async function fetchPricingConfig(locationId) {
     const making_charge_per_kg = Number(
       settingsRes.data?.making_charge_per_kg ?? defaultConfig.making_charge_per_kg
     );
+    // Defaults to 5% (the common GST slab for spice/masala HSN 0910) until
+    // a shop sets its own rate, or forever if §12c hasn't been run -- the
+    // column just won't be in `settingsRes.data` yet.
+    const gst_rate_pct = Number(settingsRes.data?.gst_rate_pct ?? defaultConfig.gst_rate_pct ?? 5);
 
     return {
       business_info: defaultConfig.business_info,
       rate_card,
       recipes,
       making_charge_per_kg,
+      gst_rate_pct,
       fixed_making_charges,
       likely_addon_ingredient_codes,
       core_chili_row_codes: [...coreChiliCodes],

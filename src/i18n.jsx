@@ -322,6 +322,55 @@ const STRINGS = {
     scanPageManualPlaceholder: 'Type barcode, then Send',
     scanPageSendButton: 'Send',
     scanPageSentPrefix: 'Sent to counter:',
+
+    lowStockAlertsTitle: 'Low stock alerts',
+    lowStockOwnerHint: 'Products running low across your shops',
+    lowStockBannerTitle: 'Running low',
+    reorderLevelLabel: 'Reorder level',
+    left: 'left',
+
+    khataTitle: 'Credit / Khata',
+    khataNoBalance: 'No outstanding balance',
+    khataRecordPayment: 'Record payment',
+    khataAddCharge: 'Add credit charge',
+    khataAmountLabel: 'Amount',
+    khataNoteLabel: 'Note',
+    khataNotePlaceholder: 'e.g. Goods on credit',
+    khataNoEntries: 'No khata entries yet',
+    khataEntryTypeCharge: 'Charge',
+    khataEntryTypePayment: 'Payment',
+    khataAmountRequired: 'Enter an amount',
+    outstandingCreditTitle: 'Outstanding credit',
+    outstandingCreditHint: 'Customers with a khata balance',
+    totalOutstandingLabel: 'Total outstanding',
+
+    gstinLabel: 'GSTIN',
+    gstinPlaceholder: 'e.g. 27AAAAA0000A1Z5',
+    gstRateLabel: 'GST rate (%)',
+    gstRateHint: 'Used to show the tax breakup on invoices.',
+    taxInvoiceLabel: 'Tax Invoice',
+    taxableValueLabel: 'Taxable value',
+    cgstLabel: 'CGST',
+    sgstLabel: 'SGST',
+    invoiceNoLabel: 'Invoice No.',
+
+    winBackTitle: 'Win-back customers',
+    winBackHint: "Haven't ordered in 45+ days",
+    daysInactiveSuffix: 'days ago',
+    nudgeOnWhatsapp: 'Nudge on WhatsApp',
+    winBackMessageTemplate: 'Hi {name}, we miss you at Shindraj Masale! Come order your favourite masala again.',
+
+    paymentMethodLabel: 'Payment method',
+    paymentMethodCash: 'Cash',
+    paymentMethodUpi: 'UPI',
+    paymentMethodCredit: 'Credit',
+    paymentMethodCreditHint: "Added to the customer's khata balance automatically.",
+
+    upiVpaLabel: 'UPI ID',
+    upiVpaPlaceholder: 'e.g. shopname@okaxis',
+    scanToPayLabel: 'Scan to pay',
+    markAsPaidButton: 'Mark as paid',
+    paymentConfirmedLabel: 'Payment received',
   },
   mr: {
     appName: 'शिंदराज मसाले',
@@ -642,6 +691,55 @@ const STRINGS = {
     scanPageManualPlaceholder: 'बारकोड टाइप करा, नंतर पाठवा',
     scanPageSendButton: 'पाठवा',
     scanPageSentPrefix: 'काउंटरला पाठवले:',
+
+    lowStockAlertsTitle: 'स्टॉक कमी होत आहे',
+    lowStockOwnerHint: 'तुमच्या दुकानांमध्ये कमी होत असलेले पदार्थ',
+    lowStockBannerTitle: 'स्टॉक कमी आहे',
+    reorderLevelLabel: 'पुन्हा मागवण्याची पातळी',
+    left: 'उरले',
+
+    khataTitle: 'उधारी / खाता',
+    khataNoBalance: 'कोणतीही उधारी शिल्लक नाही',
+    khataRecordPayment: 'पैसे भरले नोंदवा',
+    khataAddCharge: 'उधारी नोंदवा',
+    khataAmountLabel: 'रक्कम',
+    khataNoteLabel: 'टिप',
+    khataNotePlaceholder: 'उदा. उधारीवर माल',
+    khataNoEntries: 'अजून कोणतीही नोंद नाही',
+    khataEntryTypeCharge: 'उधारी',
+    khataEntryTypePayment: 'भरणा',
+    khataAmountRequired: 'रक्कम टाका',
+    outstandingCreditTitle: 'थकीत उधारी',
+    outstandingCreditHint: 'ज्यांचा खाता बाकी आहे असे ग्राहक',
+    totalOutstandingLabel: 'एकूण थकीत रक्कम',
+
+    gstinLabel: 'जीएसटीआयएन',
+    gstinPlaceholder: 'उदा. 27AAAAA0000A1Z5',
+    gstRateLabel: 'जीएसटी दर (%)',
+    gstRateHint: 'बिलावर कर तपशील दाखवण्यासाठी वापरले जाते.',
+    taxInvoiceLabel: 'कर पावती',
+    taxableValueLabel: 'करपात्र रक्कम',
+    cgstLabel: 'सीजीएसटी',
+    sgstLabel: 'एसजीएसटी',
+    invoiceNoLabel: 'पावती क्र.',
+
+    winBackTitle: 'परत आणायचे ग्राहक',
+    winBackHint: '४५+ दिवसांत ऑर्डर नाही',
+    daysInactiveSuffix: 'दिवसांपूर्वी',
+    nudgeOnWhatsapp: 'व्हॉट्सअॅपवर आठवण द्या',
+    winBackMessageTemplate: 'नमस्कार {name}, शिंदराज मसालेमध्ये तुमची आठवण येते! तुमचा आवडता मसाला पुन्हा ऑर्डर करा.',
+
+    paymentMethodLabel: 'पेमेंट पद्धत',
+    paymentMethodCash: 'रोख',
+    paymentMethodUpi: 'यूपीआय',
+    paymentMethodCredit: 'उधारी',
+    paymentMethodCreditHint: 'ग्राहकाच्या खाता शिल्लकेत आपोआप जोडले जाईल.',
+
+    upiVpaLabel: 'यूपीआय आयडी',
+    upiVpaPlaceholder: 'उदा. shopname@okaxis',
+    scanToPayLabel: 'पेमेंटसाठी स्कॅन करा',
+    markAsPaidButton: 'भरले म्हणून नोंदवा',
+    paymentConfirmedLabel: 'पेमेंट मिळाले',
   },
 };
 
@@ -717,6 +815,12 @@ export function storeLabel(t, store) {
 
 // Revenue/order "channel" buckets used by the analytics and customer-profile
 // views: online, or offline split by store.
+export function paymentMethodLabel(t, key) {
+  if (key === 'upi') return t('paymentMethodUpi');
+  if (key === 'credit') return t('paymentMethodCredit');
+  return t('paymentMethodCash');
+}
+
 export function channelLabel(t, key) {
   if (key === 'online') return t('online');
   if (key === 'lalbaug' || key === 'sewri') return storeLabel(t, key);

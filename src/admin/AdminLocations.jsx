@@ -26,6 +26,8 @@ export default function AdminLocations() {
     login_username: '',
     login_password: '',
     admin_password: '',
+    gstin: '',
+    upi_vpa: '',
   });
   const [addError, setAddError] = useState('');
   const [saveErrors, setSaveErrors] = useState({});
@@ -96,12 +98,14 @@ export default function AdminLocations() {
       login_username: newLocation.login_username.trim(),
       login_password: newLocation.login_password,
       admin_password: newLocation.admin_password.trim() || null,
+      gstin: newLocation.gstin.trim() || null,
+      upi_vpa: newLocation.upi_vpa.trim() || null,
     });
     if (error) {
       setAddError(error.message);
       return;
     }
-    setNewLocation({ name: '', login_username: '', login_password: '', admin_password: '' });
+    setNewLocation({ name: '', login_username: '', login_password: '', admin_password: '', gstin: '', upi_vpa: '' });
     setShowAddForm(false);
     loadAll();
     flash();
@@ -179,6 +183,20 @@ export default function AdminLocations() {
               value={newLocation.admin_password}
               onChange={(v) => setNewLocation({ ...newLocation, admin_password: v })}
             />
+            <Input
+              size="sm"
+              label={t('gstinLabel')}
+              placeholder={t('gstinPlaceholder')}
+              value={newLocation.gstin}
+              onChange={(v) => setNewLocation({ ...newLocation, gstin: v })}
+            />
+            <Input
+              size="sm"
+              label={t('upiVpaLabel')}
+              placeholder={t('upiVpaPlaceholder')}
+              value={newLocation.upi_vpa}
+              onChange={(v) => setNewLocation({ ...newLocation, upi_vpa: v })}
+            />
           </div>
           <div className="flex items-center gap-3">
             <Button size="sm" iconLeading={Plus} onClick={addLocation}>
@@ -194,7 +212,7 @@ export default function AdminLocations() {
           <table className="w-full text-left">
             <thead className="bg-secondary">
               <tr className="border-b border-secondary">
-                {[t('shopNameLabel'), t('shopUsername'), t('password'), t('shopAdminPasswordLabel')].map((h) => (
+                {[t('shopNameLabel'), t('shopUsername'), t('password'), t('shopAdminPasswordLabel'), t('gstinLabel'), t('upiVpaLabel')].map((h) => (
                   <th key={h} className="px-5 py-3 text-xs font-semibold whitespace-nowrap text-quaternary">
                     {h}
                   </th>
@@ -210,6 +228,8 @@ export default function AdminLocations() {
                     <td className="px-5 py-3">{cellInput(loc, 'login_username', t('shopUsername'))}</td>
                     <td className="px-5 py-3">{cellInput(loc, 'login_password', t('password'))}</td>
                     <td className="px-5 py-3">{cellInput(loc, 'admin_password', t('shopAdminPasswordPlaceholder'))}</td>
+                    <td className="px-5 py-3">{cellInput(loc, 'gstin', t('gstinPlaceholder'))}</td>
+                    <td className="px-5 py-3">{cellInput(loc, 'upi_vpa', t('upiVpaPlaceholder'))}</td>
                     <td className="px-5 py-3 text-right">
                       {isDirty(loc) && (
                         <Button size="sm" color="secondary" onClick={() => saveRow(loc)} isDisabled={savingId === loc.id}>
@@ -220,7 +240,7 @@ export default function AdminLocations() {
                   </tr>
                   {saveErrors[loc.id] && (
                     <tr className="border-b border-secondary bg-error-primary last:border-b-0">
-                      <td colSpan={5} className="px-5 py-2">
+                      <td colSpan={7} className="px-5 py-2">
                         <p className="flex items-center gap-2 text-sm text-error-primary">
                           <AlertCircle className="size-4 shrink-0" />
                           {saveErrors[loc.id]}

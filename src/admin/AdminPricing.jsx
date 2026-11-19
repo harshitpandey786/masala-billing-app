@@ -110,7 +110,10 @@ export default function AdminPricing({ locationId }) {
 
         {status === 'ready' && (
           <>
-            <MakingChargeSetting locationId={locationId} settings={settings} onSaved={() => flash(t('saved'))} />
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <MakingChargeSetting locationId={locationId} settings={settings} onSaved={() => flash(t('saved'))} />
+              <GstRateSetting locationId={locationId} settings={settings} onSaved={() => flash(t('saved'))} />
+            </div>
 
             <IngredientRateCard
               locationId={locationId}
@@ -175,6 +178,50 @@ function MakingChargeSetting({ locationId, settings, onSaved }) {
         )}
       </div>
       <p className="text-sm text-tertiary">{t('makingChargePerKgHint')}</p>
+    </div>
+  );
+}
+
+function GstRateSetting({ locationId, settings, onSaved }) {
+  const { t } = useLanguage();
+  const [value, setValue] = useState(settings?.gst_rate_pct ?? 5);
+  const [saving, setSaving] = useState(false);
+  const dirty = Number(value) !== Number(settings?.gst_rate_pct ?? 5);
+
+  async function save() {
+    setSaving(true);
+    const { error } = await supabase
+      .from('pricing_settings')
+      .update({ gst_rate_pct: Number(value) })
+      .eq('location_id', locationId);
+    setSaving(false);
+    if (error) {
+      console.error('Failed to save GST rate setting', error);
+      return;
+    }
+    onSaved();
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <SubHeader title={t('gstRateLabel')} />
+      <div className="flex flex-wrap items-center gap-3">
+        <Input
+          aria-label={t('gstRateLabel')}
+          type="number"
+          size="sm"
+          value={String(value ?? '')}
+          onChange={setValue}
+          className="w-28"
+        />
+        <span className="text-sm font-medium text-tertiary">%</span>
+        {dirty && (
+          <Button size="sm" color="secondary" onClick={save} isLoading={saving}>
+            {t('save')}
+          </Button>
+        )}
+      </div>
+      <p className="text-sm text-tertiary">{t('gstRateHint')}</p>
     </div>
   );
 }
