@@ -85,7 +85,7 @@ function printBarcodeLabels(product, count) {
 function SubHeader({ title, actions }) {
   return (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h3 className="text-md font-semibold text-primary">{title}</h3>
+      <h3 className="text-lg font-bold text-primary">{title}</h3>
       {actions && <div className="flex flex-wrap gap-2">{actions}</div>}
     </div>
   );
@@ -134,15 +134,16 @@ export default function AdminProducts() {
   if (status === 'not_configured') return null;
 
   return (
-    <section className="rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
-      <div className="flex items-center justify-between gap-4 border-b border-secondary px-4 py-5 md:px-6">
-        <h2 className="text-lg font-semibold text-primary">{t('productsManagerTitle')}</h2>
-        {savedFlash && (
+    <section className="rounded-2xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+      {/* The page header already names this section; this row only carries
+          the "saved" confirmation. */}
+      {savedFlash && (
+        <div className="flex items-center justify-end gap-4 border-b border-secondary px-4 py-4 md:px-6">
           <BadgeWithIcon type="pill-color" color="success" size="md" iconLeading={CheckCircle}>
             {savedFlash}
           </BadgeWithIcon>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="flex flex-col gap-8 px-4 py-5 md:px-6 md:py-6">
         {status === 'loading' && <p className="text-sm text-tertiary">{t('loadingResults')}</p>}
