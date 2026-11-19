@@ -214,6 +214,17 @@ export const TextField = ({ className, size = "md", inputClassName, wrapperClass
     return (
         <TextFieldContext.Provider value={{ inputClassName, wrapperClassName, iconClassName, tooltipClassName, size }}>
             <AriaTextField
+                // React Aria defaults to native HTML5 form validation, which
+                // *blocks form submission* (silently -- no visible bubble in
+                // every browser, no error, no submit event) for as long as
+                // `isInvalid` stays true. This app drives `isInvalid` itself
+                // (e.g. "wrong password", cleared only once the next attempt
+                // succeeds) rather than native `required`/`pattern` checks,
+                // so native blocking turns "show an error" into "silently
+                // can never submit this form again" the moment any field is
+                // marked invalid. "aria" keeps isInvalid as just a visual/
+                // aria-invalid signal and lets the form submit normally.
+                validationBehavior="aria"
                 {...props}
                 data-input-wrapper
                 data-input-size={size}
