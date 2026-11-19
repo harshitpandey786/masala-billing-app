@@ -121,10 +121,10 @@ export default function AdminLocations() {
   );
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary px-5 py-4">
+    <div className="flex flex-col overflow-hidden rounded-2xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary px-5 py-5 lg:px-6">
         <div className="flex items-center gap-2">
-          <p className="text-lg font-semibold text-primary">{t('shopsTableTitle')}</p>
+          <p className="text-xl font-bold text-primary">{t('shopsTableTitle')}</p>
           {status === 'ready' && (
             <Badge size="sm" color="gray" type="modern">
               {locations.length}
