@@ -61,6 +61,7 @@ export default function ShopAdminLogin({ location, onUnlock }) {
           value={value}
           onChange={setValue}
           autoFocus
+          autoComplete="current-password"
           isInvalid={status === 'error' || status === 'not_set'}
           hint={
             status === 'error' ? t('wrongPassword') : status === 'not_set' ? t('shopAdminPasswordNotSet') : undefined
