@@ -3,12 +3,14 @@ import { ArrowLeft, CurrencyRupeeCircle, Heart, Receipt, Repeat04 } from '@untit
 import { groupBillsIntoOrders } from '../reorder.js';
 import { Avatar } from '@/components/base/avatar/avatar';
 import { Button } from '@/components/base/buttons/button';
+import { Input } from '@/components/base/input/input';
 import { FeaturedIcon } from '@/components/foundations/featured-icon/featured-icon';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage, masalaTypeLabel, channelLabel } from '../i18n.jsx';
 import { DEMO_ROWS } from './demoData.js';
 import { computeAnalytics } from './analytics.js';
 import BillLedgerTable from './BillLedgerTable.jsx';
+import { addLedgerEntry, fetchLedgerEntries, ledgerBalance } from '../creditLedger.js';
 
 function initialsOf(name) {
   return (name || '?')
@@ -44,11 +46,162 @@ function MetaItem({ label, value }) {
   );
 }
 
+// Credit/khata book for one customer -- see docs/supabase-setup.md §12b.
+// Balance is net across every shop (customers are shared), but each entry
+// still records which shop made it, for the owner's own records.
+function KhataCard({ phone, customerName, location }) {
+  const { t } = useLanguage();
+  const [entries, setEntries] = useState([]);
+  const [status, setStatus] = useState(supabase ? 'loading' : 'not_configured');
+  const [formOpen, setFormOpen] = useState(null); // 'charge' | 'payment' | null
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  async function load() {
+    if (!supabase) return;
+    setStatus('loading');
+    const rows = await fetchLedgerEntries(phone);
+    setEntries(rows);
+    setStatus('ready');
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phone]);
+
+  const balance = ledgerBalance(entries);
+
+  function openForm(type) {
+    setError('');
+    setAmount('');
+    setNote('');
+    setFormOpen((prev) => (prev === type ? null : type));
+  }
+
+  async function submit() {
+    setError('');
+    if (!amount || Number(amount) <= 0) {
+      setError(t('khataAmountRequired'));
+      return;
+    }
+    setSaving(true);
+    const { error: err } = await addLedgerEntry({
+      phone,
+      customerName,
+      locationId: location?.id,
+      entryType: formOpen,
+      amount,
+      note,
+    });
+    setSaving(false);
+    if (err) {
+      setError(err.message);
+      return;
+    }
+    setFormOpen(null);
+    load();
+  }
+
+  if (status === 'not_configured') return null;
+
+  return (
+    <div className="overflow-hidden rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary px-4 py-5 md:px-6">
+        <div className="flex flex-col gap-0.5">
+          <h3 className="text-md font-semibold text-primary">{t('khataTitle')}</h3>
+          <p
+            className={
+              balance > 0
+                ? 'text-display-xs font-bold text-fg-error-primary tabular-nums'
+                : 'text-display-xs font-bold text-success-primary tabular-nums'
+            }
+          >
+            {balance > 0 ? `₹${Math.round(balance).toLocaleString('en-IN')}` : t('khataNoBalance')}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" color="secondary" onClick={() => openForm('payment')}>
+            {t('khataRecordPayment')}
+          </Button>
+          <Button size="sm" onClick={() => openForm('charge')}>
+            {t('khataAddCharge')}
+          </Button>
+        </div>
+      </div>
+
+      {formOpen && (
+        <div className="flex flex-col gap-3 border-b border-secondary bg-secondary px-4 py-4 md:px-6">
+          <div className="flex flex-wrap items-end gap-3">
+            <Input
+              size="sm"
+              type="number"
+              label={t('khataAmountLabel')}
+              placeholder="₹"
+              value={amount}
+              onChange={setAmount}
+              className="w-32"
+            />
+            <Input
+              size="sm"
+              label={t('khataNoteLabel')}
+              placeholder={t('khataNotePlaceholder')}
+              value={note}
+              onChange={setNote}
+              className="w-64"
+            />
+            <Button size="sm" onClick={submit} isLoading={saving}>
+              {t('save')}
+            </Button>
+            <Button size="sm" color="secondary" onClick={() => setFormOpen(null)}>
+              {t('cancel')}
+            </Button>
+          </div>
+          {error && <p className="text-sm text-error-primary">{error}</p>}
+        </div>
+      )}
+
+      <div className="px-4 py-4 md:px-6">
+        {status === 'loading' && <p className="text-sm text-tertiary">{t('loadingResults')}</p>}
+        {status === 'ready' && entries.length === 0 && <p className="text-sm text-tertiary">{t('khataNoEntries')}</p>}
+        {status === 'ready' && entries.length > 0 && (
+          <ul className="flex flex-col divide-y divide-secondary">
+            {entries.map((e) => (
+              <li key={e.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="flex flex-col">
+                  <p className="text-sm font-medium text-primary">
+                    {e.entry_type === 'payment' ? t('khataEntryTypePayment') : t('khataEntryTypeCharge')}
+                    {e.note ? ` · ${e.note}` : ''}
+                  </p>
+                  <p className="text-sm text-tertiary">{e.entry_date}</p>
+                </div>
+                <span
+                  className={
+                    e.entry_type === 'payment'
+                      ? 'shrink-0 text-sm font-semibold text-success-primary tabular-nums'
+                      : 'shrink-0 text-sm font-semibold text-fg-error-primary tabular-nums'
+                  }
+                >
+                  {e.entry_type === 'payment' ? '-' : '+'}₹{Math.round(e.amount).toLocaleString('en-IN')}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // A single customer's full order history -- deliberately ignores the
 // Customer Lookup date filter, since "this customer's whole history" is the
 // point of drilling into their profile. `onReorder(customer, order)` is
 // only passed from the shop's side, where an order can actually be billed.
-export default function CustomerDetail({ phone, demoMode, onBack, onReorder }) {
+// `location` (also shop-side only) is which shop a new khata entry is
+// recorded under.
+export default function CustomerDetail({ phone, demoMode, onBack, onReorder, location }) {
   const { t, lang } = useLanguage();
   const [bills, setBills] = useState([]);
   const [status, setStatus] = useState('loading');
@@ -202,6 +355,8 @@ export default function CustomerDetail({ phone, demoMode, onBack, onReorder }) {
               value={profile.preferredChannel ? channelLabel(t, profile.preferredChannel.key) : '—'}
             />
           </div>
+
+          {!demoMode && <KhataCard phone={profile.phone} customerName={profile.name} location={location} />}
 
           <div className="overflow-hidden rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset">
             <div className="border-b border-secondary px-4 py-5 md:px-6">

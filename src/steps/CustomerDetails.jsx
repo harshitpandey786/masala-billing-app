@@ -184,6 +184,26 @@ export default function CustomerDetails({ customer, onChange, onBack, onNext, is
                 <ButtonGroupItem id="offline">{t('offline')}</ButtonGroupItem>
               </ButtonGroup>
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium text-secondary">{t('paymentMethodLabel')}</span>
+              <ButtonGroup
+                size="md"
+                selectedKeys={[customer.paymentMethod]}
+                onSelectionChange={(keys) => {
+                  const next = [...keys][0];
+                  if (next) update('paymentMethod', String(next));
+                }}
+                className="w-full [&>*]:flex-1 [&>*]:justify-center"
+              >
+                <ButtonGroupItem id="cash">{t('paymentMethodCash')}</ButtonGroupItem>
+                <ButtonGroupItem id="upi">{t('paymentMethodUpi')}</ButtonGroupItem>
+                <ButtonGroupItem id="credit">{t('paymentMethodCredit')}</ButtonGroupItem>
+              </ButtonGroup>
+              {customer.paymentMethod === 'credit' && (
+                <p className="text-xs text-tertiary">{t('paymentMethodCreditHint')}</p>
+              )}
+            </div>
           </div>
 
           <div className="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-secondary px-5 py-4 sm:flex-row sm:items-center lg:px-6">

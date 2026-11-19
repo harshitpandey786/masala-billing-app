@@ -27,12 +27,24 @@ export default function LocationLogin({ onLoggedIn }) {
     }
     setStatus('checking');
     try {
-      const { data, error } = await supabase
-        .from('locations')
-        .select('id, name')
-        .eq('login_username', username.trim())
-        .eq('login_password', password)
-        .maybeSingle();
+      const query = (columns) =>
+        supabase
+          .from('locations')
+          .select(columns.join(', '))
+          .eq('login_username', username.trim())
+          .eq('login_password', password)
+          .maybeSingle();
+      // `gstin` (§12c) / `upi_vpa` (§14) might not be added yet -- fall back
+      // column by column rather than blocking login over a bill feature
+      // that hasn't been set up yet.
+      let columns = ['id', 'name', 'gstin', 'upi_vpa'];
+      let { data, error } = await query(columns);
+      for (const optional of ['gstin', 'upi_vpa']) {
+        if (error && new RegExp(optional).test(error.message || '') && columns.includes(optional)) {
+          columns = columns.filter((c) => c !== optional);
+          ({ data, error } = await query(columns));
+        }
+      }
       if (error || !data) {
         setStatus('error');
         return;

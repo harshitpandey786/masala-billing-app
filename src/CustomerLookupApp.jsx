@@ -60,6 +60,7 @@ export default function CustomerLookupApp() {
               demoMode={false}
               onBack={() => setSelectedPhone(null)}
               onReorder={handleReorder}
+              location={location}
             />
           </div>
         ) : (

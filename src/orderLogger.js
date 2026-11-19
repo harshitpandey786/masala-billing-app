@@ -40,6 +40,7 @@ export async function logOrderToSupabase(customer, bills, location) {
     area: customer.area,
     poc_name: customer.pocName,
     billing_mode: customer.billingMode,
+    payment_method: customer.paymentMethod ?? null,
     store: location?.name ?? null,
     location_id: location?.id ?? null,
     kind: bill.kind || 'custom',
@@ -63,13 +64,28 @@ export async function logOrderToSupabase(customer, bills, location) {
   const insert = (rows) =>
     withTimeout(supabase.from('bills').insert(rows).select('id, bill_no'), SUPABASE_TIMEOUT_MS);
 
+  // Columns added after the original `bills` table -- if a migration for
+  // one hasn't been run yet, strip just that column and retry rather than
+  // losing the whole order over it. Checked in sequence so both can be
+  // missing at once (e.g. a fresh install that's only run some of
+  // docs/supabase-setup.md) without needing a retry per combination.
+  const OPTIONAL_COLUMNS = [
+    ['details', 'docs/supabase-setup.md §11'],
+    ['payment_method', 'docs/supabase-setup.md §13'],
+  ];
+
   try {
-    let { data, error } = await insert(billRows);
-    // `details` column not added yet (docs/supabase-setup.md §11): keep the
-    // bill, drop the details, rather than losing the whole order.
-    if (error && /details/.test(error.message || '')) {
-      console.error('Bill details not saved -- add the `details` column', error);
-      ({ data, error } = await insert(billRows.map(({ details: _details, ...row }) => row)));
+    let rows = billRows;
+    let { data, error } = await insert(rows);
+    for (const [column, doc] of OPTIONAL_COLUMNS) {
+      if (error && new RegExp(column).test(error.message || '') && rows.some((row) => column in row)) {
+        console.error(`Bill ${column} not saved -- add the \`${column}\` column (${doc})`, error);
+        rows = rows.map((row) => {
+          const { [column]: _omit, ...rest } = row;
+          return rest;
+        });
+        ({ data, error } = await insert(rows));
+      }
     }
     if (error || !data) {
       console.error('Failed to log order to Supabase', error);
@@ -97,5 +113,25 @@ export async function updateBillNotes(billIds, notes) {
     }
   } catch (err) {
     console.error('Failed to save bill notes to Supabase', err);
+  }
+}
+
+/**
+ * Flips the UPI QR's "Mark as paid" button (see ShareOutput.jsx / §14) --
+ * there's no payment gateway here to confirm this automatically, so it's
+ * the operator's own confirmation (seeing the payment land in their UPI
+ * app) being recorded. Best-effort, same resilience rule as everything else
+ * here: a failure (including the `paid` column not existing yet) just means
+ * the tick doesn't stick, never that the bill itself is at risk.
+ */
+export async function markBillsPaid(billIds) {
+  if (!supabase || billIds.length === 0) return { error: null };
+  try {
+    const { error } = await supabase.from('bills').update({ paid: true }).in('id', billIds);
+    if (error) console.error('Failed to mark bill paid in Supabase', error);
+    return { error };
+  } catch (err) {
+    console.error('Failed to mark bill paid in Supabase', err);
+    return { error: err };
   }
 }

@@ -1,9 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Award01, BarChartSquare02, Receipt, Repeat04, TrendDown02, TrendUp02, Users01 } from '@untitledui/icons';
+import {
+  Award01,
+  BarChartSquare02,
+  MessageChatCircle,
+  Receipt,
+  Repeat04,
+  TrendDown02,
+  TrendUp02,
+  Users01,
+} from '@untitledui/icons';
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ChartTooltipContent } from '@/components/application/charts/charts-base';
 import { Table, TableCard } from '@/components/application/table/table';
 import { Avatar } from '@/components/base/avatar/avatar';
+import { Button } from '@/components/base/buttons/button';
 import { cx } from '@/utils/cx';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage, masalaTypeLabel, storeLabel } from '../i18n.jsx';
@@ -33,6 +43,14 @@ const initials = (name) =>
     .join('')
     .slice(0, 2)
     .toUpperCase();
+
+// Same +91 assumption as ShareOutput.jsx's WhatsApp share -- Indian mobile
+// numbers are stored as 10 digits with no country code.
+function formatPhoneForWhatsApp(phone) {
+  const digits = (phone || '').replace(/\D/g, '');
+  if (!digits) return '';
+  return digits.length === 10 ? `91${digits}` : digits;
+}
 
 function Panel({ title, children, className = '' }) {
   return (
@@ -361,6 +379,61 @@ export default function AdminAnalytics({ fromDate, toDate, demoMode, locations =
           </Table.Body>
         </Table>
       </TableCard.Root>
+
+      {analytics.inactiveCustomers.length > 0 && (
+        <TableCard.Root className="rounded-2xl">
+          <TableCard.Header title={t('winBackTitle')} description={t('winBackHint')} className="[&_h2]:text-xl [&_h2]:font-bold" />
+          <Table aria-label={t('winBackTitle')}>
+            <Table.Header>
+              <Table.Head id="customer" label={t('tableCustomer')} isRowHeader />
+              <Table.Head id="last" label={t('lastOrderLabel')} />
+              <Table.Head id="spent" label={t('tableTotalSpent')} />
+              <Table.Head id="nudge" />
+            </Table.Header>
+            <Table.Body items={analytics.inactiveCustomers.map((c) => ({ ...c, id: c.phone }))}>
+              {(c) => (
+                <Table.Row id={c.id}>
+                  <Table.Cell>
+                    <div className="flex items-center gap-3">
+                      <Avatar
+                        size="md"
+                        initials={initials(c.name)}
+                        contentClassName={avatarColorFor(c.phone).bg}
+                        initialsClassName={avatarColorFor(c.phone).text}
+                      />
+                      <div className="whitespace-nowrap">
+                        <p className="text-sm font-semibold text-primary">{c.name}</p>
+                        <p className="text-sm text-tertiary">{c.phone}</p>
+                      </div>
+                    </div>
+                  </Table.Cell>
+                  <Table.Cell className="whitespace-nowrap tabular-nums">
+                    {c.lastOrderDate ? dateFormatter.format(new Date(c.lastOrderDate)) : '—'}
+                    <span className="text-tertiary"> · {c.daysSinceOrder} {t('daysInactiveSuffix')}</span>
+                  </Table.Cell>
+                  <Table.Cell className="font-medium whitespace-nowrap text-primary tabular-nums">{inr(c.revenue)}</Table.Cell>
+                  <Table.Cell className="px-4">
+                    <div className="flex justify-end">
+                      <Button
+                        size="sm"
+                        color="secondary"
+                        iconLeading={MessageChatCircle}
+                        onClick={() => {
+                          const phone = formatPhoneForWhatsApp(c.phone);
+                          const message = encodeURIComponent(t('winBackMessageTemplate').replace('{name}', c.name || ''));
+                          window.open(phone ? `https://wa.me/${phone}?text=${message}` : `https://wa.me/?text=${message}`, '_blank', 'noopener');
+                        }}
+                      >
+                        {t('nudgeOnWhatsapp')}
+                      </Button>
+                    </div>
+                  </Table.Cell>
+                </Table.Row>
+              )}
+            </Table.Body>
+          </Table>
+        </TableCard.Root>
+      )}
     </div>
   );
 }
