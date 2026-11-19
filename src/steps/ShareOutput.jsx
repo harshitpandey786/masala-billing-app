@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import html2canvas from 'html2canvas';
-import { AlertCircle, File06, Image01, MessageChatCircle, RefreshCw01 } from '@untitledui/icons';
+import { AlertCircle, File06, Image01, MessageChatCircle, Printer, RefreshCw01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { TextArea } from '@/components/base/textarea/textarea';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
@@ -119,6 +119,29 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
       console.error('Bill PDF generation failed', err);
       setPdfStatus('error');
     }
+  }
+
+  // Prints the same bill image that gets shared, from a hidden frame so the
+  // page around it (sidebar, buttons) never ends up on paper.
+  function handlePrint() {
+    if (!imageUrl) return;
+    const frame = document.createElement('iframe');
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+    document.body.appendChild(frame);
+    const doc = frame.contentDocument;
+    doc.title = safeFileName(customer, 'png').replace(/\.png$/, '');
+    const style = doc.createElement('style');
+    style.textContent = '@page { margin: 8mm; } body { margin: 0; } img { display: block; width: 100%; }';
+    doc.head.appendChild(style);
+    const img = doc.createElement('img');
+    img.onload = () => {
+      frame.contentWindow.addEventListener('afterprint', () => frame.remove());
+      frame.contentWindow.focus();
+      frame.contentWindow.print();
+    };
+    img.src = imageUrl;
+    doc.body.appendChild(img);
   }
 
   function handleShare() {
@@ -273,6 +296,15 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
 
         <aside className="flex flex-col rounded-xl bg-primary shadow-xs ring-1 ring-secondary ring-inset xl:sticky xl:top-6">
           <div className="flex flex-col gap-2 border-b border-secondary px-5 py-5">
+            <Button
+              size="lg"
+              iconLeading={Printer}
+              onClick={handlePrint}
+              isDisabled={status !== 'ready'}
+              className="w-full"
+            >
+              {t('printBill')}
+            </Button>
             <Button
               size="lg"
               iconLeading={MessageChatCircle}
