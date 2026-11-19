@@ -652,7 +652,7 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
     const key = cellKey(product.id, locationId, field);
     const value = fieldValue(product, locationId, field, fallback);
     const qty = Number(value);
-    const showOutOfStock = field === 'qty_on_hand' && qty === 0;
+    const showOutOfStock = field === 'qty_on_hand' && qty <= 0;
     const showLowStock = field === 'qty_on_hand' && qty > 0 && qty <= Number(product.reorder_level ?? 5);
     return (
       <div className="flex items-center gap-2">
