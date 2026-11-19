@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, ArrowLeft, ArrowRight, Phone } from '@untitledui/icons';
+import { AlertCircle, ArrowLeft, Check, Phone } from '@untitledui/icons';
 import { Avatar } from '@/components/base/avatar/avatar';
 import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
 import { Button } from '@/components/base/buttons/button';
@@ -20,7 +20,7 @@ const initials = (name) =>
     .slice(0, 2)
     .toUpperCase();
 
-export default function CustomerDetails({ customer, onChange, onBack, onNext }) {
+export default function CustomerDetails({ customer, onChange, onBack, onNext, isSubmitting }) {
   const { t } = useLanguage();
   const [touched, setTouched] = useState(false);
   const [matches, setMatches] = useState([]);
@@ -195,9 +195,12 @@ export default function CustomerDetails({ customer, onChange, onBack, onNext }) 
             ) : (
               <span />
             )}
-            <Button size="lg" iconTrailing={ArrowRight} onClick={handleNext}>
-              {t('next')}
-            </Button>
+            <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
+              <Button size="lg" iconLeading={Check} isLoading={isSubmitting} onClick={handleNext}>
+                {isSubmitting ? t('savingBill') : t('confirmBill')}
+              </Button>
+              <p className="text-xs text-tertiary">{t('billIsFinalHint')}</p>
+            </div>
           </div>
         </div>
       </div>

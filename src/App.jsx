@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'motion/react';
 import CustomerDetails from './steps/CustomerDetails.jsx';
 import OrderBuilder from './steps/OrderBuilder.jsx';
 import BillGenerator from './steps/BillGenerator.jsx';
+import FinalBill from './steps/FinalBill.jsx';
 import ShareOutput from './steps/ShareOutput.jsx';
 import LocationLogin from './steps/LocationLogin.jsx';
 import { logOrderToSupabase } from './orderLogger.js';
@@ -21,12 +22,16 @@ import AppShell from './components/shell/AppShell.jsx';
 import PageHeader from './components/shell/PageHeader.jsx';
 import staticPricingConfig from '../data/pricing-config.json' with { type: 'json' };
 
-const STEPS = ['order', 'customer', 'bill', 'share'];
-const STEP_LABEL_KEYS = {
-  customer: 'stepCustomer',
-  order: 'stepOrder',
-  bill: 'stepBill',
-  share: 'stepShare',
+// The client's six steps. Some screens cover two of them at once: the
+// proforma editor is where spice/ingredient details are set (2) on the
+// proforma (3), and the final bill is where extras get added (4, 5).
+const CLIENT_STEP_LABEL_KEYS = ['stepOrder', 'stepDetails', 'stepProforma', 'stepFinalBill', 'stepExtras', 'stepConfirm'];
+const SCREEN_CLIENT_STEPS = {
+  order: [0],
+  proforma: [1, 2],
+  review: [3, 4],
+  customer: [5],
+  share: [6],
 };
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
@@ -105,9 +110,9 @@ const openedViaShopAdminUrl = () => window.location.pathname.startsWith('/shop-a
 const initialView = () => (openedViaShopAdminUrl() ? 'shopAdmin' : 'billing');
 
 // A ready-made/loose product is already fully priced the moment it's added
-// to the cart (fixed price × qty, no ingredient breakdown to edit), so it
-// never needs the BillGenerator step -- it's converted straight into the
-// same bill shape custom items end up with (lineItems/ingredientsSubtotal/
+// (fixed price × qty, no ingredient breakdown to edit), so it never needs the
+// proforma step -- at confirm it's converted straight into the same bill
+// shape custom items end up with (lineItems/ingredientsSubtotal/
 // makingCharge/total), just with one synthetic line item. This is what lets
 // ShareOutput render every bill generically regardless of where it came from.
 function synthesizeProductBill(item) {
@@ -141,7 +146,12 @@ export default function App() {
   const [step, setStep] = useState('start');
   const [customer, setCustomer] = useState(emptyCustomer);
   const [orderItems, setOrderItems] = useState([]);
-  const [billIndex, setBillIndex] = useState(0);
+  // Per custom-masala item id: the priced bill from its proforma, and the raw
+  // edits behind it, so "Change" on the final bill reopens it as it was left.
+  const [proformaBills, setProformaBills] = useState({});
+  const [proformaEdits, setProformaEdits] = useState({});
+  const [editingId, setEditingId] = useState(null);
+  const [confirming, setConfirming] = useState(false);
   const [bills, setBills] = useState([]);
   // Starts as the bundled file (synchronous, so the Order step never blocks)
   // and swaps to Supabase's live pricing as soon as that fetch resolves --
@@ -177,7 +187,8 @@ export default function App() {
       if (cancelled) return;
       setCustomer({ ...emptyCustomer(), ...pendingReorder.customer });
       setOrderItems(items);
-      setBillIndex(0);
+      setProformaBills({});
+      setProformaEdits({});
       setBills([]);
       setReorderInfo({ fromDate: pendingReorder.fromDate, skipped });
       setView('billing');
@@ -193,7 +204,9 @@ export default function App() {
     setStep('start');
     setCustomer(emptyCustomer());
     setOrderItems([]);
-    setBillIndex(0);
+    setProformaBills({});
+    setProformaEdits({});
+    setEditingId(null);
     setBills([]);
     setReorderInfo(null);
   }
@@ -207,50 +220,53 @@ export default function App() {
     setLocation(null);
   }
 
-  // Walks forward from `fromIndex`, instantly converting any ready-made
-  // product items into their final bill shape (no UI needed for those), and
-  // stops at the first custom-masala item so BillGenerator can render for
-  // it. If every remaining item is a product, it logs the whole order and
-  // moves straight to Share -- same as confirming the last custom item does.
-  async function advanceBilling(accumulatedBills, fromIndex) {
-    let idx = fromIndex;
-    let acc = accumulatedBills;
-    while (idx < orderItems.length && orderItems[idx].kind === 'product') {
-      acc = [...acc, synthesizeProductBill(orderItems[idx])];
-      idx += 1;
-    }
-
-    if (idx >= orderItems.length) {
-      setStep('bill');
-      const logged = await logOrderToSupabase(customer, acc, location);
-      const billsWithIds = acc.map((b, i) => ({
-        ...b,
-        id: logged[i]?.id ?? null,
-        billNo: logged[i]?.billNo ?? null,
-      }));
-      const productLines = acc
-        .filter((b) => b.kind === 'product')
-        .map((b) => ({ productId: b.productId, qty: b.productQty }));
-      decrementStock(location?.id, productLines);
-      setBills(billsWithIds);
-      setStep('share');
+  // Opens the proforma for the next custom masala that doesn't have one yet,
+  // or the final bill once they all do.
+  function goToNextProforma(saved = proformaBills) {
+    const next = orderItems.find((i) => i.kind === 'custom' && !saved[i.id]);
+    if (next) {
+      setEditingId(next.id);
+      setStep('proforma');
       return;
     }
-
-    setBills(acc);
-    setBillIndex(idx);
-    setStep('bill');
+    setStep('review');
   }
 
-  async function handleConfirmBill(bill) {
-    await advanceBilling([...bills, bill], billIndex + 1);
+  function handleProformaSaved(bill, edits) {
+    const saved = { ...proformaBills, [editingId]: bill };
+    setProformaBills(saved);
+    setProformaEdits({ ...proformaEdits, [editingId]: edits });
+    goToNextProforma(saved);
+  }
+
+  function handleEditItem(id) {
+    setEditingId(id);
+    setStep('proforma');
+  }
+
+  // Client step 6: only here is the bill saved -- once confirmed it's final.
+  async function handleConfirmOrder() {
+    setConfirming(true);
+    const finalBills = orderItems.map((item) =>
+      item.kind === 'product' ? synthesizeProductBill(item) : proformaBills[item.id]
+    );
+    const logged = await logOrderToSupabase(customer, finalBills, location);
+    const productLines = finalBills
+      .filter((b) => b.kind === 'product')
+      .map((b) => ({ productId: b.productId, qty: b.productQty }));
+    decrementStock(location?.id, productLines);
+    setBills(finalBills.map((b, i) => ({ ...b, id: logged[i]?.id ?? null, billNo: logged[i]?.billNo ?? null })));
+    setConfirming(false);
+    setStep('share');
   }
 
   if (!location) {
     return <LocationLogin onLoggedIn={setLocation} />;
   }
 
-  const stepIndex = STEPS.indexOf(step);
+  const screenSteps = SCREEN_CLIENT_STEPS[step] || [];
+  const customItems = orderItems.filter((i) => i.kind === 'custom');
+  const editingItem = step === 'proforma' ? orderItems.find((i) => i.id === editingId) : null;
 
   const sections = [
     {
@@ -285,27 +301,32 @@ export default function App() {
       {view === 'shopAdmin' && <ShopAdminPanel key={location.id} location={location} />}
 
       {view === 'billing' && step !== 'start' && (
-        <nav aria-label={t('stepCustomer')} className="px-4 pt-6 lg:px-8">
+        <nav aria-label={t('billingStepsLabel')} className="px-4 pt-6 lg:px-8">
           <ol className="flex flex-wrap items-center gap-x-2 gap-y-2">
-            {STEPS.map((s, i) => {
-              const done = stepIndex > i;
-              const active = s === step;
+            {CLIENT_STEP_LABEL_KEYS.map((labelKey, i) => {
+              const active = screenSteps.includes(i);
+              const done = i < Math.min(...screenSteps);
               return (
-                <li key={s} className="flex items-center gap-2">
+                <li key={labelKey} className="flex items-center gap-2">
                   <span
                     className={cx(
-                      'flex size-6 items-center justify-center rounded-full text-xs font-semibold',
-                      active && 'bg-brand-solid text-white',
+                      'flex size-7 items-center justify-center rounded-full text-sm font-bold',
+                      active && 'bg-brand-solid text-white shadow-sm',
                       done && 'bg-brand-secondary text-brand-secondary',
                       !active && !done && 'bg-secondary text-quaternary ring-1 ring-secondary ring-inset'
                     )}
                   >
-                    {done ? <Check className="size-3.5" /> : i + 1}
+                    {done ? <Check className="size-4" /> : i + 1}
                   </span>
-                  <span className={cx('text-sm font-semibold', active ? 'text-primary' : 'text-tertiary')}>
-                    {t(STEP_LABEL_KEYS[s])}
+                  <span
+                    className={cx(
+                      'text-sm font-semibold',
+                      active ? 'text-primary' : 'hidden text-tertiary md:inline'
+                    )}
+                  >
+                    {t(labelKey)}
                   </span>
-                  {i < STEPS.length - 1 && <span className="mx-1 h-px w-6 bg-border-secondary sm:w-10" />}
+                  {i < CLIENT_STEP_LABEL_KEYS.length - 1 && <span className="mx-1 h-px w-4 bg-border-secondary sm:w-8" />}
                 </li>
               );
             })}
@@ -315,7 +336,7 @@ export default function App() {
 
       {view === 'billing' && (
         <motion.div
-          key={step === 'bill' ? `bill-${billIndex}` : step}
+          key={step === 'proforma' ? `proforma-${editingId}` : step}
           initial={reduceMotion ? false : { opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.22, ease: [0.23, 1, 0.32, 1] }}
@@ -389,11 +410,37 @@ export default function App() {
               orderItems={orderItems}
               onChange={setOrderItems}
               onBack={() => setStep('start')}
+              onNext={() => goToNextProforma()}
+              pricingConfig={pricingConfig}
+              customer={customer}
+              reorderInfo={reorderInfo}
+            />
+          )}
+
+          {editingItem && (
+            <BillGenerator
+              key={editingItem.id}
+              orderItem={editingItem}
+              itemNumber={customItems.indexOf(editingItem) + 1}
+              itemCount={customItems.length}
+              isLast={!customItems.some((i) => i.id !== editingItem.id && !proformaBills[i.id])}
+              initialEdits={proformaEdits[editingItem.id]}
+              onConfirm={handleProformaSaved}
+              onBack={() => setStep(proformaBills[editingItem.id] ? 'review' : 'order')}
+              pricingConfig={pricingConfig}
+            />
+          )}
+
+          {step === 'review' && (
+            <FinalBill
+              orderItems={orderItems}
+              proformaBills={proformaBills}
+              onChange={setOrderItems}
+              onEditItem={handleEditItem}
+              onBack={() => setStep('order')}
               onNext={() => setStep('customer')}
               pricingConfig={pricingConfig}
               locationId={location.id}
-              customer={customer}
-              reorderInfo={reorderInfo}
             />
           )}
 
@@ -401,24 +448,10 @@ export default function App() {
             <CustomerDetails
               customer={customer}
               onChange={setCustomer}
-              onBack={() => setStep('order')}
-              onNext={() => advanceBilling([], 0)}
+              onBack={() => setStep('review')}
+              onNext={handleConfirmOrder}
+              isSubmitting={confirming}
             />
-          )}
-
-          {step === 'bill' && orderItems[billIndex] && (
-            <BillGenerator
-              key={orderItems[billIndex].id}
-              orderItem={orderItems[billIndex]}
-              itemNumber={billIndex + 1}
-              itemCount={orderItems.length}
-              onConfirm={handleConfirmBill}
-              pricingConfig={pricingConfig}
-            />
-          )}
-
-          {step === 'bill' && !orderItems[billIndex] && (
-            <PageHeader title={t('stepBill')} description={t('finalizingBill')} />
           )}
 
           {step === 'share' && (

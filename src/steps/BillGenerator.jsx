@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Check, Plus, XClose } from '@untitledui/icons';
+import { ArrowLeft, ArrowRight, Plus, XClose } from '@untitledui/icons';
 import { Badge } from '@/components/base/badges/badges';
 import { Button } from '@/components/base/buttons/button';
 import { ButtonUtility } from '@/components/base/buttons/button-utility';
@@ -50,15 +50,15 @@ function BaseLineRow({ line, overrides, onChangeQty }) {
   );
 }
 
-export default function BillGenerator({ orderItem, itemNumber, itemCount, onConfirm, pricingConfig }) {
+export default function BillGenerator({ orderItem, itemNumber, itemCount, isLast, initialEdits, onConfirm, onBack, pricingConfig }) {
   const { t, lang } = useLanguage();
   const addonCodes = useMemo(() => getAddonIngredientCodes(pricingConfig), [pricingConfig]);
   const coreChiliCodes = useMemo(() => getCoreChiliRowCodes(pricingConfig), [pricingConfig]);
-  const [overrides, setOverrides] = useState({});
-  const [additions, setAdditions] = useState([]);
+  const [overrides, setOverrides] = useState(initialEdits?.overrides ?? {});
+  const [additions, setAdditions] = useState(initialEdits?.additions ?? []);
   const [addCode, setAddCode] = useState(addonCodes[0] || '');
   const [addQty, setAddQty] = useState('');
-  const [makingChargeOverride, setMakingChargeOverride] = useState(null);
+  const [makingChargeOverride, setMakingChargeOverride] = useState(initialEdits?.makingChargeOverride ?? null);
   const [confirming, setConfirming] = useState(false);
 
   const result = priceRecipe(orderItem.recipeKey, {
@@ -96,20 +96,21 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
 
   async function handleConfirm() {
     setConfirming(true);
-    await onConfirm({
-      orderItemId: orderItem.id,
-      type: orderItem.type,
-      qtyLabel: orderItem.qtyLabel,
-      recipeKey: orderItem.recipeKey,
-      lineItems: result.lineItems,
-      totalWeightG: result.totalWeightG,
-      ingredientsSubtotal: result.ingredientsSubtotal,
-      makingCharge: result.makingCharge,
-      total: result.total,
-    });
-    // No reset on success -- the last bill's confirm navigates away (to
-    // Share) and earlier bills remount a fresh BillGenerator for the next
-    // item, so this component is gone either way once onConfirm resolves.
+    await onConfirm(
+      {
+        orderItemId: orderItem.id,
+        type: orderItem.type,
+        qtyLabel: orderItem.qtyLabel,
+        recipeKey: orderItem.recipeKey,
+        lineItems: result.lineItems,
+        totalWeightG: result.totalWeightG,
+        ingredientsSubtotal: result.ingredientsSubtotal,
+        makingCharge: result.makingCharge,
+        total: result.total,
+      },
+      { overrides, additions, makingChargeOverride }
+    );
+    setConfirming(false);
   }
 
   const additionCodes = new Set(additions.map((a) => a.code));
@@ -132,6 +133,11 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
         title={`${masala} · ${orderItem.qtyLabel} kg`}
         description={
           itemCount > 1 ? `${t('billTitle')} ${itemNumber} ${t('of')} ${itemCount}` : t('billTitle')
+        }
+        actions={
+          <Button color="secondary" size="md" iconLeading={ArrowLeft} onClick={onBack}>
+            {t('back')}
+          </Button>
         }
       />
 
@@ -242,8 +248,8 @@ export default function BillGenerator({ orderItem, itemNumber, itemCount, onConf
             <span className="text-display-xs font-semibold text-primary tabular-nums">{inr(result.total)}</span>
           </div>
           <div className="border-t border-secondary px-5 py-4">
-            <Button size="lg" iconLeading={Check} isLoading={confirming} onClick={handleConfirm} className="w-full">
-              {confirming ? t('savingBill') : t('confirmBill')}
+            <Button size="lg" iconTrailing={ArrowRight} isLoading={confirming} onClick={handleConfirm} className="w-full">
+              {isLast ? t('showFinalBill') : t('nextMasala')}
             </Button>
           </div>
         </aside>
