@@ -128,15 +128,41 @@ function LowStockBanner({ location }) {
 
   if (!items || items.length === 0) return null;
 
+  // One shop's own stock only (fetchLowStock was called with this
+  // location's id), so there's no shop name to repeat per row here, unlike
+  // the owner's cross-shop panel -- just what's low and how much is left.
+  // Capped so a long list doesn't push the "Generate New Bill" button off
+  // a phone screen; the rest are summarized in one line instead of cut off
+  // silently.
+  const VISIBLE_LIMIT = 4;
+  const visible = items.slice(0, VISIBLE_LIMIT);
+  const overflowCount = items.length - visible.length;
+
   return (
-    <div className="flex flex-col gap-2 rounded-xl bg-primary p-4 shadow-xs ring-1 ring-secondary ring-inset">
+    <div className="flex flex-col gap-3 rounded-xl bg-primary p-4 shadow-xs ring-1 ring-secondary ring-inset">
       <div className="flex items-center gap-2 text-fg-warning-primary">
         <AlertTriangle className="size-4.5 shrink-0" />
         <p className="text-sm font-semibold text-primary">{t('lowStockBannerTitle')}</p>
       </div>
-      <p className="text-sm text-tertiary">
-        {items.map((item) => `${item.name} (${item.qtyOnHand})`).join(' · ')}
-      </p>
+      <ul className="flex flex-col divide-y divide-secondary">
+        {visible.map((item) => (
+          <li key={item.productId} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+            <p className="truncate text-sm text-secondary">{item.name}</p>
+            <span
+              className={
+                item.qtyOnHand <= 0
+                  ? 'shrink-0 text-sm font-semibold text-fg-error-primary tabular-nums'
+                  : 'shrink-0 text-sm font-semibold text-fg-warning-primary tabular-nums'
+              }
+            >
+              {item.qtyOnHand <= 0 ? t('outOfStockShort') : `${item.qtyOnHand} ${t('left')}`}
+            </span>
+          </li>
+        ))}
+      </ul>
+      {overflowCount > 0 && (
+        <p className="text-xs font-medium text-tertiary">{t('lowStockMoreSuffix').replace('{count}', overflowCount)}</p>
+      )}
     </div>
   );
 }

@@ -43,12 +43,12 @@ export default function LowStockAlerts() {
             </div>
             <span
               className={
-                item.qtyOnHand === 0
+                item.qtyOnHand <= 0
                   ? 'shrink-0 text-sm font-bold text-fg-error-primary tabular-nums'
                   : 'shrink-0 text-sm font-bold text-fg-warning-primary tabular-nums'
               }
             >
-              {item.qtyOnHand === 0 ? t('outOfStockShort') : `${item.qtyOnHand} ${t('left')}`}
+              {item.qtyOnHand <= 0 ? t('outOfStockShort') : `${item.qtyOnHand} ${t('left')}`}
             </span>
           </li>
         ))}

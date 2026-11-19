@@ -326,6 +326,7 @@ const STRINGS = {
     lowStockAlertsTitle: 'Low stock alerts',
     lowStockOwnerHint: 'Products running low across your shops',
     lowStockBannerTitle: 'Running low',
+    lowStockMoreSuffix: '+{count} more running low',
     reorderLevelLabel: 'Reorder level',
     left: 'left',
 
@@ -695,6 +696,7 @@ const STRINGS = {
     lowStockAlertsTitle: 'स्टॉक कमी होत आहे',
     lowStockOwnerHint: 'तुमच्या दुकानांमध्ये कमी होत असलेले पदार्थ',
     lowStockBannerTitle: 'स्टॉक कमी आहे',
+    lowStockMoreSuffix: '+{count} आणखी कमी होत आहेत',
     reorderLevelLabel: 'पुन्हा मागवण्याची पातळी',
     left: 'उरले',
 
