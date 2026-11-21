@@ -20,10 +20,21 @@ export function itemAmount(item, proformaBills) {
   return proformaBills[item.id]?.total ?? 0;
 }
 
-// Client steps 4 and 5: show the customer the final bill with its estimated
-// price (Change goes back to that masala's proforma), and add anything extra
-// into this same bill before confirming.
-export default function FinalBill({ orderItems, proformaBills, masalaDetails = {}, onChange, onEditItem, onBack, onNext, pricingConfig, locationId }) {
+// Shows the customer the final bill with its estimated price (Change goes
+// back to that masala's proforma), lets the counter add anything extra into
+// this same bill, and confirms it -- only here is the bill actually saved.
+export default function FinalBill({
+  orderItems,
+  proformaBills,
+  masalaDetails = {},
+  onChange,
+  onEditItem,
+  onBack,
+  onNext,
+  isSubmitting,
+  pricingConfig,
+  locationId,
+}) {
   const { t, lang } = useLanguage();
   const typeLabel = (ty) => masalaTypeLabel(t, ty, pricingConfig?.masala_types, lang);
   const total = orderItems.reduce((sum, item) => sum + itemAmount(item, proformaBills), 0);
@@ -163,11 +174,11 @@ export default function FinalBill({ orderItems, proformaBills, masalaDetails = {
           </div>
           <button
             type="button"
-            disabled={orderItems.length === 0}
+            disabled={orderItems.length === 0 || isSubmitting}
             onClick={onNext}
             className="group flex w-full items-center justify-between gap-3 rounded-xl bg-white px-5 py-4 text-left text-fg-brand-primary shadow-sm transition duration-150 ease-linear hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <span className="text-lg font-bold">{t('stepConfirm')}</span>
+            <span className="text-lg font-bold">{isSubmitting ? t('savingBill') : t('stepConfirm')}</span>
             <ArrowRight className="size-5 transition-transform duration-150 ease-linear group-hover:translate-x-1" />
           </button>
           <p className="text-sm text-white/75">{t('billIsFinalHint')}</p>

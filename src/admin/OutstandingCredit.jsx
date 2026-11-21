@@ -3,8 +3,9 @@ import { CurrencyRupeeCircle } from '@untitledui/icons';
 import { fetchAllBalances } from '../creditLedger.js';
 import { useLanguage } from '../i18n.jsx';
 
-// Cross-shop khata summary for the owner's Analytics overview -- same
-// "render nothing unless there's something to say" rule as LowStockAlerts.
+// Cross-shop khata summary for the owner's Analytics overview -- renders
+// nothing until there's an actual balance to flag, same "quiet unless
+// there's something to say" rule as App.jsx's TodayStats.
 export default function OutstandingCredit() {
   const { t } = useLanguage();
   const [balances, setBalances] = useState(null);
