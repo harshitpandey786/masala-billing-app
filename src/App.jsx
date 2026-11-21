@@ -14,10 +14,9 @@ import { fetchPricingConfig } from './pricingData.js';
 import { getStoredLocation, clearStoredLocation } from './locationSession.js';
 import { supabase } from './supabaseClient.js';
 import { clearReorder, readReorder, resolveReorder } from './reorder.js';
-import { fetchLowStock } from './lowStock.js';
 import { addLedgerEntry } from './creditLedger.js';
 import { useLanguage } from './i18n.jsx';
-import { AlertTriangle, ArrowRight, Check, CurrencyRupee, Lock01, ReceiptCheck, ShoppingCart01, Users01 } from '@untitledui/icons';
+import { ArrowRight, Check, CurrencyRupee, Lock01, ReceiptCheck, ShoppingCart01, Users01 } from '@untitledui/icons';
 import ShopAdminPanel from './shopAdmin/ShopAdminPanel.jsx';
 import { Button } from '@/components/base/buttons/button';
 import { cx } from '@/utils/cx';
@@ -26,16 +25,18 @@ import AppShell from './components/shell/AppShell.jsx';
 import PageHeader from './components/shell/PageHeader.jsx';
 import staticPricingConfig from '../data/pricing-config.json' with { type: 'json' };
 
-// The client's six steps. The final bill screen covers two of them at once
-// (show the bill, 4, and add extras, 5).
-const CLIENT_STEP_LABEL_KEYS = ['stepOrder', 'stepDetails', 'stepProforma', 'stepFinalBill', 'stepExtras', 'stepConfirm'];
+// Customer details now come right after picking the order type, before the
+// order itself is built -- one distinct screen per step, so each gets its
+// own slot (unlike the old flow, where choosing the type and building the
+// order shared one slot, and the final bill/confirm doubled up on another).
+const CLIENT_STEP_LABEL_KEYS = ['stepOrderType', 'stepCustomer', 'stepOrder', 'stepDetails', 'stepProforma', 'stepFinalBill'];
 const SCREEN_CLIENT_STEPS = {
   choose: [0],
-  order: [0],
-  details: [1],
-  proforma: [2],
-  review: [3, 4],
-  customer: [5],
+  customer: [1],
+  order: [2],
+  details: [3],
+  proforma: [4],
+  review: [5],
   share: [6],
 };
 
@@ -105,64 +106,6 @@ function TodayStats({ location }) {
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-// Quiet, like TodayStats above -- renders nothing while loading or once
-// resolved empty, so a shop that's fully stocked never sees an empty box.
-function LowStockBanner({ location }) {
-  const { t } = useLanguage();
-  const [items, setItems] = useState(null);
-
-  useEffect(() => {
-    if (!location) return;
-    let cancelled = false;
-    fetchLowStock({ locationId: location.id }).then((rows) => {
-      if (!cancelled) setItems(rows);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [location]);
-
-  if (!items || items.length === 0) return null;
-
-  // One shop's own stock only (fetchLowStock was called with this
-  // location's id), so there's no shop name to repeat per row here, unlike
-  // the owner's cross-shop panel -- just what's low and how much is left.
-  // Capped so a long list doesn't push the "Generate New Bill" button off
-  // a phone screen; the rest are summarized in one line instead of cut off
-  // silently.
-  const VISIBLE_LIMIT = 4;
-  const visible = items.slice(0, VISIBLE_LIMIT);
-  const overflowCount = items.length - visible.length;
-
-  return (
-    <div className="flex flex-col gap-3 rounded-xl bg-primary p-4 shadow-xs ring-1 ring-secondary ring-inset">
-      <div className="flex items-center gap-2 text-fg-warning-primary">
-        <AlertTriangle className="size-4.5 shrink-0" />
-        <p className="text-sm font-semibold text-primary">{t('lowStockBannerTitle')}</p>
-      </div>
-      <ul className="flex flex-col divide-y divide-secondary">
-        {visible.map((item) => (
-          <li key={item.productId} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
-            <p className="truncate text-sm text-secondary">{item.name}</p>
-            <span
-              className={
-                item.qtyOnHand <= 0
-                  ? 'shrink-0 text-sm font-semibold text-fg-error-primary tabular-nums'
-                  : 'shrink-0 text-sm font-semibold text-fg-warning-primary tabular-nums'
-              }
-            >
-              {item.qtyOnHand <= 0 ? t('outOfStockShort') : `${item.qtyOnHand} ${t('left')}`}
-            </span>
-          </li>
-        ))}
-      </ul>
-      {overflowCount > 0 && (
-        <p className="text-xs font-medium text-tertiary">{t('lowStockMoreSuffix').replace('{count}', overflowCount)}</p>
-      )}
     </div>
   );
 }
@@ -320,7 +263,8 @@ export default function App() {
     setStep('proforma');
   }
 
-  // Client step 6: only here is the bill saved -- once confirmed it's final.
+  // Only here is the bill saved -- once confirmed, from the final bill
+  // screen, it's final.
   async function handleConfirmOrder() {
     setConfirming(true);
     const finalBills = orderItems.map((item) =>
@@ -439,7 +383,6 @@ export default function App() {
               <PageHeader title={location.name} description={t('startScreenHint')} />
               <div className="flex flex-col gap-5 px-4 pt-8 lg:px-8">
                 <TodayStats location={location} />
-                <LowStockBanner location={location} />
 
                 <button
                   type="button"
@@ -502,9 +445,18 @@ export default function App() {
             <OrderTypeChoice
               onChoose={(mode) => {
                 setOrderMode(mode);
-                setStep('order');
+                setStep('customer');
               }}
               onBack={() => setStep('start')}
+            />
+          )}
+
+          {step === 'customer' && (
+            <CustomerDetails
+              customer={customer}
+              onChange={setCustomer}
+              onBack={() => setStep('choose')}
+              onNext={() => setStep('order')}
             />
           )}
 
@@ -512,7 +464,7 @@ export default function App() {
             <OrderBuilder
               orderItems={orderItems}
               onChange={setOrderItems}
-              onBack={() => setStep('choose')}
+              onBack={() => setStep('customer')}
               onNext={() => goToNextProforma()}
               mode={orderMode}
               onModeChange={setOrderMode}
@@ -559,19 +511,10 @@ export default function App() {
               onChange={setOrderItems}
               onEditItem={handleEditItem}
               onBack={() => setStep('order')}
-              onNext={() => setStep('customer')}
-              pricingConfig={pricingConfig}
-              locationId={location.id}
-            />
-          )}
-
-          {step === 'customer' && (
-            <CustomerDetails
-              customer={customer}
-              onChange={setCustomer}
-              onBack={() => setStep('review')}
               onNext={handleConfirmOrder}
               isSubmitting={confirming}
+              pricingConfig={pricingConfig}
+              locationId={location.id}
             />
           )}
 

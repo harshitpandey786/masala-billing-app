@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { AlertCircle, Check, Phone } from '@untitledui/icons';
+import { AlertCircle, ArrowRight, Phone } from '@untitledui/icons';
 import { Avatar } from '@/components/base/avatar/avatar';
 import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
 import { Button } from '@/components/base/buttons/button';
@@ -22,7 +22,9 @@ const initials = (name) =>
     .slice(0, 2)
     .toUpperCase();
 
-export default function CustomerDetails({ customer, onChange, onBack, onNext, isSubmitting }) {
+// Client step 2, right after the order type is chosen: who's ordering,
+// before any item is picked. The rest of the order is built after this.
+export default function CustomerDetails({ customer, onChange, onBack, onNext }) {
   const { t } = useLanguage();
   const [touched, setTouched] = useState(false);
   const [matches, setMatches] = useState([]);
@@ -221,12 +223,9 @@ export default function CustomerDetails({ customer, onChange, onBack, onNext, is
             ) : (
               <span />
             )}
-            <div className="flex flex-col items-stretch gap-1.5 sm:items-end">
-              <Button size="lg" iconLeading={Check} isLoading={isSubmitting} onClick={handleNext}>
-                {isSubmitting ? t('savingBill') : t('confirmBill')}
-              </Button>
-              <p className="text-xs text-tertiary">{t('billIsFinalHint')}</p>
-            </div>
+            <Button size="lg" iconTrailing={ArrowRight} onClick={handleNext}>
+              {t('next')}
+            </Button>
           </div>
         </div>
       </div>

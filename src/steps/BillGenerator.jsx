@@ -68,12 +68,11 @@ export default function BillGenerator({
   const addonCodes = useMemo(() => getAddonIngredientCodes(pricingConfig), [pricingConfig]);
   const coreChiliCodes = useMemo(() => getCoreChiliRowCodes(pricingConfig), [pricingConfig]);
   const recipe = pricingConfig?.recipes?.[orderItem.recipeKey];
-  // First time in, start at the spice level asked for in step 2 (if any);
-  // coming back from the final bill, keep exactly what was left here.
-  const [spice, setSpice] = useState(initialEdits ? (initialEdits.spice ?? null) : (details?.spice ?? null));
-  const [overrides, setOverrides] = useState(() =>
-    initialEdits?.overrides ?? (details?.spice ? applySpiceLevel({}, recipe, coreChiliCodes, details.spice) : {})
-  );
+  // Coming back from the final bill ("Change"), keep exactly what was left
+  // here; first time in, nothing's picked yet -- spice level is set right
+  // on this screen, not carried over from step 2 (that's just a free note).
+  const [spice, setSpice] = useState(initialEdits?.spice ?? null);
+  const [overrides, setOverrides] = useState(() => initialEdits?.overrides ?? {});
   const [additions, setAdditions] = useState(initialEdits?.additions ?? []);
   const [addCode, setAddCode] = useState(addonCodes[0] || '');
   const [addQty, setAddQty] = useState('');

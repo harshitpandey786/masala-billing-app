@@ -219,7 +219,6 @@ function ProductTable({ products, locations, onChanged, onSaved }) {
     if (e.category !== undefined) payload.category = e.category;
     if (e.unit !== undefined) payload.unit = e.unit;
     if (e.price !== undefined) payload.price = Number(e.price);
-    if (e.reorder_level !== undefined) payload.reorder_level = Number(e.reorder_level);
     if (e.is_active !== undefined) payload.is_active = !!e.is_active;
     const { error } = await supabase.from('products').update(payload).eq('id', p.id);
     setSavingId(null);
@@ -469,7 +468,6 @@ function ProductTable({ products, locations, onChanged, onSaved }) {
               <th className={th}>{t('categoryLabel')}</th>
               <th className={th}>{t('unitLabel')}</th>
               <th className={th}>{t('priceLabel')}</th>
-              <th className={th}>{t('reorderLevelLabel')}</th>
               <th className={th}>{t('barcodeLabel')}</th>
               <th className={th}>{t('activeLabel')}</th>
               <th className={th}></th>
@@ -527,16 +525,6 @@ function ProductTable({ products, locations, onChanged, onSaved }) {
                     value={String(fieldFor(p, 'price'))}
                     onChange={(v) => setField(p.id, 'price', v)}
                     className="w-24"
-                  />
-                </td>
-                <td className={td}>
-                  <Input
-                    size="sm"
-                    type="number"
-                    aria-label={t('reorderLevelLabel')}
-                    value={String(fieldFor(p, 'reorder_level') ?? '5')}
-                    onChange={(v) => setField(p.id, 'reorder_level', v)}
-                    className="w-20"
                   />
                 </td>
                 <td className={`${td} font-mono text-xs whitespace-nowrap`}>{p.barcode}</td>
@@ -653,7 +641,6 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
     const value = fieldValue(product, locationId, field, fallback);
     const qty = Number(value);
     const showOutOfStock = field === 'qty_on_hand' && qty <= 0;
-    const showLowStock = field === 'qty_on_hand' && qty > 0 && qty <= Number(product.reorder_level ?? 5);
     return (
       <div className="flex items-center gap-2">
         <Input
@@ -668,12 +655,6 @@ function StockGrid({ products, locations, stockLevels, onChanged, onSaved }) {
           <span className="flex items-center gap-1.5 text-xs font-medium whitespace-nowrap text-fg-error-primary">
             <span className="size-1.5 shrink-0 rounded-full bg-fg-error-primary" />
             {t('outOfStockShort')}
-          </span>
-        )}
-        {showLowStock && (
-          <span className="flex items-center gap-1.5 text-xs font-medium whitespace-nowrap text-fg-warning-primary">
-            <span className="size-1.5 shrink-0 rounded-full bg-fg-warning-primary" />
-            {t('lowStockBannerTitle')}
           </span>
         )}
         {isDirty(product, locationId, field, fallback) && (

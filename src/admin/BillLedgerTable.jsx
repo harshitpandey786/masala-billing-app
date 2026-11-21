@@ -1,9 +1,10 @@
 import { Fragment, useMemo, useState } from 'react';
-import { ChevronDown, ChevronRight, Repeat04 } from '@untitledui/icons';
+import { ChevronDown, ChevronRight, MessageTextSquare01, Repeat04 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { useLanguage, masalaTypeLabel, channelLabel } from '../i18n.jsx';
 import { masalaTypeColorFor } from '../utils/masalaTypeColor.js';
 import { groupBillsIntoOrders } from '../reorder.js';
+import { detailsParts } from '../masalaDetails.js';
 
 const th = 'border-b border-secondary bg-secondary px-4 py-3 text-left text-xs font-semibold whitespace-nowrap text-tertiary md:px-6';
 const td = 'border-b border-secondary px-4 py-3 align-middle text-sm text-tertiary md:px-6';
@@ -68,6 +69,7 @@ export default function BillLedgerTable({ rows, onReorder }) {
                   const product = isProductRow(row);
                   const line = row.line_items?.[0];
                   const isOpen = expandedId === row.id;
+                  const notes = product ? [] : detailsParts(row.details, t);
                   return (
                     <Fragment key={row.id}>
                       <tr className="hover:bg-secondary">
@@ -75,12 +77,20 @@ export default function BillLedgerTable({ rows, onReorder }) {
                           {product ? (
                             <span className="font-medium text-primary">{line?.code || '—'}</span>
                           ) : (
-                            <span className="inline-flex items-center gap-1.5">
-                              <span className={`size-1.5 shrink-0 rounded-full ${masalaTypeColorFor(row.masala_type).dot}`} />
-                              <span className="font-medium text-primary">
-                                {masalaTypeLabel(t, (row.masala_type || '').toLowerCase())}
+                            <div className="flex flex-col gap-0.5">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className={`size-1.5 shrink-0 rounded-full ${masalaTypeColorFor(row.masala_type).dot}`} />
+                                <span className="font-medium text-primary">
+                                  {masalaTypeLabel(t, (row.masala_type || '').toLowerCase())}
+                                </span>
                               </span>
-                            </span>
+                              {notes.length > 0 && (
+                                <span className="flex items-start gap-1 text-xs text-tertiary">
+                                  <MessageTextSquare01 className="mt-0.5 size-3.5 shrink-0" />
+                                  {notes.join(' · ')}
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
                         <td className={`${td} whitespace-nowrap`}>

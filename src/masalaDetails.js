@@ -25,20 +25,16 @@ export function applySpiceLevel(overrides, recipe, chilliCodes, levelId) {
   return next;
 }
 
-export const emptyDetails = () => ({ spice: null, extra: [], without: [], note: '' });
+// Step 2 is just a free note on what the customer asked for -- spice level
+// is instead set directly on the proforma (see applySpiceLevel above, used
+// by BillGenerator.jsx), since that's the screen that actually prices it.
+export const emptyDetails = () => ({ note: '' });
 
 export function hasDetails(details) {
-  return Boolean(details && (details.spice || details.extra?.length || details.without?.length || details.note?.trim()));
+  return Boolean(details?.note?.trim());
 }
 
-// One short line per detail, e.g. ["Spice: Hot", "Extra: GTDC, KS", ...].
+// One short line per detail -- today that's just the note, if any.
 export function detailsParts(details, t) {
-  if (!hasDetails(details)) return [];
-  const parts = [];
-  const spice = SPICE_LEVELS.find((s) => s.id === details.spice);
-  if (spice) parts.push(`${t('spiceLabelShort')}: ${t(spice.labelKey)}`);
-  if (details.extra?.length) parts.push(`${t('extraShort')}: ${details.extra.join(', ')}`);
-  if (details.without?.length) parts.push(`${t('withoutShort')}: ${details.without.join(', ')}`);
-  if (details.note?.trim()) parts.push(details.note.trim());
-  return parts;
+  return hasDetails(details) ? [details.note.trim()] : [];
 }
