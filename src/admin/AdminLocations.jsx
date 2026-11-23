@@ -5,6 +5,7 @@ import { Button } from '@/components/base/buttons/button';
 import { Input } from '@/components/base/input/input';
 import { Toggle } from '@/components/base/toggle/toggle';
 import { supabase } from '../supabaseClient.js';
+import { seedShopPricing } from '../seedShopPricing.js';
 import { useLanguage } from '../i18n.jsx';
 
 // Owner-only setup for the shop logins used by LocationLogin.jsx -- one
@@ -99,15 +100,19 @@ export default function AdminLocations({ onChanged }) {
       setAddError(t('locationFieldsRequired'));
       return;
     }
-    const { error } = await supabase.from('locations').insert({
-      name: newLocation.name.trim(),
-      login_username: newLocation.login_username.trim(),
-      login_password: newLocation.login_password,
-      admin_password: newLocation.admin_password.trim() || null,
-      gstin: newLocation.gstin.trim() || null,
-      upi_vpa: newLocation.upi_vpa.trim() || null,
-      is_online: newLocation.is_online,
-    });
+    const { data, error } = await supabase
+      .from('locations')
+      .insert({
+        name: newLocation.name.trim(),
+        login_username: newLocation.login_username.trim(),
+        login_password: newLocation.login_password,
+        admin_password: newLocation.admin_password.trim() || null,
+        gstin: newLocation.gstin.trim() || null,
+        upi_vpa: newLocation.upi_vpa.trim() || null,
+        is_online: newLocation.is_online,
+      })
+      .select('id')
+      .single();
     if (error) {
       setAddError(error.message);
       return;
@@ -125,6 +130,9 @@ export default function AdminLocations({ onChanged }) {
     loadAll();
     flash();
     onChanged?.();
+    // Best-effort, after the shop itself is already saved and shown as
+    // added -- a slow or failed copy never blocks or undoes the add.
+    if (data?.id) seedShopPricing(data.id);
   }
 
   if (status === 'not_configured') return null;
