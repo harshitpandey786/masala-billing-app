@@ -701,15 +701,46 @@ button -- nothing else changes, same fail-quiet rule as the rest of this
 app.
 
 **Rotating personal UPI handles.** When UPI is picked on the Final Bill
-screen, the counter also picks *who* it's going to (today: Shreyas, Sachin,
+screen, the counter also picks *who* it's going to (e.g. Shreyas, Sachin,
 Didi, Mummy) and the QR is built for that person's own VPA instead of the
-shop's. This list isn't in Supabase -- it's `upi_handles` in
-`data/pricing-config.json` (`[{ id, label, vpa }, ...]`), the same bundled
-config file `business_info` and the rate card live in. **The four VPAs are
-blank placeholders** -- fill in each person's real UPI id in that file (and
-redeploy) before this can show a working QR; until then UPI payment can
-still be picked, it just falls back to the shop's own `upi_vpa` if one is
-set, or shows no QR at all.
+shop's. Managed live in `/admin` → **Shops**, below the shops table (see
+§16) -- add, rename, or remove a handle any time, no redeploy needed.
+
+## 16. Rotating UPI handles table
+
+```sql
+create table if not exists public.upi_handles (
+  id uuid primary key default gen_random_uuid(),
+  created_at timestamptz not null default now(),
+  label text not null unique,
+  vpa text
+);
+
+alter table public.upi_handles enable row level security;
+
+create policy "Allow anonymous read/write" on public.upi_handles for all to anon using (true) with check (true);
+
+grant usage on schema public to anon;
+grant select, insert, update, delete on public.upi_handles to anon;
+```
+
+Optional one-time seed for the four names already in use:
+
+```sql
+insert into public.upi_handles (label, vpa) values
+  ('Shreyas', ''),
+  ('Sachin', ''),
+  ('Didi', ''),
+  ('Mummy', '')
+on conflict (label) do nothing;
+```
+
+Shared across every shop (unlike a shop's own UPI ID in Shops) -- it's a who,
+not a where. Until this table exists, or while it's empty, the picker falls
+back to the four bundled placeholders in `data/pricing-config.json`'s
+`upi_handles` (all with blank VPAs), so UPI can still be picked but shows no
+working QR. Once the table has rows, those take over and the JSON list is
+only the last-resort fallback (Supabase down, not configured, etc).
 
 **What this is, and isn't:** the QR pays directly into the shop's own bank
 account via UPI, with zero transaction fees and no sign-up -- it's a

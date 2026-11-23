@@ -12,6 +12,7 @@ import AdminAnalytics from './AdminAnalytics.jsx';
 import AdminPricing from './AdminPricing.jsx';
 import AdminProducts from './AdminProducts.jsx';
 import AdminLocations from './AdminLocations.jsx';
+import AdminUpiHandles from './AdminUpiHandles.jsx';
 import OutstandingCredit from './OutstandingCredit.jsx';
 
 // Owner-only: business analytics, and per-shop pricing/product control.
@@ -152,8 +153,9 @@ export default function AdminDashboard({ view = 'overview' }) {
     return (
       <div className="flex flex-col gap-8 pb-12">
         <PageHeader title={t('locationsManagerTitle')} description={t('shopsPageHint')} />
-        <div className="px-4 lg:px-8">
+        <div className="flex flex-col gap-6 px-4 lg:px-8">
           <AdminLocations />
+          <AdminUpiHandles />
         </div>
       </div>
     );
