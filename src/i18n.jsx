@@ -789,6 +789,21 @@ export function masalaTypeLabel(t, type, dbLabels, lang) {
   return type.charAt(0).toUpperCase() + type.slice(1);
 }
 
+// Ingredient codes (GTDC, HLD, ...) are the trade/procurement shorthand, not
+// something a customer -- or a new staff member -- should have to read on a
+// bill. Shows the Marathi/English name from the shop's own rate card
+// (/admin -> Pricing's name_en/name_mr) when it's been set, and falls back
+// to the raw code otherwise (an un-named ingredient, or the bundled config,
+// which doesn't carry names at all).
+export function ingredientLabel(code, rateCard, lang) {
+  const entry = rateCard?.[code];
+  if (entry) {
+    const label = lang === 'mr' ? entry.name_mr : entry.name_en;
+    if (label) return label;
+  }
+  return code;
+}
+
 export function storeLabel(t, store) {
   if (store === 'lalbaug') return t('lalbaug');
   if (store === 'sewri') return t('sewri');

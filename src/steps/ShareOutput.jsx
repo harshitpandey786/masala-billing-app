@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import { AlertCircle, CheckCircle, File06, Image01, MessageChatCircle, Printer, QrCode01, RefreshCw01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { TextArea } from '@/components/base/textarea/textarea';
-import { useLanguage, masalaTypeLabel, paymentMethodLabel } from '../i18n.jsx';
+import { useLanguage, masalaTypeLabel, paymentMethodLabel, ingredientLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
 import { updateBillNotes, markBillsPaid } from '../orderLogger.js';
 import { detailsParts } from '../masalaDetails.js';
@@ -307,7 +307,7 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
                     <tbody>
                       {bill.lineItems.map((line) => (
                         <tr key={line.code}>
-                          <td>{line.code}</td>
+                          <td>{ingredientLabel(line.code, pricingConfig?.rate_card, lang)}</td>
                           <td>
                             {line.qty} {line.unit === 'piece' ? 'pcs' : line.unit === 'kg' ? 'kg' : 'g'}
                           </td>

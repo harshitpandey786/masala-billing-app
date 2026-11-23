@@ -7,7 +7,7 @@ import { Input } from '@/components/base/input/input';
 import { Select } from '@/components/base/select/select';
 import { priceRecipe } from '../pricing-engine.js';
 import { getAddonIngredientCodes, getCoreChiliRowCodes } from '../recipeCatalog.js';
-import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
+import { useLanguage, masalaTypeLabel, ingredientLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
 import BackButton from '../components/shell/BackButton.jsx';
 import { detailsParts } from '../masalaDetails.js';
@@ -55,13 +55,18 @@ function PriceInput({ value, onChange, label }) {
   );
 }
 
-function BaseLineRow({ line, overrides, priceOverrides, onChangeQty, onChangePrice }) {
+function BaseLineRow({ line, label, overrides, priceOverrides, onChangeQty, onChangePrice }) {
   return (
     <tr className="border-t border-secondary">
-      <td className={`${td} font-medium text-primary`}>{line.code}</td>
+      <td className={`${td} font-medium text-primary`}>
+        <div className="flex flex-col">
+          <span>{label}</span>
+          {label !== line.code && <span className="text-xs font-normal text-quaternary">{line.code}</span>}
+        </div>
+      </td>
       <td className={td}>
         <QtyInput
-          label={line.code}
+          label={label}
           value={overrides[line.code] != null ? overrides[line.code] : line.qty}
           unit={line.unit === 'piece' ? 'pcs' : 'g'}
           onChange={(v) => onChangeQty(line.code, v)}
@@ -69,7 +74,7 @@ function BaseLineRow({ line, overrides, priceOverrides, onChangeQty, onChangePri
       </td>
       <td className={td}>
         <PriceInput
-          label={line.code}
+          label={label}
           value={priceOverrides[line.code] != null ? priceOverrides[line.code] : line.amount}
           onChange={(v) => onChangePrice(line.code, v)}
         />
@@ -92,6 +97,7 @@ export default function BillGenerator({
   const { t, lang } = useLanguage();
   const addonCodes = useMemo(() => getAddonIngredientCodes(pricingConfig), [pricingConfig]);
   const coreChiliCodes = useMemo(() => getCoreChiliRowCodes(pricingConfig), [pricingConfig]);
+  const nameFor = (code) => ingredientLabel(code, pricingConfig?.rate_card, lang);
   // Coming back from the final bill ("Change"), keep exactly what was left
   // here; first time in, nothing's picked yet.
   const [overrides, setOverrides] = useState(() => initialEdits?.overrides ?? {});
@@ -216,6 +222,7 @@ export default function BillGenerator({
                   <BaseLineRow
                     key={line.code}
                     line={line}
+                    label={nameFor(line.code)}
                     overrides={overrides}
                     priceOverrides={priceOverrides}
                     onChangeQty={updateOverride}
@@ -225,11 +232,17 @@ export default function BillGenerator({
 
                 {additions.map((addition) => {
                   const amount = result.lineItems.find((l) => l.code === addition.code)?.amount ?? 0;
+                  const label = nameFor(addition.code);
                   return (
                     <tr key={addition.id} className="border-t border-secondary bg-brand-primary">
                       <td className={td}>
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-primary">{addition.code}</span>
+                          <div className="flex flex-col">
+                            <span className="font-medium text-primary">{label}</span>
+                            {label !== addition.code && (
+                              <span className="text-xs font-normal text-quaternary">{addition.code}</span>
+                            )}
+                          </div>
                           <Badge size="sm" type="color" color="brand">
                             {t('addedSuffix')}
                           </Badge>
@@ -238,7 +251,7 @@ export default function BillGenerator({
                       <td className={td}>
                         <div className="flex items-center justify-between gap-2">
                           <QtyInput
-                            label={addition.code}
+                            label={label}
                             value={addition.qty}
                             unit="g"
                             onChange={(v) => updateAdditionQty(addition.id, v)}
@@ -254,7 +267,7 @@ export default function BillGenerator({
                       </td>
                       <td className={td}>
                         <PriceInput
-                          label={addition.code}
+                          label={label}
                           value={priceOverrides[addition.code] != null ? priceOverrides[addition.code] : amount}
                           onChange={(v) => updatePrice(addition.code, v)}
                         />
@@ -267,6 +280,7 @@ export default function BillGenerator({
                   <BaseLineRow
                     key={line.code}
                     line={line}
+                    label={nameFor(line.code)}
                     overrides={overrides}
                     priceOverrides={priceOverrides}
                     onChangeQty={updateOverride}
@@ -280,7 +294,7 @@ export default function BillGenerator({
           <div className="flex flex-col gap-3 border-t border-secondary bg-secondary px-4 py-4 sm:flex-row sm:items-end lg:px-6">
             <Select
               label={t('addChiliIngredient')}
-              items={addonCodes.map((code) => ({ id: code, label: code }))}
+              items={addonCodes.map((code) => ({ id: code, label: nameFor(code) }))}
               selectedKey={addCode || null}
               onSelectionChange={(key) => key && setAddCode(String(key))}
               size="sm"
