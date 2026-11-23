@@ -17,11 +17,16 @@ export async function fetchPricingConfig(locationId) {
   if (!supabase || !locationId) return defaultConfig;
 
   try {
-    const [ingredientsRes, typesRes, recipesRes, settingsRes] = await Promise.all([
+    const [ingredientsRes, typesRes, recipesRes, settingsRes, upiHandlesRes] = await Promise.all([
       supabase.from('ingredients').select('*').eq('location_id', locationId),
       supabase.from('masala_types').select('*').eq('location_id', locationId).order('sort_order'),
       supabase.from('recipes').select('*').eq('location_id', locationId).order('sort_order'),
       supabase.from('pricing_settings').select('*').eq('location_id', locationId).maybeSingle(),
+      // Shared across every shop (who's rotating to receive UPI payments isn't
+      // a per-shop thing), so this one isn't scoped by location_id -- and a
+      // missing/not-yet-migrated table shouldn't fall the whole fetch back to
+      // bundled pricing, just that one list (see the fallback below).
+      supabase.from('upi_handles').select('*').order('created_at'),
     ]);
 
     const error = ingredientsRes.error || typesRes.error || recipesRes.error || settingsRes.error;
@@ -90,9 +95,16 @@ export async function fetchPricingConfig(locationId) {
     // column just won't be in `settingsRes.data` yet.
     const gst_rate_pct = Number(settingsRes.data?.gst_rate_pct ?? defaultConfig.gst_rate_pct ?? 5);
 
+    // Falls back to the bundled list if the table isn't migrated yet, errored,
+    // or is just empty (nobody's added a handle in /admin yet).
+    const upi_handles =
+      !upiHandlesRes.error && upiHandlesRes.data?.length
+        ? upiHandlesRes.data.map((h) => ({ id: h.id, label: h.label, vpa: h.vpa || '' }))
+        : defaultConfig.upi_handles;
+
     return {
       business_info: defaultConfig.business_info,
-      upi_handles: defaultConfig.upi_handles,
+      upi_handles,
       rate_card,
       recipes,
       making_charge_per_kg,
