@@ -5,7 +5,7 @@ function roundRupee(n) {
   return Math.round(n);
 }
 
-function priceLine(code, qty, unit, rateCard) {
+function priceLine(code, qty, unit, rateCard, amountOverride) {
   const rate = rateCard[code];
   if (!rate) {
     throw new Error(`Unknown ingredient code: ${code}`);
@@ -14,13 +14,15 @@ function priceLine(code, qty, unit, rateCard) {
     if (rate.price_per_piece == null) {
       throw new Error(`Ingredient ${code} has no per-piece rate`);
     }
-    return { code, qty, unit, rate: rate.price_per_piece, amount: roundRupee(qty * rate.price_per_piece) };
+    const amount = amountOverride != null ? roundRupee(amountOverride) : roundRupee(qty * rate.price_per_piece);
+    return { code, qty, unit, rate: rate.price_per_piece, amount };
   }
   if (unit === 'g') {
     if (rate.price_per_kg == null) {
       throw new Error(`Ingredient ${code} has no per-kg rate`);
     }
-    return { code, qty, unit, rate: rate.price_per_kg, amount: roundRupee((qty / 1000) * rate.price_per_kg) };
+    const amount = amountOverride != null ? roundRupee(amountOverride) : roundRupee((qty / 1000) * rate.price_per_kg);
+    return { code, qty, unit, rate: rate.price_per_kg, amount };
   }
   throw new Error(`Unsupported unit "${unit}" for ingredient ${code}`);
 }
@@ -30,11 +32,12 @@ function priceLine(code, qty, unit, rateCard) {
  * @param {object} [options]
  * @param {Object<string, number>} [options.overrides] - qty overrides keyed by ingredient code, for rows already in the recipe
  * @param {Array<{code: string, qty: number, unit?: 'g'|'piece'}>} [options.additions] - new ingredient rows not in the base recipe (e.g. extra chilies)
+ * @param {Object<string, number>} [options.priceOverrides] - amount (₹) overrides keyed by ingredient code, for a customer-negotiated price on that row -- takes precedence over qty * rate
  * @param {number} [options.makingChargeOverride] - operator-edited making charge; takes precedence over the fixed/weight-based default
  * @param {object} [options.config] - pricing config to use instead of the bundled default (mainly for tests)
  */
 export function priceRecipe(recipeKey, options = {}) {
-  const { overrides = {}, additions = [], makingChargeOverride, config = defaultConfig } = options;
+  const { overrides = {}, additions = [], priceOverrides = {}, makingChargeOverride, config = defaultConfig } = options;
 
   const recipe = config.recipes[recipeKey];
   if (!recipe) {
@@ -53,7 +56,7 @@ export function priceRecipe(recipeKey, options = {}) {
 
   const additionLines = additions
     .filter((addition) => addition.qty != null && addition.qty > 0)
-    .map((addition) => priceLine(addition.code, addition.qty, addition.unit || 'g', rateCard));
+    .map((addition) => priceLine(addition.code, addition.qty, addition.unit || 'g', rateCard, priceOverrides[addition.code]));
 
   // Added chilies go right after the core chili rows (GTDC/ABDC/AKDC), not at the
   // end of the bill -- matches the physical prep sequence the row order must follow.
@@ -64,7 +67,7 @@ export function priceRecipe(recipeKey, options = {}) {
   let additionsInserted = additionLines.length === 0;
   for (const ing of recipe) {
     const qty = overrides[ing.code] != null ? overrides[ing.code] : ing.default_qty;
-    lineItems.push(priceLine(ing.code, qty, ing.unit, rateCard));
+    lineItems.push(priceLine(ing.code, qty, ing.unit, rateCard, priceOverrides[ing.code]));
     if (!additionsInserted && ing.code === lastCoreChiliCode) {
       lineItems.push(...additionLines);
       additionsInserted = true;

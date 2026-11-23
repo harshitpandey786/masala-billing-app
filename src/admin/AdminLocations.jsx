@@ -3,6 +3,7 @@ import { AlertCircle, CheckCircle, Plus, XClose } from '@untitledui/icons';
 import { Badge } from '@/components/base/badges/badges';
 import { Button } from '@/components/base/buttons/button';
 import { Input } from '@/components/base/input/input';
+import { Toggle } from '@/components/base/toggle/toggle';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
 
@@ -28,6 +29,7 @@ export default function AdminLocations() {
     admin_password: '',
     gstin: '',
     upi_vpa: '',
+    is_online: false,
   });
   const [addError, setAddError] = useState('');
   const [saveErrors, setSaveErrors] = useState({});
@@ -56,6 +58,9 @@ export default function AdminLocations() {
 
   function fieldFor(loc, field) {
     return edits[loc.id]?.[field] !== undefined ? edits[loc.id][field] : loc[field] ?? '';
+  }
+  function isOnlineFor(loc) {
+    return edits[loc.id]?.is_online !== undefined ? edits[loc.id].is_online : !!loc.is_online;
   }
   function setField(id, field, value) {
     setEdits((prev) => ({ ...prev, [id]: { ...prev[id], [field]: value } }));
@@ -100,12 +105,21 @@ export default function AdminLocations() {
       admin_password: newLocation.admin_password.trim() || null,
       gstin: newLocation.gstin.trim() || null,
       upi_vpa: newLocation.upi_vpa.trim() || null,
+      is_online: newLocation.is_online,
     });
     if (error) {
       setAddError(error.message);
       return;
     }
-    setNewLocation({ name: '', login_username: '', login_password: '', admin_password: '', gstin: '', upi_vpa: '' });
+    setNewLocation({
+      name: '',
+      login_username: '',
+      login_password: '',
+      admin_password: '',
+      gstin: '',
+      upi_vpa: '',
+      is_online: false,
+    });
     setShowAddForm(false);
     loadAll();
     flash();
@@ -197,7 +211,14 @@ export default function AdminLocations() {
               value={newLocation.upi_vpa}
               onChange={(v) => setNewLocation({ ...newLocation, upi_vpa: v })}
             />
+            <Toggle
+              size="md"
+              label={t('isOnlineShopLabel')}
+              isSelected={newLocation.is_online}
+              onChange={(v) => setNewLocation({ ...newLocation, is_online: v })}
+            />
           </div>
+          <p className="text-xs text-tertiary">{t('isOnlineShopHint')}</p>
           <div className="flex items-center gap-3">
             <Button size="sm" iconLeading={Plus} onClick={addLocation}>
               {t('addItem')}
@@ -212,7 +233,15 @@ export default function AdminLocations() {
           <table className="w-full text-left">
             <thead className="bg-secondary">
               <tr className="border-b border-secondary">
-                {[t('shopNameLabel'), t('shopUsername'), t('password'), t('shopAdminPasswordLabel'), t('gstinLabel'), t('upiVpaLabel')].map((h) => (
+                {[
+                  t('shopNameLabel'),
+                  t('shopUsername'),
+                  t('password'),
+                  t('shopAdminPasswordLabel'),
+                  t('gstinLabel'),
+                  t('upiVpaLabel'),
+                  t('isOnlineShopLabel'),
+                ].map((h) => (
                   <th key={h} className="px-5 py-3 text-xs font-semibold whitespace-nowrap text-quaternary">
                     {h}
                   </th>
@@ -230,6 +259,14 @@ export default function AdminLocations() {
                     <td className="px-5 py-3">{cellInput(loc, 'admin_password', t('shopAdminPasswordPlaceholder'))}</td>
                     <td className="px-5 py-3">{cellInput(loc, 'gstin', t('gstinPlaceholder'))}</td>
                     <td className="px-5 py-3">{cellInput(loc, 'upi_vpa', t('upiVpaPlaceholder'))}</td>
+                    <td className="px-5 py-3">
+                      <Toggle
+                        size="sm"
+                        aria-label={t('isOnlineShopLabel')}
+                        isSelected={isOnlineFor(loc)}
+                        onChange={(v) => setField(loc.id, 'is_online', v)}
+                      />
+                    </td>
                     <td className="px-5 py-3 text-right">
                       {isDirty(loc) && (
                         <Button size="sm" color="secondary" onClick={() => saveRow(loc)} isDisabled={savingId === loc.id}>
@@ -240,7 +277,7 @@ export default function AdminLocations() {
                   </tr>
                   {saveErrors[loc.id] && (
                     <tr className="border-b border-secondary bg-error-primary last:border-b-0">
-                      <td colSpan={7} className="px-5 py-2">
+                      <td colSpan={8} className="px-5 py-2">
                         <p className="flex items-center gap-2 text-sm text-error-primary">
                           <AlertCircle className="size-4 shrink-0" />
                           {saveErrors[loc.id]}

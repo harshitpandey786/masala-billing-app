@@ -52,12 +52,16 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
   const gstBreakup = gstin ? computeGstBreakup(grandTotal, pricingConfig?.gst_rate_pct) : null;
   const invoiceNo = bills.find((b) => b.billNo)?.billNo;
 
-  // Scan-and-pay QR, only once the shop has a UPI id on file and the
-  // operator picked UPI as the payment method -- see docs/supabase-setup.md
-  // §14. Pays straight into the shop's own bank account; there's no gateway
-  // here to confirm it landed, so "Mark as paid" below is the operator's
-  // own confirmation, not an automatic one.
-  const upiVpa = location?.upi_vpa;
+  // Scan-and-pay QR, only once the operator picked UPI as the payment
+  // method and a UPI id is on file to pay into -- the rotating handle they
+  // picked on the final bill (Shreyas/Sachin/Didi/Mummy, see
+  // data/pricing-config.json's upi_handles) if there is one, else the
+  // shop's own VPA (docs/supabase-setup.md §14). There's no gateway here to
+  // confirm it landed, so "Mark as paid" below is the operator's own
+  // confirmation, not an automatic one.
+  const upiHandles = pricingConfig?.upi_handles || [];
+  const selectedHandle = upiHandles.find((h) => h.id === customer.upiHandleId);
+  const upiVpa = selectedHandle?.vpa || location?.upi_vpa;
   const showUpiQr = !!upiVpa && customer.paymentMethod === 'upi';
 
   useEffect(() => {
@@ -68,7 +72,7 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
     let cancelled = false;
     const link = buildUpiLink({
       vpa: upiVpa,
-      payeeName: location?.name,
+      payeeName: selectedHandle?.label || location?.name,
       amount: grandTotal,
       note: invoiceNo ? `Bill ${invoiceNo}` : customer.name,
     });
@@ -268,7 +272,9 @@ export default function ShareOutput({ customer, bills, onStartOver, pricingConfi
                 </p>
                 <p>
                   {t('billMadeByLabel')}: {customer.pocName}
-                  {customer.paymentMethod ? ` · ${t('paymentMethodLabel')}: ${paymentMethodLabel(t, customer.paymentMethod)}` : ''}
+                  {customer.paymentMethod
+                    ? ` · ${t('paymentMethodLabel')}: ${paymentMethodLabel(t, customer.paymentMethod)}${selectedHandle ? ` (${selectedHandle.label})` : ''}`
+                    : ''}
                 </p>
               </div>
 

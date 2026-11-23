@@ -92,6 +92,7 @@ export async function fetchPricingConfig(locationId) {
 
     return {
       business_info: defaultConfig.business_info,
+      upi_handles: defaultConfig.upi_handles,
       rate_card,
       recipes,
       making_charge_per_kg,

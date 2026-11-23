@@ -653,9 +653,26 @@ Until this is run, bills still save normally; only the payment method is
 left off (same fallback behavior as §11's `details` column -- the browser
 console logs a "Payment method not saved" error when that happens).
 
-Picking **Credit** at Customer Details also writes a `credit_ledger` charge
-for the bill's total (§12b must be run for that part to take effect --
-otherwise the bill still saves, the khata entry just silently doesn't).
+Payment method is now picked on the **Final Bill** screen (the last step,
+right before Confirm), not at Customer Details. **Credit** was removed as a
+pickable option there -- only Cash and UPI remain -- so the `credit_ledger`
+charge-on-credit code in `handleConfirmOrder` (App.jsx) is currently dormant
+rather than deleted, in case Credit comes back as an admin-only entry later.
+
+## 15. Online as its own shop, not a per-bill toggle
+
+The Online/Offline switch on every bill is gone. Instead, `billing_mode` is
+now set automatically from which shop is logged in -- make one `locations`
+row the online "shop" (any name; login username/password like any other
+shop) and flip its **Online shop** switch in `/admin` → **Shops**:
+
+```sql
+alter table public.locations add column if not exists is_online boolean not null default false;
+```
+
+No new policy/grant needed -- §9/§10 already let `anon` read/update
+`locations`. Until this is run, every shop just keeps billing Offline (the
+old default), same fail-quiet behavior as the rest of this app.
 
 ## 14. UPI QR on the bill (scan-and-pay, no gateway)
 
@@ -682,6 +699,17 @@ Then set each shop's UPI VPA in `/admin` → **Shops**, next to its GSTIN.
 Until both run, the bill screen just doesn't show a QR or the Mark as Paid
 button -- nothing else changes, same fail-quiet rule as the rest of this
 app.
+
+**Rotating personal UPI handles.** When UPI is picked on the Final Bill
+screen, the counter also picks *who* it's going to (today: Shreyas, Sachin,
+Didi, Mummy) and the QR is built for that person's own VPA instead of the
+shop's. This list isn't in Supabase -- it's `upi_handles` in
+`data/pricing-config.json` (`[{ id, label, vpa }, ...]`), the same bundled
+config file `business_info` and the rate card live in. **The four VPAs are
+blank placeholders** -- fill in each person's real UPI id in that file (and
+redeploy) before this can show a working QR; until then UPI payment can
+still be picked, it just falls back to the shop's own `upi_vpa` if one is
+set, or shows no QR at all.
 
 **What this is, and isn't:** the QR pays directly into the shop's own bank
 account via UPI, with zero transaction fees and no sign-up -- it's a

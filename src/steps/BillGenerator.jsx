@@ -8,10 +8,9 @@ import { Select } from '@/components/base/select/select';
 import { priceRecipe } from '../pricing-engine.js';
 import { getAddonIngredientCodes, getCoreChiliRowCodes } from '../recipeCatalog.js';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
-import { cx } from '@/utils/cx';
 import PageHeader from '../components/shell/PageHeader.jsx';
 import BackButton from '../components/shell/BackButton.jsx';
-import { SPICE_LEVELS, applySpiceLevel, detailsParts } from '../masalaDetails.js';
+import { detailsParts } from '../masalaDetails.js';
 
 const inr = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
@@ -37,7 +36,26 @@ function QtyInput({ value, unit, onChange, label }) {
   );
 }
 
-function BaseLineRow({ line, overrides, onChangeQty }) {
+// Customers often negotiate the price of a particular component, so this
+// edits the line's billed amount directly rather than only its quantity.
+function PriceInput({ value, onChange, label }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="text-xs text-quaternary">₹</span>
+      <Input
+        aria-label={label}
+        type="number"
+        inputMode="decimal"
+        size="sm"
+        value={String(value)}
+        onChange={onChange}
+        className="w-24"
+      />
+    </div>
+  );
+}
+
+function BaseLineRow({ line, overrides, priceOverrides, onChangeQty, onChangePrice }) {
   return (
     <tr className="border-t border-secondary">
       <td className={`${td} font-medium text-primary`}>{line.code}</td>
@@ -47,6 +65,13 @@ function BaseLineRow({ line, overrides, onChangeQty }) {
           value={overrides[line.code] != null ? overrides[line.code] : line.qty}
           unit={line.unit === 'piece' ? 'pcs' : 'g'}
           onChange={(v) => onChangeQty(line.code, v)}
+        />
+      </td>
+      <td className={td}>
+        <PriceInput
+          label={line.code}
+          value={priceOverrides[line.code] != null ? priceOverrides[line.code] : line.amount}
+          onChange={(v) => onChangePrice(line.code, v)}
         />
       </td>
     </tr>
@@ -67,12 +92,10 @@ export default function BillGenerator({
   const { t, lang } = useLanguage();
   const addonCodes = useMemo(() => getAddonIngredientCodes(pricingConfig), [pricingConfig]);
   const coreChiliCodes = useMemo(() => getCoreChiliRowCodes(pricingConfig), [pricingConfig]);
-  const recipe = pricingConfig?.recipes?.[orderItem.recipeKey];
   // Coming back from the final bill ("Change"), keep exactly what was left
-  // here; first time in, nothing's picked yet -- spice level is set right
-  // on this screen, not carried over from step 2 (that's just a free note).
-  const [spice, setSpice] = useState(initialEdits?.spice ?? null);
+  // here; first time in, nothing's picked yet.
   const [overrides, setOverrides] = useState(() => initialEdits?.overrides ?? {});
+  const [priceOverrides, setPriceOverrides] = useState(() => initialEdits?.priceOverrides ?? {});
   const [additions, setAdditions] = useState(initialEdits?.additions ?? []);
   const [addCode, setAddCode] = useState(addonCodes[0] || '');
   const [addQty, setAddQty] = useState('');
@@ -82,6 +105,7 @@ export default function BillGenerator({
   const result = priceRecipe(orderItem.recipeKey, {
     overrides,
     additions: additions.map(({ code, qty }) => ({ code, qty })),
+    priceOverrides,
     makingChargeOverride: makingChargeOverride != null ? makingChargeOverride : undefined,
     config: pricingConfig,
   });
@@ -89,13 +113,11 @@ export default function BillGenerator({
   function updateOverride(code, rawValue) {
     const qty = rawValue === '' ? 0 : Number(rawValue);
     setOverrides({ ...overrides, [code]: qty });
-    // Hand-editing a chilli row means the level no longer describes it.
-    if (coreChiliCodes.includes(code)) setSpice(null);
   }
 
-  function chooseSpice(levelId) {
-    setSpice(levelId);
-    setOverrides(applySpiceLevel(overrides, recipe, coreChiliCodes, levelId));
+  function updatePrice(code, rawValue) {
+    const amount = rawValue === '' ? 0 : Number(rawValue);
+    setPriceOverrides({ ...priceOverrides, [code]: amount });
   }
 
   function handleAddIngredient() {
@@ -133,7 +155,7 @@ export default function BillGenerator({
         makingCharge: result.makingCharge,
         total: result.total,
       },
-      { overrides, additions, makingChargeOverride, spice }
+      { overrides, priceOverrides, additions, makingChargeOverride }
     );
     setConfirming(false);
   }
@@ -180,83 +202,76 @@ export default function BillGenerator({
             <h2 className="text-lg font-semibold text-primary">{t('particulars')}</h2>
             <p className="text-sm text-tertiary">{t('billEditHint')}</p>
           </div>
-          <div className="flex flex-col gap-2.5 border-t border-secondary px-4 py-4 lg:px-6">
-            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
-              <span className="text-sm font-semibold text-secondary">{t('spiceLevelLabel')}</span>
-              <span className="text-xs text-tertiary">
-                {t('spiceControlHint')} {coreChiliCodes.join(', ')}
-              </span>
-            </div>
-            <div role="group" aria-label={t('spiceLevelLabel')} className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {SPICE_LEVELS.map((level, i) => {
-                const active = spice === level.id;
-                return (
-                  <button
-                    key={level.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => chooseSpice(level.id)}
-                    className={cx(
-                      'flex items-center justify-center gap-2 rounded-xl px-3 py-3 ring-inset transition duration-100 ease-linear',
-                      active ? 'bg-brand-solid text-white shadow-md' : 'bg-primary text-primary ring-1 ring-secondary hover:bg-secondary'
-                    )}
-                  >
-                    <span aria-hidden="true" className="flex gap-0.5">
-                      {Array.from({ length: i + 1 }).map((_, n) => (
-                        <span key={n} className={cx('size-1.5 rounded-full', active ? 'bg-white' : 'bg-brand-solid')} />
-                      ))}
-                    </span>
-                    <span className="text-sm font-bold">{t(level.labelKey)}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px] border-collapse">
+            <table className="w-full min-w-[560px] border-collapse">
               <thead className="bg-secondary">
                 <tr>
                   <th className={th}>{t('particulars')}</th>
                   <th className={th}>{t('quantity')}</th>
+                  <th className={th}>{t('amount')}</th>
                 </tr>
               </thead>
               <tbody>
                 {linesBeforeAdditions.map((line) => (
-                  <BaseLineRow key={line.code} line={line} overrides={overrides} onChangeQty={updateOverride} />
+                  <BaseLineRow
+                    key={line.code}
+                    line={line}
+                    overrides={overrides}
+                    priceOverrides={priceOverrides}
+                    onChangeQty={updateOverride}
+                    onChangePrice={updatePrice}
+                  />
                 ))}
 
-                {additions.map((addition) => (
-                  <tr key={addition.id} className="border-t border-secondary bg-brand-primary">
-                    <td className={td}>
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-primary">{addition.code}</span>
-                        <Badge size="sm" type="color" color="brand">
-                          {t('addedSuffix')}
-                        </Badge>
-                      </div>
-                    </td>
-                    <td className={td}>
-                      <div className="flex items-center justify-between gap-2">
-                        <QtyInput
+                {additions.map((addition) => {
+                  const amount = result.lineItems.find((l) => l.code === addition.code)?.amount ?? 0;
+                  return (
+                    <tr key={addition.id} className="border-t border-secondary bg-brand-primary">
+                      <td className={td}>
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-primary">{addition.code}</span>
+                          <Badge size="sm" type="color" color="brand">
+                            {t('addedSuffix')}
+                          </Badge>
+                        </div>
+                      </td>
+                      <td className={td}>
+                        <div className="flex items-center justify-between gap-2">
+                          <QtyInput
+                            label={addition.code}
+                            value={addition.qty}
+                            unit="g"
+                            onChange={(v) => updateAdditionQty(addition.id, v)}
+                          />
+                          <ButtonUtility
+                            size="xs"
+                            color="tertiary"
+                            tooltip={t('remove')}
+                            icon={XClose}
+                            onClick={() => removeAddition(addition.id)}
+                          />
+                        </div>
+                      </td>
+                      <td className={td}>
+                        <PriceInput
                           label={addition.code}
-                          value={addition.qty}
-                          unit="g"
-                          onChange={(v) => updateAdditionQty(addition.id, v)}
+                          value={priceOverrides[addition.code] != null ? priceOverrides[addition.code] : amount}
+                          onChange={(v) => updatePrice(addition.code, v)}
                         />
-                        <ButtonUtility
-                          size="xs"
-                          color="tertiary"
-                          tooltip={t('remove')}
-                          icon={XClose}
-                          onClick={() => removeAddition(addition.id)}
-                        />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {linesAfterAdditions.map((line) => (
-                  <BaseLineRow key={line.code} line={line} overrides={overrides} onChangeQty={updateOverride} />
+                  <BaseLineRow
+                    key={line.code}
+                    line={line}
+                    overrides={overrides}
+                    priceOverrides={priceOverrides}
+                    onChangeQty={updateOverride}
+                    onChangePrice={updatePrice}
+                  />
                 ))}
               </tbody>
             </table>

@@ -42,13 +42,17 @@ const SCREEN_CLIENT_STEPS = {
 
 const todayISO = () => new Date().toISOString().slice(0, 10);
 
-const emptyCustomer = () => ({
+// billingMode now comes from which shop is logged in, not a per-bill toggle:
+// the "Online" shop (see AdminLocations.jsx's Online shop switch) always
+// bills online, every other shop always bills offline.
+const emptyCustomer = (location) => ({
   name: '',
   phone: '',
   area: '',
   pocName: '',
-  billingMode: 'online',
+  billingMode: location?.is_online ? 'online' : 'offline',
   paymentMethod: 'cash',
+  upiHandleId: null,
   date: todayISO(),
 });
 
@@ -151,7 +155,7 @@ export default function App() {
     if (openedViaShopAdminUrl()) window.history.replaceState(null, '', '/');
   }, []);
   const [step, setStep] = useState('start');
-  const [customer, setCustomer] = useState(emptyCustomer);
+  const [customer, setCustomer] = useState(() => emptyCustomer(location));
   const [orderItems, setOrderItems] = useState([]);
   // Which tab the first step shows: 'custom' masala or 'readymade' products.
   const [orderMode, setOrderMode] = useState('custom');
@@ -196,7 +200,7 @@ export default function App() {
     clearReorder();
     resolveReorder(pendingReorder, { locationId: location.id, pricingConfig }).then(({ items, skipped }) => {
       if (cancelled) return;
-      setCustomer({ ...emptyCustomer(), ...pendingReorder.customer });
+      setCustomer({ ...emptyCustomer(location), ...pendingReorder.customer });
       setOrderItems(items);
       setOrderMode(items.some((i) => i.kind === 'custom') ? 'custom' : 'readymade');
       setProformaBills({});
@@ -215,7 +219,7 @@ export default function App() {
 
   function handleStartOver() {
     setStep('start');
-    setCustomer(emptyCustomer());
+    setCustomer(emptyCustomer(location));
     setOrderItems([]);
     setProformaBills({});
     setProformaEdits({});
@@ -515,6 +519,8 @@ export default function App() {
               isSubmitting={confirming}
               pricingConfig={pricingConfig}
               locationId={location.id}
+              customer={customer}
+              onCustomerChange={setCustomer}
             />
           )}
 
