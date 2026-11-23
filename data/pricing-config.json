@@ -3,6 +3,12 @@
     "address": "",
     "follow_us": ""
   },
+  "upi_handles": [
+    { "id": "shreyas", "label": "Shreyas", "vpa": "" },
+    { "id": "sachin", "label": "Sachin", "vpa": "" },
+    { "id": "didi", "label": "Didi", "vpa": "" },
+    { "id": "mummy", "label": "Mummy", "vpa": "" }
+  ],
   "rate_card": {
     "GTDC": {
       "price_per_kg": 400.0

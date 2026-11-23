@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Edit03, Minus, Package, Plus, Trash01 } from '@untitledui/icons';
 import { Button } from '@/components/base/buttons/button';
 import { ButtonUtility } from '@/components/base/buttons/button-utility';
+import { ButtonGroup, ButtonGroupItem } from '@/components/base/button-group/button-group';
 import { cx } from '@/utils/cx';
 import { useLanguage, masalaTypeLabel } from '../i18n.jsx';
 import PageHeader from '../components/shell/PageHeader.jsx';
@@ -11,6 +12,7 @@ import { ProductThumb } from '../components/ProductThumb.jsx';
 import { masalaTypeColorFor } from '../utils/masalaTypeColor.js';
 import { STEP_QTY, addProductItem, roundQty, unitAbbrev } from '../orderItems.js';
 import { detailsParts } from '../masalaDetails.js';
+import { SELECTED_BRAND_BUTTON_GROUP } from '../components/LanguageToggle.jsx';
 
 const inr = (n) => '₹' + Math.round(Number(n) || 0).toLocaleString('en-IN');
 
@@ -22,7 +24,8 @@ export function itemAmount(item, proformaBills) {
 
 // Shows the customer the final bill with its estimated price (Change goes
 // back to that masala's proforma), lets the counter add anything extra into
-// this same bill, and confirms it -- only here is the bill actually saved.
+// this same bill, picks how (and, for UPI, who) they're paying, and confirms
+// it -- only here is the bill actually saved.
 export default function FinalBill({
   orderItems,
   proformaBills,
@@ -34,10 +37,22 @@ export default function FinalBill({
   isSubmitting,
   pricingConfig,
   locationId,
+  customer,
+  onCustomerChange,
 }) {
   const { t, lang } = useLanguage();
   const typeLabel = (ty) => masalaTypeLabel(t, ty, pricingConfig?.masala_types, lang);
   const total = orderItems.reduce((sum, item) => sum + itemAmount(item, proformaBills), 0);
+  const upiHandles = pricingConfig?.upi_handles || [];
+  const needsUpiHandle = customer.paymentMethod === 'upi' && upiHandles.length > 0 && !customer.upiHandleId;
+
+  function setPaymentMethod(method) {
+    onCustomerChange({ ...customer, paymentMethod: method, upiHandleId: method === 'upi' ? customer.upiHandleId : null });
+  }
+
+  function setUpiHandle(handleId) {
+    onCustomerChange({ ...customer, upiHandleId: handleId });
+  }
 
   function addProduct(product) {
     onChange(addProductItem(orderItems, product));
@@ -165,6 +180,56 @@ export default function FinalBill({
           )}
         </section>
 
+        <section className="flex flex-col gap-4 rounded-2xl bg-primary p-5 shadow-xs ring-1 ring-secondary ring-inset xl:col-start-1 lg:p-6">
+          <div className="flex flex-col gap-1.5">
+            <span className="text-sm font-medium text-secondary">{t('paymentMethodLabel')}</span>
+            <ButtonGroup
+              size="md"
+              selectedKeys={[customer.paymentMethod]}
+              onSelectionChange={(keys) => {
+                const next = [...keys][0];
+                if (next) setPaymentMethod(String(next));
+              }}
+              className="w-full max-w-sm [&>*]:flex-1 [&>*]:justify-center"
+            >
+              <ButtonGroupItem id="cash" className={SELECTED_BRAND_BUTTON_GROUP}>
+                {t('paymentMethodCash')}
+              </ButtonGroupItem>
+              <ButtonGroupItem id="upi" className={SELECTED_BRAND_BUTTON_GROUP}>
+                {t('paymentMethodUpi')}
+              </ButtonGroupItem>
+            </ButtonGroup>
+          </div>
+
+          {customer.paymentMethod === 'upi' && upiHandles.length > 0 && (
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-secondary">{t('upiHandleLabel')}</span>
+              <div className="flex flex-wrap gap-2">
+                {upiHandles.map((handle) => {
+                  const active = customer.upiHandleId === handle.id;
+                  return (
+                    <button
+                      key={handle.id}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setUpiHandle(handle.id)}
+                      className={cx(
+                        'rounded-full px-4 py-2 text-sm font-semibold ring-1 ring-inset transition duration-100 ease-linear',
+                        active
+                          ? 'bg-brand-solid text-white shadow-sm ring-transparent'
+                          : 'bg-primary text-secondary ring-secondary hover:bg-secondary'
+                      )}
+                    >
+                      {handle.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-tertiary">{t('upiHandleHint')}</p>
+            </div>
+          )}
+        </section>
+
         {/* Second in the DOM so on narrower screens the total and Confirm sit
             right under the bill, not below the whole product grid. */}
         <aside className="flex flex-col gap-5 rounded-2xl bg-brand-solid p-6 text-white shadow-md xl:sticky xl:top-6 xl:col-start-2 xl:row-span-2 xl:row-start-1">
@@ -174,7 +239,7 @@ export default function FinalBill({
           </div>
           <button
             type="button"
-            disabled={orderItems.length === 0 || isSubmitting}
+            disabled={orderItems.length === 0 || isSubmitting || needsUpiHandle}
             onClick={onNext}
             className="group flex w-full items-center justify-between gap-3 rounded-xl bg-white px-5 py-4 text-left text-fg-brand-primary shadow-sm transition duration-150 ease-linear hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-60"
           >

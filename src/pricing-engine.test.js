@@ -139,3 +139,21 @@ test('adding an ingredient with no matching rate card entry throws', () => {
     /Unknown ingredient code/
   );
 });
+
+test('a priceOverride replaces a line\'s computed amount, for a negotiated price', () => {
+  const result = priceRecipe('malvani_1_25', { priceOverrides: { GTDC: 150 } });
+  const gtdc = result.lineItems.find((l) => l.code === 'GTDC');
+  assert.equal(gtdc.amount, 150);
+  // Quantity and unit are untouched -- only the amount shown/billed changes.
+  assert.equal(gtdc.qty, 500);
+  assert.equal(result.ingredientsSubtotal, 2033 - 200 + 150);
+});
+
+test('a priceOverride also applies to an added ingredient line', () => {
+  const result = priceRecipe('malvani_1_25', {
+    additions: [{ code: 'GPDC', qty: 300 }],
+    priceOverrides: { GPDC: 90 },
+  });
+  const gpdc = result.lineItems.find((l) => l.code === 'GPDC');
+  assert.equal(gpdc.amount, 90);
+});
