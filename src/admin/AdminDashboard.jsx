@@ -42,6 +42,35 @@ function quickRanges() {
   ];
 }
 
+// Same shop picker the Pricing page uses, pulled out so the Shops page (for
+// its per-shop UPI handles) can use it too.
+function ShopSelector({ locations, selectedLocationId, onSelect, label }) {
+  if (locations.length === 0) return null;
+  if (locations.length <= 6) {
+    return (
+      <Segmented
+        label={label}
+        items={locations.map((loc) => ({ id: loc.id, label: loc.name }))}
+        activeId={selectedLocationId}
+        onSelect={(item) => onSelect(item.id)}
+      />
+    );
+  }
+  return (
+    <Select
+      size="md"
+      aria-label={label}
+      label={label}
+      className="w-64"
+      items={locations.map((loc) => ({ id: loc.id, label: loc.name }))}
+      selectedKey={selectedLocationId || null}
+      onSelectionChange={(key) => key && onSelect(String(key))}
+    >
+      {(item) => <Select.Item id={item.id} label={item.label} />}
+    </Select>
+  );
+}
+
 function Segmented({ items, activeId, onSelect, label }) {
   return (
     <div role="group" aria-label={label} className="flex w-fit max-w-full flex-wrap gap-1 rounded-xl bg-primary p-1 shadow-xs ring-1 ring-secondary ring-inset">
@@ -76,7 +105,7 @@ export default function AdminDashboard({ view = 'overview' }) {
   const [locations, setLocations] = useState([]);
   const [selectedLocationId, setSelectedLocationId] = useState('');
 
-  useEffect(() => {
+  function reloadLocations() {
     if (!supabase) return;
     supabase
       .from('locations')
@@ -85,8 +114,16 @@ export default function AdminDashboard({ view = 'overview' }) {
       .then(({ data, error }) => {
         if (error || !data) return;
         setLocations(data);
-        setSelectedLocationId((prev) => prev || data[0]?.id || '');
+        setSelectedLocationId((prev) => (data.some((loc) => loc.id === prev) ? prev : data[0]?.id || ''));
       });
+  }
+
+  // Re-run when a shop is added/renamed in AdminLocations below, so its
+  // selector (used here and on the Pricing page) picks up the change
+  // without needing a full page reload.
+  useEffect(() => {
+    reloadLocations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function toggleDemoMode() {
@@ -109,27 +146,7 @@ export default function AdminDashboard({ view = 'overview' }) {
     return (
       <div className="flex flex-col gap-8 pb-12">
         <PageHeader title={t('pricingManagerTitle')} description={t('pricingPageHint')}>
-          {locations.length > 0 && locations.length <= 6 && (
-            <Segmented
-              label={t('editingShopLabel')}
-              items={locations.map((loc) => ({ id: loc.id, label: loc.name }))}
-              activeId={selectedLocationId}
-              onSelect={(item) => setSelectedLocationId(item.id)}
-            />
-          )}
-          {locations.length > 6 && (
-            <Select
-              size="md"
-              aria-label={t('editingShopLabel')}
-              label={t('editingShopLabel')}
-              className="w-64"
-              items={locations.map((loc) => ({ id: loc.id, label: loc.name }))}
-              selectedKey={selectedLocationId || null}
-              onSelectionChange={(key) => key && setSelectedLocationId(String(key))}
-            >
-              {(item) => <Select.Item id={item.id} label={item.label} />}
-            </Select>
-          )}
+          <ShopSelector locations={locations} selectedLocationId={selectedLocationId} onSelect={setSelectedLocationId} label={t('editingShopLabel')} />
         </PageHeader>
         <div className="px-4 lg:px-8">
           {selectedLocationId && <AdminPricing key={selectedLocationId} locationId={selectedLocationId} />}
@@ -154,8 +171,17 @@ export default function AdminDashboard({ view = 'overview' }) {
       <div className="flex flex-col gap-8 pb-12">
         <PageHeader title={t('locationsManagerTitle')} description={t('shopsPageHint')} />
         <div className="flex flex-col gap-6 px-4 lg:px-8">
-          <AdminLocations />
-          <AdminUpiHandles />
+          <AdminLocations onChanged={reloadLocations} />
+
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <ShopSelector
+              locations={locations}
+              selectedLocationId={selectedLocationId}
+              onSelect={setSelectedLocationId}
+              label={t('editingShopLabel')}
+            />
+          </div>
+          {selectedLocationId && <AdminUpiHandles key={selectedLocationId} locationId={selectedLocationId} />}
         </div>
       </div>
     );

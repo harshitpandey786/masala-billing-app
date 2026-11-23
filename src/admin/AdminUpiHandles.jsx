@@ -7,12 +7,14 @@ import { Input } from '@/components/base/input/input';
 import { supabase } from '../supabaseClient.js';
 import { useLanguage } from '../i18n.jsx';
 
-// The rotating UPI handles the counter picks from on the Final Bill screen
-// when a customer pays by UPI (see FinalBill.jsx / ShareOutput.jsx) -- shared
-// across every shop, unlike a shop's own UPI ID in Shops. Same inline-edit
-// table pattern as AdminLocations.jsx, plus delete since this list is meant
-// to be added to and trimmed over time, not fixed at four.
-export default function AdminUpiHandles() {
+// The rotating UPI handles the counter at one shop picks from on the Final
+// Bill screen when a customer pays by UPI (see FinalBill.jsx /
+// ShareOutput.jsx) -- each shop keeps its own list (Online's handles aren't
+// offered at Lalbagh, etc), set by whichever shop is selected above (see
+// AdminDashboard.jsx's shop selector, shared with the Pricing page). Same
+// inline-edit table pattern as AdminLocations.jsx, plus delete since this
+// list is meant to be added to and trimmed over time, not fixed at four.
+export default function AdminUpiHandles({ locationId }) {
   const { t } = useLanguage();
   const [handles, setHandles] = useState([]);
   const [status, setStatus] = useState(supabase ? 'loading' : 'not_configured');
@@ -25,12 +27,16 @@ export default function AdminUpiHandles() {
   const [saveErrors, setSaveErrors] = useState({});
 
   async function loadAll() {
-    if (!supabase) return;
+    if (!supabase || !locationId) return;
     setStatus('loading');
-    const { data, error } = await supabase.from('upi_handles').select('*').order('created_at');
+    const { data, error } = await supabase
+      .from('upi_handles')
+      .select('*')
+      .eq('location_id', locationId)
+      .order('created_at');
     if (error) {
       console.error('Failed to load UPI handles', error);
-      setStatus(/relation .* does not exist/i.test(error.message || '') ? 'not_migrated' : 'error');
+      setStatus(/relation .* does not exist|column .* does not exist/i.test(error.message || '') ? 'not_migrated' : 'error');
       return;
     }
     setHandles(data || []);
@@ -39,7 +45,8 @@ export default function AdminUpiHandles() {
 
   useEffect(() => {
     loadAll();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locationId]);
 
   function flash() {
     setSavedFlash(t('saved'));
@@ -100,7 +107,7 @@ export default function AdminUpiHandles() {
     }
     const { error } = await supabase
       .from('upi_handles')
-      .insert({ label: newHandle.label.trim(), vpa: newHandle.vpa.trim() || null });
+      .insert({ location_id: locationId, label: newHandle.label.trim(), vpa: newHandle.vpa.trim() || null });
     if (error) {
       setAddError(error.message);
       return;

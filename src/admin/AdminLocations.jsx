@@ -14,7 +14,7 @@ import { useLanguage } from '../i18n.jsx';
 //
 // A plain <table> rather than Untitled's react-aria Table: every cell holds a
 // text input, and a grid's keyboard navigation/typeahead would fight typing.
-export default function AdminLocations() {
+export default function AdminLocations({ onChanged }) {
   const { t } = useLanguage();
   const [locations, setLocations] = useState([]);
   const [status, setStatus] = useState(supabase ? 'loading' : 'not_configured');
@@ -90,6 +90,7 @@ export default function AdminLocations() {
     });
     loadAll();
     flash();
+    onChanged?.();
   }
 
   async function addLocation() {
@@ -123,6 +124,7 @@ export default function AdminLocations() {
     setShowAddForm(false);
     loadAll();
     flash();
+    onChanged?.();
   }
 
   if (status === 'not_configured') return null;

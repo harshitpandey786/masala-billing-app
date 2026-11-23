@@ -703,17 +703,21 @@ app.
 **Rotating personal UPI handles.** When UPI is picked on the Final Bill
 screen, the counter also picks *who* it's going to (e.g. Shreyas, Sachin,
 Didi, Mummy) and the QR is built for that person's own VPA instead of the
-shop's. Managed live in `/admin` → **Shops**, below the shops table (see
-§16) -- add, rename, or remove a handle any time, no redeploy needed.
+shop's. Each shop keeps its own list -- Online's handles aren't offered at
+Lalbagh, and so on. Managed live in `/admin` → **Shops**, below the shops
+table: pick a shop from the selector there, then add, rename, edit, or
+remove that shop's own handles, any time, no redeploy needed (see §16).
 
-## 16. Rotating UPI handles table
+## 16. Rotating UPI handles table, per shop
 
 ```sql
 create table if not exists public.upi_handles (
   id uuid primary key default gen_random_uuid(),
   created_at timestamptz not null default now(),
-  label text not null unique,
-  vpa text
+  location_id uuid references public.locations(id),
+  label text not null,
+  vpa text,
+  unique (location_id, label)
 );
 
 alter table public.upi_handles enable row level security;
@@ -724,23 +728,26 @@ grant usage on schema public to anon;
 grant select, insert, update, delete on public.upi_handles to anon;
 ```
 
-Optional one-time seed for the four names already in use:
+**If you already ran an earlier version of this table** (global, no
+`location_id`, with a plain `unique` on `label`), bring it up to date and
+drop the four unscoped seed rows instead (they're not tied to any shop, so
+the per-shop picker in `/admin` will never show them, and `fetchPricingConfig`
+only reads a shop's own rows):
 
 ```sql
-insert into public.upi_handles (label, vpa) values
-  ('Shreyas', ''),
-  ('Sachin', ''),
-  ('Didi', ''),
-  ('Mummy', '')
-on conflict (label) do nothing;
+alter table public.upi_handles drop constraint if exists upi_handles_label_key;
+alter table public.upi_handles add column if not exists location_id uuid references public.locations(id);
+alter table public.upi_handles add constraint upi_handles_location_label_key unique (location_id, label);
+delete from public.upi_handles where location_id is null;
 ```
 
-Shared across every shop (unlike a shop's own UPI ID in Shops) -- it's a who,
-not a where. Until this table exists, or while it's empty, the picker falls
-back to the four bundled placeholders in `data/pricing-config.json`'s
+Then re-add Shreyas/Sachin/Didi/Mummy (or whoever) per shop from `/admin` →
+**Shops** directly, picking the shop first.
+
+Until this table exists, or a shop's list in it is empty, that shop's picker
+falls back to the four bundled placeholders in `data/pricing-config.json`'s
 `upi_handles` (all with blank VPAs), so UPI can still be picked but shows no
-working QR. Once the table has rows, those take over and the JSON list is
-only the last-resort fallback (Supabase down, not configured, etc).
+working QR. Once a shop has rows of its own, those take over for that shop.
 
 **What this is, and isn't:** the QR pays directly into the shop's own bank
 account via UPI, with zero transaction fees and no sign-up -- it's a

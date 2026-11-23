@@ -22,11 +22,11 @@ export async function fetchPricingConfig(locationId) {
       supabase.from('masala_types').select('*').eq('location_id', locationId).order('sort_order'),
       supabase.from('recipes').select('*').eq('location_id', locationId).order('sort_order'),
       supabase.from('pricing_settings').select('*').eq('location_id', locationId).maybeSingle(),
-      // Shared across every shop (who's rotating to receive UPI payments isn't
-      // a per-shop thing), so this one isn't scoped by location_id -- and a
-      // missing/not-yet-migrated table shouldn't fall the whole fetch back to
-      // bundled pricing, just that one list (see the fallback below).
-      supabase.from('upi_handles').select('*').order('created_at'),
+      // Each shop keeps its own rotating handles (Online's aren't offered at
+      // Lalbagh, etc) -- and a missing/not-yet-migrated table shouldn't fall
+      // the whole fetch back to bundled pricing, just that one list (see the
+      // fallback below).
+      supabase.from('upi_handles').select('*').eq('location_id', locationId).order('created_at'),
     ]);
 
     const error = ingredientsRes.error || typesRes.error || recipesRes.error || settingsRes.error;
